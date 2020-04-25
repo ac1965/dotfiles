@@ -3,8 +3,6 @@
 for f in $(cat <<EOF
 .Brewfile
 .gitconfig
-.gitignore
-.gitmodules
 .vim
 .vimperator
 .vimperatorrc

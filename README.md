@@ -20,7 +20,7 @@
   $ test -f ~/.Brewfiles && brew bundle
 ```
 
-## ioterm2
+## iTerm2
 
 ```
 --　画面の分割

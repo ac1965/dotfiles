@@ -9,6 +9,7 @@ bin
 .vimperatorrc.js
 .vimrc
 .vim
+.viminfo
 EOF
 ); do
 	test -f $f -o -d $f && (

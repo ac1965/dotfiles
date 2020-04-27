@@ -20,10 +20,10 @@ brew "fd"
 brew "ffmpeg"
 brew "gist"
 brew "git"
-brew "gitup"
 brew "gnupg"
 brew "hub"
 brew "hunspell"
+brew "less"
 brew "mas"
 brew "pinentry-mac"
 brew "vim"
@@ -43,6 +43,7 @@ cask "kindle"
 cask "openinterminal-lite"
 cask "the-unarchiver"
 cask "vagrant"
+mas "Kindle", id: 405399194
 mas "Perculia", id: 1462633284
 mas "Spark", id: 1176895641
 mas "Xcode", id: 497799835

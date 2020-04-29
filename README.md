@@ -25,8 +25,8 @@
 ```
   $ git clone https://github.com/emacs-mirror/emacs
   $ cd emacs
-  $ ./configure --with-ns \
-  --without-dbus --with-imagemagick --disable-ns-self-contained --with-janssonc
+  $ ./autogen.sh
+  $ ./configure --with-ns
   $ make
   $ sudo make install
   $ cd nextstep && cp -a cp -a Emacs.app /Applications

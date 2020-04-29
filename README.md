@@ -20,15 +20,17 @@
   $ test -f ~/.Brewfiles && brew bundle
 ```
 
-* emacs-head のインストール
-
-    https://github.crookster.org/emacs27-from-homebrew-on-macos-with-emoji/
+* emacs のインストール
 
 ```
-  $ brew tap daviderestivo/emacs-head
-  $ brew install emacs-head --HEAD --with-cocoa --with-imagemagick --with-jansson
-  $ ln -s /usr/local/opt/emacs-head/Emacs.app /Applications
-```
+  $ git clone https://github.com/emacs-mirror/emacs
+  $ cd emacs
+  $ ./configure --with-ns \
+  --without-dbus --with-imagemagick --disable-ns-self-contained --with-janssonc
+  $ make
+  $ sudo make install
+  $ cd nextstep && cp -a cp -a Emacs.app /Applications
+  ```
 
 
 ## iTerm2

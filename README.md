@@ -17,7 +17,7 @@
 
 ```
   $ /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
-  $ test -f ~/.Brewfiles && brew bundle
+  $ test -f ~/.Brewfiles && brew bundle --global
 ```
 
 * emacs のインストール

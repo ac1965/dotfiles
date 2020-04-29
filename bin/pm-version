@@ -1,3 +1,0 @@
-#!/bin/sh
-
-perl -M"$1" -e "print qq|\$$1::VERSION\n|"

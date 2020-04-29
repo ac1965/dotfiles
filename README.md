@@ -21,7 +21,8 @@
 ```
 
 * emacs-head のインストール
-    [[https://github.crookster.org/emacs27-from-homebrew-on-macos-with-emoji/]]
+
+    https://github.crookster.org/emacs27-from-homebrew-on-macos-with-emoji/
 
 ```
   $ brew tap daviderestivo/emacs-head

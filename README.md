@@ -32,7 +32,7 @@ command + t タブ
 command + return 最大化/元のサイズ
 ```
 
-## zprezzo
+## zprezto
 
 ```
 git clone --recursive https://github.com/sorin-ionescu/prezto.git "${ZDOTDIR:-$HOME}/.zprezto"

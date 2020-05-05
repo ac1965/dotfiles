@@ -29,7 +29,7 @@
   $ ./configure --with-ns
   $ make
   $ sudo make install
-  $ cd nextstep && cp -a cp -a Emacs.app /Applications
+  $ cd nextstep && cp -a Emacs.app /Applications
   ```
 
 

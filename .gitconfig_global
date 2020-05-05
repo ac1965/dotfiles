@@ -1,0 +1,30 @@
+# -*- mode: gitconfig -*-
+
+[core]
+	excludesfile = ~/.gitignore_global
+	autocrlf = false
+	ignorecase = false
+	safecrlf = warn
+	editor = emacsclient -a=\\\"\\\"
+	quotepath = false
+
+[alias]
+	abort-rebase       = rebase --abort
+	branch-name        = name-rev --name-only
+	ci                 = commit -v
+	co                 = checkout
+	continue-rebase    = rebase --continue
+	cp                 = cherry-pick
+	df                 = diff
+	ds                 = diff --staged
+	fdf                = diff --function-context
+	fetch-pulls        = fetch origin +refs/pull/*:refs/remotes/pull/*
+	fix                = commit --amend
+	gr = grep
+	show = diff-highlight | less
+	diff = diff-highlight | less
+	grep = false
+
+[url "git@github.com:"]
+	pushInsteadOf = https://github.com/
+	pushInsteadOf = git://github.com/

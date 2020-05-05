@@ -1,108 +1,18 @@
+# -*- mode: gitconfig -*-
+#
+[include]
+	path = ~/.gitconfig_global
+
 [user]
 	email = tjy1965@gmail.com
 	name = YAMASHITA Takao
+
+[credential]
+	helper = osxkeychain
 
 [gui]
 	encoding = utf-8
 
 [github]
 	user = ac1965
-
-[alias]
-	abort-rebase       = rebase --abort
-	branch-name        = name-rev --name-only
-	ci                 = commit -v
-	co                 = checkout
-	continue-rebase    = rebase --continue
-	cp                 = cherry-pick
-	df                 = diff
-	ds                 = diff --staged
-	fdf                = diff --function-context
-	fetch-pulls        = fetch origin +refs/pull/*:refs/remotes/pull/*
-	fix                = commit --amend
-	gr = grep
-	interactive-rebase = rebase --interactive
-	network            = log --graph --all --decorate --oneline
-	onelog             = log --oneline
-	squashed-merge     = merge --squash
-	st                 = status --branch --short --untracked-files=normal --ignore-submodules=dirty
-	ls                 = ls-files
-	delete-branch      = branch -d
-	current-branch = symbolic-ref --short HEAD
-	curret-remote-branch = rev-parse --abbrev-ref --symbolic-full-name @{u}
-	hard-revert-merge-commit = reset --hard ORIG_HEAD
-	medetai = !git rev-list HEAD | rg -P '(.)\\1\\1'
-	pr = pull-request
-	recently-added = log --grep \"Revert\" --invert-grep --diff-filter=A --format=\"\" --name-only
-
-[color]
-	branch      = true
-	diff        = true
-	grep        = true
-	interactive = true
-	pager       = true
-	status      = true
-
-[color "branch"]
-	current = green reverse
-	local   = green
-	remote  = yellow
-
-[color "status"]
-	changed   = green
-	untracked = cyan
-	updated   = yellow
-
-[i18n]
-	commitencoding= utf-8
-
-[core]
-	quotepath = false
-	whitespace = cr-at-eol
-	pager = $PAGER
-	precomposeunicode = true
-	excludesfile = ~/.global.gitignore
-
-[push]
-	default = simple
-
-[branch]
-	autosetuprebase = always
-
-[grep]
-	lineNumber = true
-	patternType = perl
-
-[rebase]
-	stat = true
-
-[diff "gzip"]
-	textconv = gzcat
-
-[log]
-	date = iso
-
-[merge]
-	stat = true
-
-[interactive]
-	singlekey = true
-
-[diff]
-	algorithm = histogram
-
-[include]
-	path = ~/.secret.gitconfig
-
-[advice]
-	statusHints = false
-
-[pager]
-	log = diff-highlight | less
-	show = diff-highlight | less
-	diff = diff-highlight | less
-	grep = false
-
-[url "git@github.com:"]
-	pushInsteadOf = https://github.com/
-	pushInsteadOf = git://github.com/
+	oauth-token = xxxx

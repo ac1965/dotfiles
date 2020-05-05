@@ -3,13 +3,15 @@
 for f in $(cat <<EOF
 .Brewfile
 .gitconfig
-bin
+.gitconfig_global
+.gitignore_global
 .vimperator
 .vimperatorrc
 .vimperatorrc.js
 .vimrc
 .vim
 .viminfo
+bin
 EOF
 ); do
 	test -f $f -o -d $f && (

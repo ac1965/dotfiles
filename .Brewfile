@@ -52,4 +52,5 @@ cask "vagrant"
 mas "Kindle", id: 405399194
 mas "Perculia", id: 1462633284
 mas "Spark", id: 1176895641
+mas "Twitter", id: 1482454543
 mas "Xcode", id: 497799835

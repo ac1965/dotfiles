@@ -10,7 +10,8 @@
 
   1. shutdown
   1. command + r
-  1. ディスクユーティリティを使ってディスク中身を削除する
+  1. ディスクユーティリティを使ってディスクを削除
+　　　[[https://support.apple.com/ja-jp/HT208496]]
   1. 再インストール
 
 ## Homebrew のインストール

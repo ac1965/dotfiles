@@ -30,7 +30,11 @@
   $ git clone https://github.com/emacs-mirror/emacs
   $ cd emacs
   $ ./autogen.sh
-  $ ./configure --with-ns
+  $ ./configure \
+  --with-ns \
+  --without-dbus \
+  --with-imagemagick \
+  --disable-ns-self-contained --with-janssonc
   $ make
   $ sudo make install
   $ cd nextstep && cp -a Emacs.app /Applications

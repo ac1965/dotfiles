@@ -2,7 +2,6 @@
 
 for f in $(cat <<EOF
 .Brewfile
-.gitconfig
 .gitconfig_global
 .gitignore_global
 .vimperator

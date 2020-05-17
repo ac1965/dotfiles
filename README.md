@@ -30,10 +30,10 @@
   $ git clone https://github.com/emacs-mirror/emacs
   $ cd emacs
   $ ./autogen.sh
-  $ CFLAGS=`xml2-config --cflags` ./configure --with-ns
+  $ CFLAGS=`xml2-config --cflags` ./configure
   $ make
-  $ sudo make install
-  $ cd nextstep && cp -a Emacs.app /Applications
+  $ make install
+  $ open -R nextstep/Emacs.app
   ```
 
 

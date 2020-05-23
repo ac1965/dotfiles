@@ -1,5 +1,10 @@
 # dotfiles
 
+```
+  $ git clone https://github.com/ac1965/dotfiles.git
+  $ bash dotfiles/setup.sh
+
+
 ## MacOS のクリーンアップ
 
 * backup
@@ -27,13 +32,7 @@
 * emacs のインストール
 
 ```
-  $ git clone https://github.com/emacs-mirror/emacs
-  $ cd emacs
-  $ ./autogen.sh
-  $ CFLAGS=`xml2-config --cflags` ./configure
-  $ make
-  $ make install
-  $ open -R nextstep/Emacs.app
+  $ ~/.bin/build-emacs.sh
   ```
 
 

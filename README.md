@@ -3,6 +3,8 @@
 ```
   $ git clone https://github.com/ac1965/dotfiles.git
   $ bash dotfiles/setup.sh
+  $ cp dotfiles/.gitconfig ~/.gitconfig
+  $ vi ~/.gitconfig
 
 
 ## MacOS のクリーンアップ

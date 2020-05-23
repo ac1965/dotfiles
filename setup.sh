@@ -1,5 +1,6 @@
 #! /bin/sh
 
+# .gitconfig 
 for f in $(cat <<EOF
 .Brewfile
 .gitconfig_global

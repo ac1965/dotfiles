@@ -17,8 +17,10 @@ brew "gnutls"
 brew "cask"
 brew "composer"
 brew "coreutils"
+brew "deno"
 brew "docker"
 brew "docker-compose"
+brew "dvdbackup"
 brew "exa"
 brew "fd"
 brew "ffmpeg"
@@ -49,10 +51,12 @@ cask "font-hackgen"
 cask "google-chrome"
 cask "iterm2"
 cask "kindle"
+cask "mactex-no-gui"
 cask "openinterminal-lite"
 cask "the-unarchiver"
 cask "vagrant"
 mas "Kindle", id: 405399194
+mas "LINE", id: 539883307
 mas "Perculia", id: 1462633284
 mas "Spark", id: 1176895641
 mas "Twitter", id: 1482454543

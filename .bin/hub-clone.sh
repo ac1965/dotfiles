@@ -11,6 +11,7 @@ if [ $# -eq 1 ]; then
     #echo "url:$url, owner=$owner, repos=$repos"
     test -d ${T}/${host} || install -d ${T}/${host}
     test -d ${T}/${host}/${owner} || install -d ${T}/${host}/${owner}
+    test -x ~/.bin/hub-repos.sh && ~/.bin/hub-repos.sh $owner > ${T}/${host}/${owner}/repos-${owner}.txt
     (
         cd ${T}/${host}/${owner}
         if [ -d ${repos} ]; then

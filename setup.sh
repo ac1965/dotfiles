@@ -3,6 +3,7 @@
 # .gitconfig 
 for f in $(cat <<EOF
 .Brewfile
+.docker-alias
 .gitconfig_global
 .gitignore_global
 .vimperator

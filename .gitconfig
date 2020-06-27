@@ -15,4 +15,7 @@
 
 [github]
 	user = ac1965
-	oauth-token = xxxx
+#	token = xxxxbf335cc0c9a8307563f4352cf654d55d759e
+
+[pull]
+	rebase = false

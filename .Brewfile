@@ -1,1 +1,1 @@
-/Users/yamashitatakao/dotfiles/.Brewfile
+Brewfile

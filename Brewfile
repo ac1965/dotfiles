@@ -38,6 +38,7 @@ brew "poppler"
 brew "ripgrep"
 brew "texinfo"
 brew "vim"
+brew "weechat"
 brew "yarn"
 brew "sanemat/font/ricty"
 cask "adoptopenjdk14"
@@ -53,7 +54,6 @@ cask "kindle"
 cask "openinterminal-lite"
 cask "the-unarchiver"
 cask "vagrant"
-mas "Kindle", id: 405399194
 mas "LINE", id: 539883307
 mas "Perculia", id: 1462633284
 mas "Spark", id: 1176895641

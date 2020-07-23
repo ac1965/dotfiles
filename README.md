@@ -56,6 +56,8 @@ command + return 最大化/元のサイズ
 
 ## zprezto
 
+https://dev.classmethod.jp/articles/zsh-prezto/
+
 ```
 git clone --recursive https://github.com/sorin-ionescu/prezto.git "${ZDOTDIR:-$HOME}/.zprezto"
 ```

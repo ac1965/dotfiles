@@ -12,7 +12,7 @@ for f in $(cat <<EOF
 .vimrc
 .vim
 .viminfo
-bin
+.bin
 EOF
 ); do
 	test -f $f -o -d $f && (

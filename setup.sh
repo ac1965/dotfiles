@@ -6,6 +6,7 @@ for f in $(cat <<EOF
 .docker-alias
 .gitconfig_global
 .gitignore_global
+.macos
 .vimperator
 .vimperatorrc
 .vimperatorrc.js

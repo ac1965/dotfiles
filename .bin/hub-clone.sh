@@ -1,6 +1,6 @@
 #! /usr/bin/env bash
 
-T="${HOME}/Documents/devel/src"
+T=${T:-${HOME}/devel/src}
 
 if [ $# -eq 1 ]; then
     url=$1

@@ -8,13 +8,13 @@
 # - autoconf
 # - automake
 
-DEST="$HOME/Documents/devel/src/github.com/emacs-mirror/emacs"
-APPS="/Applications/Emacs.app"
+
+TARGET="${GITHUB_REPOS}/emacs-mirror/emacs"
 
 test -x ~/.bin/hub-clone.sh || exit 9
 
-if [ -d $DEST ]; then
-    cd $DEST
+if [ -d $TARGET ]; then
+    cd $TARGET
     git reset --hard
     git clean -xdf
     git pull
@@ -22,7 +22,7 @@ else
     ~/.bin/hub-clone.sh https://github.com/emacs-mirror/emacs.git
 fi
 
-cd $DEST
+cd $TARGET
 ./autogen.sh  && \
     CFLAGS=`xml2-config --cflags` ./configure && make install && (
         test -d $APPS && rm -fr $APPS

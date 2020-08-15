@@ -1,6 +1,6 @@
 #! /usr/bin/env bash
 
-THIS="$HOME/Documents/devel/src"
+THIS=${T:-$HOME/devel/src}
 TARGET="${THIS}/${1:-${GIT_DEFAULT_SITE}}"
 LOG="${THIS}/hub-update.log"
 
@@ -24,4 +24,3 @@ test -d $TARGET && (
         ) | tee -a $LOG
     done
 ) || echo $0 git-site
-

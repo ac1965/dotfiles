@@ -3,8 +3,12 @@ function dockershell() {
 }
 
 function dockershellsh() {
-    docker run --rm -i -t --entrypoint=/bin/sh "$@"
+    docker run --security-opt seccomp:unconfined --rm -i "$@"
 }
+
+#function dockershellsh() {
+#    docker run --rm -i -t --entrypoint=/bin/sh "$@"
+#}
 
 function dockershellhere() {
     dirname=${PWD##*/}

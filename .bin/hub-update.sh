@@ -15,7 +15,7 @@ test -d $TARGET && (
         for g in $(gls --color=none -l | grep "^d" | awk '{print $NF}')
         do
             (
-                echo -- $d  $g
+                echo -- $d $g
                 cd $g
                 pwd
                 git pull

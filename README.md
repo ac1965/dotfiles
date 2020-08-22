@@ -34,14 +34,14 @@
 
 ```
   $ /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
-  $ test -f ~/.Brewfiles && brew bundle --global
+  $ test -f ~/.Brewfile && brew bundle --global
 ```
 
 * emacs のインストール
 
 ```
-  $ ~/.bin/build-emacs.sh
-  ```
+  $ build-emacs.sh
+```
 
 
 ## iTerm2

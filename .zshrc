@@ -5,8 +5,8 @@
 #   Sorin Ionescu <sorin.ionescu@gmail.com>
 #
 
-source ${HOME}/.${USER}_rc
-source ${HOME}/.docker-alias
+test -f ${HOME}/.${USER}_rc && source ${HOME}/.${USER}_rc
+test -f ${HOME}/.docker-alias && source ${HOME}/.docker-alias
 
 # Source Prezto.
 if [[ -s "${ZDOTDIR:-$HOME}/.zprezto/init.zsh" ]]; then
@@ -14,8 +14,6 @@ if [[ -s "${ZDOTDIR:-$HOME}/.zprezto/init.zsh" ]]; then
 fi
 
 # Customize to your needs...
+test -d /usr/local/opt/sqlite/bin && export PATH="/usr/local/opt/sqlite/bin:$PATH"
 export PYENV_ROOT="$HOME/.pyenv"
-export PATH="$PYENV_ROOT/bin:$PATH"
-export PATH="/usr/local/opt/sqlite/bin:$PATH"
-
-eval "$(pyenv init -)"
+test -d $PYENV_ROOT && export PATH="$PYENV_ROOT/bin:$PATH" && eval "$(pyenv init -)"

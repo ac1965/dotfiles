@@ -20,8 +20,8 @@
 * クリーンアップ
 
   1. shutdown
-  1. command + r
-  1. ディスクユーティリティを使ってディスクを削除 
+  1. command + R
+  1. ディスクユーティリティを使ってディスクを削除
   1. 再インストール
 
    https://support.apple.com/ja-jp/HT208496
@@ -84,3 +84,7 @@ zstyle ':prezto:load' pmodule \
   'autosuggestions' \      <- 追加
   'prompt' \
 ```
+
+## pyenv & pipenv
+
+https://qiita.com/santa_sukitoku/items/6cbb325a895653c81b36

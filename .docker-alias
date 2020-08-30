@@ -61,3 +61,7 @@ reqdump() {
 postfiledumphere() {
     docker run --rm -it -p80:3000 -v "${PWD}:/data" rflathers/postfiledump
 }
+
+docker-find-child() {
+    for img in $(docker images -q); do docker history $img | grep -q "$@" && echo $img; done | sort -u
+}

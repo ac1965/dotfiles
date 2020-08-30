@@ -9,8 +9,9 @@ https://github.com/giper45/DockerSecurityPlayground
 https://github.com/jaredestroud/mquery
 https://github.com/log2timeline/dfvfs
 https://github.com/mahito1594/dotemacs
-https://github.com/mantvydasb/RedTeam-Tactics-and-Techniques
+https://github.com/mantvydasb/DetectionLab
 https://github.com/mantvydasb/Red-Team-Infrastructure-Automation
+https://github.com/mantvydasb/RedTeam-Tactics-and-Techniques
 https://github.com/msky026/30nichideosjisaku
 https://github.com/niftycode/imessage_reader
 https://github.com/offensive-security/kali-linux-docker-rolling

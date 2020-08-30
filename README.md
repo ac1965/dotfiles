@@ -26,8 +26,6 @@
 
    https://support.apple.com/ja-jp/HT208496
 
-   https://www.youtube.com/watch?v=h4vj78euzKQ
-
 ## Xcode のインストール
 
 ## Homebrew のインストール

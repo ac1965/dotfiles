@@ -2,8 +2,8 @@ function dockershell() {
     docker run --rm -i -t --entrypoint=/bin/bash "$@"
 }
 
-function dockershellsh() {
-    docker run --security-opt seccomp:unconfined --rm -i "$@"
+function dockershellsec() {
+    docker run --security-opt seccomp:unconfined --rm -v "${HOME}/Downloads:/tmp/downloads" -it "$@"
 }
 
 #function dockershellsh() {

@@ -61,6 +61,8 @@ cask "mactex"
 cask "openinterminal-lite"
 cask "the-unarchiver"
 cask "vagrant"
+cask "virtualbox"
+cask "virtualbox-extension-pack"
 mas "LINE", id: 539883307
 mas "Perculia", id: 1462633284
 mas "Spark", id: 1176895641

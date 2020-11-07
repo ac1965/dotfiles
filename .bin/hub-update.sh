@@ -3,6 +3,7 @@
 THIS=${T:-$HOME/devel/src}
 TARGET="${THIS}/${1:-${GIT_DEFAULT_SITE}}"
 LOG="${THIS}/hub-update.log"
+FAVORITE="${THIS}/favorite-repos.txt"
 
 date | tee -a $LOG
 test -d $TARGET && (
@@ -16,7 +17,9 @@ test -d $TARGET && (
         for g in $(gls --color=none -l | grep "^d" | awk '{print $NF}')
         do
             (
-                echo -- https://${GIT_DEFAULT_SITE}/${d}/${g}.git
+                REPOS="https://${GIT_DEFAULT_SITE}/${d}/${g}.git"
+                echo -- ${REPOS}
+                echo ${REPOS} >> ${FAVORITE}
                 cd $g
                 git pull
             )
@@ -24,3 +27,7 @@ test -d $TARGET && (
         ) | tee -a $LOG
     done
 ) || echo $0 git-site
+
+test -f ${FAVORITE} && {
+    sort -u ${FAVORITE} > _tmp && mv _tmp ${FAVORITE}
+}

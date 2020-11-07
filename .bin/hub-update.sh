@@ -9,6 +9,7 @@ date | tee -a $LOG
 test -d $TARGET && (
     cd $TARGET
     test -f $LOG && rm -f $LOG
+    test -f $FAVORITE || (test -f ~/dotfiles/favorite-repos.txt && ln -s ~/dotfiles/favorite-repos.txt ${FAVORITE})
     for d in $(gls --color=none)
     do
         (
@@ -26,8 +27,6 @@ test -d $TARGET && (
         done
         ) | tee -a $LOG
     done
+    sort -u ${FAVORITE} > _tmp && mv _tmp ${FAVORITE}
 ) || echo $0 git-site
 
-test -f ${FAVORITE} && {
-    sort -u ${FAVORITE} > _tmp && mv _tmp ${FAVORITE}
-}

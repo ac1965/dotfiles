@@ -86,3 +86,13 @@ zstyle ':prezto:load' pmodule \
 ## pyenv & pipenv
 
 https://qiita.com/santa_sukitoku/items/6cbb325a895653c81b36
+
+## mactex
+
+mactex は `Homebrew のインストール` でインストールされる。
+パッケージの更新は tlmgr を使い、印刷サイズを A4サイズを設定しておく。
+
+``` bash
+sudo tlmgr update --self --all
+sudo tlmgr paper a4
+```

@@ -87,12 +87,15 @@ zstyle ':prezto:load' pmodule \
 
 https://qiita.com/santa_sukitoku/items/6cbb325a895653c81b36
 
-## mactex
+## basictex
 
-mactex は `Homebrew のインストール` でインストールされる。
+basictex は `Homebrew のインストール` で インストールされる。
 パッケージの更新は tlmgr を使い、印刷サイズを A4サイズを設定しておく。
 
 ``` bash
 sudo tlmgr update --self --all
 sudo tlmgr paper a4
+for col in collection-langjapanese collection-luatex collection-latexextra; do
+sudo tlmgr install $col; done
 ```
+

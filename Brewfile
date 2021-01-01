@@ -52,7 +52,6 @@ brew "pandoc-citeproc"
 brew "pinentry-mac"
 brew "pipenv"
 brew "poppler"
-brew "pyenv"
 brew "ripgrep"
 brew "ruby"
 brew "rust"
@@ -63,7 +62,7 @@ brew "the_silver_searcher"
 brew "vim"
 brew "weechat"
 brew "yarn"
-brew "youtube-dl", link: false
+brew "youtube-dl"
 brew "yq"
 brew "mutagen-io/mutagen/mutagen"
 brew "sanemat/font/ricty"
@@ -85,7 +84,9 @@ cask "the-unarchiver"
 cask "vagrant"
 cask "virtualbox"
 cask "virtualbox-extension-pack"
+cask "vlc"
 cask "xld"
+mas "Ecosia - The search engine that plants trees", id: 1463400445
 mas "LINE", id: 539883307
 mas "Perculia", id: 1462633284
 mas "Spark", id: 1176895641

@@ -7,6 +7,7 @@
 
 test -f ${HOME}/.${USER}_rc && source ${HOME}/.${USER}_rc
 test -f ${HOME}/.docker-alias && source ${HOME}/.docker-alias
+test -f ${HOME}/.cargo/env && source ${HOME}/.cargo/env
 
 # Source Prezto.
 if [[ -s "${ZDOTDIR:-$HOME}/.zprezto/init.zsh" ]]; then

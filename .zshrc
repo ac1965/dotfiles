@@ -27,4 +27,9 @@ fi
 if command -v hub 1>/dev/null 2>&1; then
     eval "$(hub alias -s)"
 fi
+if command -v kubectl 1>/dev/null 2>&1; then
+    source <(kubectl completion zsh)
+    alias k=kubectl
+    complete -F __start_kubectl k
+fi
 test -d /usr/local/opt/ruby/bin && export PATH="/usr/local/opt/ruby/bin:$PATH"

@@ -8,6 +8,7 @@
 test -f ${HOME}/.${USER}_rc && source ${HOME}/.${USER}_rc
 test -f ${HOME}/.docker-alias && source ${HOME}/.docker-alias
 test -f ${HOME}/.cargo/env && source ${HOME}/.cargo/env
+test -f ${HOME}/.asdf/asdf.sh && . ${HOME}/.asdf/asdf.sh
 
 # Source Prezto.
 if [[ -s "${ZDOTDIR:-$HOME}/.zprezto/init.zsh" ]]; then
@@ -30,6 +31,6 @@ fi
 if command -v kubectl 1>/dev/null 2>&1; then
     source <(kubectl completion zsh)
     alias k=kubectl
-    complete -F __start_kubectl k
+#    complete -F __start_kubectl k
 fi
 test -d /usr/local/opt/ruby/bin && export PATH="/usr/local/opt/ruby/bin:$PATH"

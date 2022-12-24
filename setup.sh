@@ -1,6 +1,6 @@
-#! /bin/sh
+#! /bin/zsh
 
-# .gitconfig 
+# .gitconfig
 for f in $(cat <<EOF
 .Brewfile
 .docker-alias
@@ -18,6 +18,7 @@ EOF
 ); do
 	test -f $f -o -d $f && (
 		echo -- $f
-		ln -fs $(pwd)/$f ~/.
+		ln -fs "$f" "$HOME/${f:t}"
+
 	)
 done

@@ -114,7 +114,9 @@ cask "visual-studio-code"
 cask "vlc"
 cask "wkhtmltopdf"
 cask "xld"
+mas "Amphetamine", id: 937984704
 mas "Duplicate Photos Finder", id: 984929789
+mas "Flacbox", id: 1594027432
 mas "Just Press Record", id: 1033342465
 mas "LINE", id: 539883307
 mas "Perculia", id: 1462633284

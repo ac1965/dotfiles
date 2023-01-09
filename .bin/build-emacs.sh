@@ -11,8 +11,8 @@
 DO_BREW_PACKAGES=(
     # Build dependencies
     autoconf
-    cairo
-    cmake
+    #cairo
+    #cmake
     #gcc
     libgccjit
     gnupg
@@ -22,7 +22,7 @@ DO_BREW_PACKAGES=(
     #jansson
     #librsvg
     #libvterm
-    libxml2
+    #libxml2
     pkg-config
 
     # Runtime dependencies
@@ -124,7 +124,7 @@ do_brew_ensure --formula "${DO_BREW_PACKAGES[@]}"
 do_brew_ensure --cask "${DO_BREW_CASKS[@]}"
 
 cd $TARGET
-./autogen.sh  && \
+make distclean && ./autogen.sh  && \
     CFLAGS=`xml2-config --cflags` ./configure && make -j $DO_CORES && make install && (
         test -d $APPS && rm -fr $APPS
         open -R nextstep/Emacs.app

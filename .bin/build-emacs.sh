@@ -13,6 +13,8 @@ DO_BREW_PACKAGES=(
     autoconf
     gnupg
     gnutls
+    libgccjit
+    jansson
     imagemagick
     pkg-config
 

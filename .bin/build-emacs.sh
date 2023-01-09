@@ -17,8 +17,8 @@ DO_BREW_PACKAGES=(
     libgccjit
     gnupg
     gnutls
-    # The macOS build uses the Cocoa image library
     imagemagick
+    # The macOS build uses the Cocoa image library
     #jansson
     #librsvg
     #libvterm

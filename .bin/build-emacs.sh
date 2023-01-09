@@ -11,18 +11,9 @@
 DO_BREW_PACKAGES=(
     # Build dependencies
     autoconf
-    #cairo
-    #cmake
-    #gcc
-    libgccjit
     gnupg
     gnutls
     imagemagick
-    # The macOS build uses the Cocoa image library
-    #jansson
-    #librsvg
-    #libvterm
-    #libxml2
     pkg-config
 
     # Runtime dependencies
@@ -125,7 +116,8 @@ do_brew_ensure --cask "${DO_BREW_CASKS[@]}"
 
 cd $TARGET
 make distclean && ./autogen.sh  && \
-    CFLAGS=`xml2-config --cflags` ./configure && make -j $DO_CORES && make install && (
+    CFLAGS=`xml2-config --cflags` ./configure && \
+    make -j $DO_CORES && make install && (
         test -d $APPS && rm -fr $APPS
         open -R nextstep/Emacs.app
     )

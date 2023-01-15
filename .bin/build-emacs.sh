@@ -7,15 +7,21 @@
 # - gnutls (allows communication via SSL, TLS, amd DTLS)
 # - autoconf
 # - automake
+# $ ./autogen.sh && \
+# ./configure --with-native-compilation=aot --without-ns --without-x --with-libxml2=/usr/bin/xml2-config && make -j8
 
 DO_BREW_PACKAGES=(
     # Build dependencies
     autoconf
+    cairo
+    cmake
+    gcc
+    libgccjit
     gnupg
     gnutls
-    libgccjit
-    jansson
     imagemagick
+    jansson
+    libxml2
     pkg-config
 
     # Runtime dependencies
@@ -29,6 +35,16 @@ DO_BREW_PACKAGES=(
 
 DO_BREW_CASKS=(
     basictex
+)
+
+
+DO_CONFIGURE_OPTS=(
+    --without-pop
+    --with-modules
+    --with-native-compilation
+    --with-xml2
+    --with-gnutls
+    --with-json
 )
 
 # Print the given arguments out in a nice heading
@@ -118,6 +134,7 @@ do_brew_ensure --cask "${DO_BREW_CASKS[@]}"
 
 cd $TARGET
 make distclean && ./autogen.sh  && \
+    # CFLAGS=`xml2-config --cflags` ./configure "${DO_CONFIGURE_OPTS[@]}" && \
     CFLAGS=`xml2-config --cflags` ./configure && \
     make -j $DO_CORES && make install && (
         test -d $APPS && rm -fr $APPS

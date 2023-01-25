@@ -39,9 +39,8 @@ DO_BREW_CASKS=(
 
 
 DO_CONFIGURE_OPTS=(
-    --without-pop
     --with-modules
-    --with-native-compilation
+    # --with-native-compilation
     --with-xml2
     --with-gnutls
     --with-json
@@ -134,8 +133,8 @@ do_brew_ensure --cask "${DO_BREW_CASKS[@]}"
 
 cd $TARGET
 make distclean && ./autogen.sh  && \
-    # CFLAGS=`xml2-config --cflags` ./configure "${DO_CONFIGURE_OPTS[@]}" && \
-    CFLAGS=`xml2-config --cflags` ./configure && \
+    CFLAGS=`xml2-config --cflags` ./configure "${DO_CONFIGURE_OPTS[@]}" && \
+    # CFLAGS=`xml2-config --cflags` ./configure && \
     make -j $DO_CORES && make install && (
         test -d $APPS && rm -fr $APPS
         open -R nextstep/Emacs.app

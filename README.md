@@ -26,7 +26,7 @@
 
    https://support.apple.com/ja-jp/HT208496
 
-** 私のMac は Monterey が動作しているIntel搭載なので
+** 私のMac は Monterey 以降が動作しているIntel搭載なので
 
 - MacBook Pro (13-inch, 2020, Four Thunderbolt 3 ports)
 

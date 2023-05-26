@@ -31,6 +31,8 @@ DO_BREW_PACKAGES=(
     node
     python
     shfmt
+    mupdf
+#    mupdf-tools
 )
 
 DO_BREW_CASKS=(
@@ -40,10 +42,11 @@ DO_BREW_CASKS=(
 
 DO_CONFIGURE_OPTS=(
     --with-modules
-    # --with-native-compilation
+#    --with-native-compilation=aot
     --with-xml2
     --with-gnutls
     --with-json
+    --with-rsvg
 )
 
 # Print the given arguments out in a nice heading

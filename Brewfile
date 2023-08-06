@@ -137,6 +137,7 @@ cask "xld"
 mas "Amphetamine", id: 937984704
 mas "Duplicate Photos Finder", id: 984929789
 mas "Flacbox", id: 1594027432
+mas "iMovie", id: 408981434
 mas "Just Press Record", id: 1033342465
 mas "LINE", id: 539883307
 mas "Perculia", id: 1462633284
@@ -145,3 +146,34 @@ mas "Slack", id: 803453959
 mas "Spark", id: 1176895641
 mas "Twitter", id: 1482454543
 mas "Xcode", id: 497799835
+vscode "dbaeumer.vscode-eslint"
+vscode "gonzalovsilva.orgcolor"
+vscode "googlecloudtools.cloudcode"
+vscode "ms-azuretools.vscode-docker"
+vscode "MS-CEINTL.vscode-language-pack-ja"
+vscode "ms-kubernetes-tools.vscode-kubernetes-tools"
+vscode "ms-vscode-remote.remote-containers"
+vscode "ms-vscode-remote.remote-ssh"
+vscode "ms-vscode-remote.remote-ssh-edit"
+vscode "ms-vscode.remote-explorer"
+vscode "redhat.vscode-yaml"
+vscode "RomanPeshkov.vscode-text-tables"
+vscode "salesforce.salesforce-vscode-slds"
+vscode "salesforce.salesforcedx-vscode"
+vscode "salesforce.salesforcedx-vscode-apex"
+vscode "salesforce.salesforcedx-vscode-apex-debugger"
+vscode "salesforce.salesforcedx-vscode-apex-replay-debugger"
+vscode "salesforce.salesforcedx-vscode-core"
+vscode "salesforce.salesforcedx-vscode-lightning"
+vscode "salesforce.salesforcedx-vscode-lwc"
+vscode "salesforce.salesforcedx-vscode-soql"
+vscode "salesforce.salesforcedx-vscode-visualforce"
+vscode "SeungukShin.org-code"
+vscode "time-link.kleio"
+vscode "time-link.timelink-snippets-ilhavo"
+vscode "time-link.timelink-vscode-web"
+vscode "tittoassini.vscode-planner"
+vscode "tootone.org-mode"
+vscode "valentjn.vscode-ltex"
+vscode "vscode-org-mode.org-mode"
+vscode "YtterdalVentures.dnszonefile"

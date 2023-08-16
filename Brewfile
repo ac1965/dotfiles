@@ -144,7 +144,6 @@ mas "Perculia", id: 1462633284
 mas "Prime Video", id: 545519333
 mas "Slack", id: 803453959
 mas "Spark", id: 1176895641
-mas "Twitter", id: 1482454543
 mas "Xcode", id: 497799835
 vscode "dbaeumer.vscode-eslint"
 vscode "gonzalovsilva.orgcolor"

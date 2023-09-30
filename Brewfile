@@ -2,7 +2,6 @@ tap "buo/cask-upgrade"
 tap "homebrew/bundle"
 tap "homebrew/cask-fonts"
 tap "homebrew/cask-versions"
-tap "homebrew/core"
 tap "homebrew/services"
 tap "keith/formulae"
 tap "lencx/chatgpt", "https://github.com/lencx/ChatGPT.git"
@@ -137,6 +136,7 @@ mas "Duplicate Photos Finder", id: 984929789
 mas "Flacbox", id: 1594027432
 mas "iMovie", id: 408981434
 mas "Just Press Record", id: 1033342465
+mas "Kindle", id: 302584613
 mas "LINE", id: 539883307
 mas "Perculia", id: 1462633284
 mas "Prime Video", id: 545519333

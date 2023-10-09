@@ -4,51 +4,25 @@
 
 ```
   $ git clone https://github.com/ac1965/dotfiles.git
-  $ bash dotfiles/setup.sh
-  $ cp dotfiles/.gitconfig ~/.gitconfig
-  $ vi ~/.gitconfig
-  $ chmod +x ~/.bin/*.sh
+  $ dotfiles/setup.sh
 ```
-
 
 ## MacOS のクリーンアップ
 
-* backup
-
-  Time Machine でバックアップを取っておく
-
-* クリーンアップ
-
-  1. shutdown
-  1. command + R
-  1. ディスクユーティリティを使ってディスクを削除
-  1. 再インストール
-
-   https://support.apple.com/ja-jp/HT208496
-
-** 私のMac は Monterey 以降が動作しているIntel搭載なので
+** 私のMac は Sonoma 以降が動作しているIntel搭載なので
 
 - MacBook Pro (13-inch, 2020, Four Thunderbolt 3 ports)
 
    https://support.apple.com/ja-jp/HT212749
 
-## Xcode のインストール
-
 ## Homebrew のインストール
 
 ```
   $ /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
-  $ test -f ~/.Brewfile && brew bundle --global
+  $ brew bundle --global
 ```
 
-* emacs のインストール
-
-```
-  $ build-emacs.sh
-```
-
-
-## iTerm2
+* iTerm2
 
 ```
 --　画面の分割
@@ -60,7 +34,7 @@ command + t タブ
 command + return 最大化/元のサイズ
 ```
 
-## zprezto
+* zprezto
 
 https://dev.classmethod.jp/articles/zsh-prezto/
 
@@ -73,20 +47,12 @@ setopt EXTENDED_GLOB
 for rcfile in "${ZDOTDIR:-$HOME}"/.zprezto/runcoms/^README.md(.N); do
   ln -s "$rcfile" "${ZDOTDIR:-$HOME}/.${rcfile:t}"
 done
+```
 
+* Emacs のインストール
 
-zstyle ':prezto:load' pmodule \
-  'environment' \
-  'terminal' \
-  'editor' \
-  'history' \
-  'directory' \
-  'spectrum' \
-  'utility' \
-  'completion' \
-  'syntax-highlighting' \  <- 追加
-  'autosuggestions' \      <- 追加
-  'prompt' \
+```
+  $ build-emacs.sh
 ```
 
 ## pyenv & pipenv

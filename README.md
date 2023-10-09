@@ -9,7 +9,7 @@
 
 ## MacOS のクリーンアップ
 
-** 私のMac は Sonoma 以降が動作しているIntel搭載なので
+### 私のMac は Sonoma 以降が動作しているIntel搭載なので
 
 - MacBook Pro (13-inch, 2020, Four Thunderbolt 3 ports)
 
@@ -22,7 +22,7 @@
   $ brew bundle --global
 ```
 
-* iTerm2
+### iTerm2
 
 ```
 --　画面の分割
@@ -34,7 +34,7 @@ command + t タブ
 command + return 最大化/元のサイズ
 ```
 
-* zprezto
+### zprezto
 
 https://dev.classmethod.jp/articles/zsh-prezto/
 
@@ -49,17 +49,17 @@ for rcfile in "${ZDOTDIR:-$HOME}"/.zprezto/runcoms/^README.md(.N); do
 done
 ```
 
-* Emacs のインストール
+### Emacs のインストール
 
 ```
   $ build-emacs.sh
 ```
 
-## pyenv & pipenv
+### pyenv & pipenv
 
 https://qiita.com/santa_sukitoku/items/6cbb325a895653c81b36
 
-## basictex
+### basictex
 
 basictex は `Homebrew のインストール` で インストールされる。
 パッケージの更新は tlmgr を使い、印刷サイズを A4サイズを設定しておく。

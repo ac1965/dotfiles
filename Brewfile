@@ -131,15 +131,12 @@ cask "wkhtmltopdf"
 cask "xld"
 mas "Amphetamine", id: 937984704
 mas "Duplicate Photos Finder", id: 984929789
-mas "Flacbox", id: 1594027432
 mas "iMovie", id: 408981434
 mas "Just Press Record", id: 1033342465
 mas "Kindle", id: 302584613
 mas "LINE", id: 539883307
-mas "Perculia", id: 1462633284
 mas "Prime Video", id: 545519333
 mas "Slack", id: 803453959
-mas "Spark", id: 1176895641
 mas "Xcode", id: 497799835
 vscode "dbaeumer.vscode-eslint"
 vscode "gonzalovsilva.orgcolor"

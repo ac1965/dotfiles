@@ -39,7 +39,6 @@ DO_BREW_CASKS=(
     basictex
 )
 
-
 DO_CONFIGURE_OPTS=(
     --with-modules
 #    --with-native-compilation=aot
@@ -47,6 +46,10 @@ DO_CONFIGURE_OPTS=(
     --with-gnutls
     --with-json
     --with-rsvg
+#
+    --with-imagemagick
+#    --with-native-comp
+#    --with-poll
 )
 
 # Print the given arguments out in a nice heading
@@ -117,28 +120,28 @@ do_how_many_cores() {
     esac
 }
 
+SRC_REPOS="https://github.com/emacs-mirror/emacs.git"
 TARGET="${GITHUB_REPOS}/emacs-mirror/emacs"
 
+do_heading "Pulling Git ${SRC_REPOS}"
 test -x ~/.bin/hub-clone.sh || exit 9
-
-if [ -d $TARGET ]; then
-    cd $TARGET
+if [ -d "${TARGET}" ]; then
+    cd "${TARGET}" || exit
     git reset --hard
     git clean -xdf
     git pull
 else
-    ~/.bin/hub-clone.sh https://github.com/emacs-mirror/emacs.git
+    ~/.bin/hub-clone.sh "${SRC_REPOS}" # https://github.com/emacs-mirror/emacs.git
 fi
 
 DO_CORES=$((2 * $(do_how_many_cores)))
 do_brew_ensure --formula "${DO_BREW_PACKAGES[@]}"
 do_brew_ensure --cask "${DO_BREW_CASKS[@]}"
 
-cd $TARGET
+cd "${TARGET}" || exit
 make distclean && ./autogen.sh  && \
-    CFLAGS=`xml2-config --cflags` ./configure "${DO_CONFIGURE_OPTS[@]}" && \
-    # CFLAGS=`xml2-config --cflags` ./configure && \
-    make -j $DO_CORES && make install && (
-        test -d $APPS && rm -fr $APPS
+    CFLAGS=$(xml2-config --cflags) ./configure "${DO_CONFIGURE_OPTS[@]}" && \
+    make -j "${DO_CORES}" && make install && (
+        test -d "${APPS}" && rm -fr "${APPS}"
         open -R nextstep/Emacs.app
     )

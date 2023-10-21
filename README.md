@@ -70,3 +70,30 @@ sudo tlmgr paper a4
 for col in collection-langjapanese collection-luatex collection-latexextra; do
 sudo tlmgr install $col; done
 ```
+
+### private
+
+個人情報は private.tar.xz.enc
+
+``` bash
+decrypt private.tar.xz.enc | tar -xvf
+```
+
+``` bash
+tar -cJvf private.tar.xz private
+encrypt private.tar.xz
+```
+
+decrypt
+``` bash
+#!/bin/bash
+
+openssl enc -d -aes-256-cbc -pbkdf2 -iter 99999 -in "${1}"
+```
+
+encrypt
+``` bash
+#!/bin/bash
+
+openssl enc -d -aes-256-cbc -pbkdf2 -iter 99999 -in "${1}"
+```

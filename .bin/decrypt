@@ -1,4 +1,3 @@
 #!/bin/bash
 
-openssl enc -d -aes-256-cbc -pbkdf2 -iter 99999 -in $1
-#openssl enc -d -aes-256-cbc -in $1
+openssl enc -d -aes-256-cbc -pbkdf2 -iter 99999 -in "${1}"

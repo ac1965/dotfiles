@@ -127,7 +127,6 @@ cask "the-unarchiver"
 cask "vagrant"
 cask "visual-studio-code"
 cask "wkhtmltopdf"
-cask "xld"
 mas "Amphetamine", id: 937984704
 mas "iMovie", id: 408981434
 mas "Just Press Record", id: 1033342465

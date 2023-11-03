@@ -1,0 +1,15 @@
+#
+#
+
+# for ac1965
+export GITHUB_TOKEN="<YOUR GITHUB TOKEN>"
+
+export GIT_DEFAULT_SITE="github.com"
+export GITHUB_REPOS="${HOME}/devel/src/${GIT_DEFAULT_SITE}"
+
+export GPG_KEY_ID="<YOUR GPG KEY-ID>"
+export PASSWORD_STORE_DIR="${HOME}/Documents/Secret"
+
+export PATH="${HOME}/.bin:$PATH"
+
+test -d ${GITHUB_REPOS} || install -d ${GITHUB_REPOS}

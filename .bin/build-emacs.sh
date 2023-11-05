@@ -40,14 +40,16 @@ DO_BREW_CASKS=(
 )
 
 DO_CONFIGURE_OPTS=(
-    --with-modules
+#    --with-modules
 #    --with-native-compilation=aot
-    --with-xml2
-    --with-gnutls
-    --with-json
-    --with-rsvg
+#    --with-ns
+#    --without-x
+#    --with-xml2
+#    --with-gnutls
+#    --with-json
+#    --with-rsvg
 #
-    --with-imagemagick
+#    --with-imagemagick
 #    --with-native-comp
 #    --with-poll
 )

@@ -1,6 +1,6 @@
 #! /usr/bin/env bash
 
-T=${T:-${HOME}/devel/src}
+T=${T:-${GITHUB_REPOS}}
 
 if [ $# -eq 1 ]; then
     url=$1

@@ -18,6 +18,7 @@ EOF
 ); do
 	test -f $f -o -d $f && (
 		echo -- $f
+        test -e "$HOME/$f" && rm -f "$HOME/$f"
         ln -fs "$(pwd)/$f" "$HOME/${f:t}"
 	)
 done

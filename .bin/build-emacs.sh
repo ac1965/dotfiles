@@ -42,12 +42,14 @@ DO_BREW_CASKS=(
 DO_CONFIGURE_OPTS=(
 #    --with-modules
 #    --with-native-compilation=aot
+    --with-native-compilation=yes
 #    --with-ns
 #    --without-x
 #    --with-xml2
-#    --with-gnutls
-#    --with-json
+    --with-gnutls
+    --with-json
 #    --with-rsvg
+    --with-tree-sitter=ifavailable
 #
 #    --with-imagemagick
 #    --with-native-comp
@@ -123,7 +125,7 @@ do_how_many_cores() {
 }
 
 SRC_REPOS="https://github.com/emacs-mirror/emacs.git"
-TARGET="${GITHUB_REPOS}/emacs-mirror/emacs"
+TARGET="${GITHUB_REPOS}/github.com/emacs-mirror/emacs"
 
 do_heading "Pulling Git ${SRC_REPOS}"
 test -x ~/.bin/hub-clone.sh || exit 9

@@ -43,6 +43,7 @@ DO_CONFIGURE_OPTS=(
 #    --with-modules
 #    --with-native-compilation=aot
     --with-native-compilation=yes
+    --without-compress-install
 #    --with-ns
 #    --without-x
 #    --with-xml2

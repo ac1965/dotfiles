@@ -36,7 +36,7 @@ DO_BREW_PACKAGES=(
 )
 
 DO_BREW_CASKS=(
-    basictex
+    mactex-no-gui
 )
 
 DO_CONFIGURE_OPTS=(
@@ -47,14 +47,13 @@ DO_CONFIGURE_OPTS=(
 #    --with-ns
 #    --without-x
 #    --with-xml2
-    --with-gnutls
+    --with-cairo
+    --with-gnutls=ifavailable
     --with-json
 #    --with-rsvg
     --with-tree-sitter=ifavailable
-#
-#    --with-imagemagick
-#    --with-native-comp
-#    --with-poll
+    #
+    --with-imagemagick
 )
 
 # Print the given arguments out in a nice heading

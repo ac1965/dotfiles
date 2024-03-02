@@ -22,18 +22,6 @@
   $ brew bundle --global
 ```
 
-### iTerm2
-
-```
---　画面の分割
-command + d 画面を左右に分割
-command + shift + d 画面を上下に分割
-command + [/]　画面の移動
-command + w
-command + t タブ
-command + return 最大化/元のサイズ
-```
-
 ### zprezto
 
 https://dev.classmethod.jp/articles/zsh-prezto/
@@ -49,19 +37,25 @@ for rcfile in "${ZDOTDIR:-$HOME}"/.zprezto/runcoms/^README.md(.N); do
 done
 ```
 
-### Emacs のインストール
+### iTerm2
 
 ```
-  $ build-emacs.sh
+-- 画面の分割
+command + d 画面を左右に分割
+command + shift + d 画面を上下に分割
+command + [/] 画面の移動
+command + w
+command + t タブ
+command + return 最大化/元のサイズ
 ```
 
 ### pyenv & pipenv
 
 https://qiita.com/santa_sukitoku/items/6cbb325a895653c81b36
 
-### basictex
+### MacTex
 
-basictex は `Homebrew のインストール` で インストールされる。
+MacTex(mactex-no-gui) は `Homebrew のインストール` で インストールされる。
 パッケージの更新は tlmgr を使い、印刷サイズを A4サイズを設定しておく。
 
 ``` bash
@@ -69,6 +63,28 @@ sudo tlmgr update --self --all
 sudo tlmgr paper a4
 for col in collection-langjapanese collection-luatex collection-latexextra; do
 sudo tlmgr install $col; done
+```
+
+``` bash
+$ cat <<EOF > ~/.latexmkrc
+# 最大のタイプセット回数
+$max_repeat = 5;
+# DVI経由でPDFをビルドすることを明示
+$pdf_mode = 3;
+
+# pLaTeXを使う
+# -halt-on-error:初めのエラーで終わらせる
+$latex = 'platex %O %S -halt-on-error';
+
+# pBibTeXを使う(参考文献)
+$bibtex = 'pbibtex %O %S';
+
+# Mendexを使う(索引)
+$makeindex = 'mendex %O -o %D %S';
+
+# DVIからPDFへの変換
+$dvipdf = 'dvipdfmx %O -o %D %S';
+EOF
 ```
 
 ### private
@@ -96,4 +112,11 @@ encrypt
 #!/bin/bash
 
 openssl enc -d -aes-256-cbc -pbkdf2 -iter 99999 -in "${1}"
+```
+
+
+### Emacs のインストール
+
+```
+  $ build-emacs.sh
 ```

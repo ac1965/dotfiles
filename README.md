@@ -61,8 +61,6 @@ MacTex(mactex-no-gui) は `Homebrew のインストール` で インストー�
 ``` bash
 sudo tlmgr update --self --all
 sudo tlmgr paper a4
-for col in collection-langjapanese collection-luatex collection-latexextra; do
-sudo tlmgr install $col; done
 ```
 
 ``` bash

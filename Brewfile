@@ -1,9 +1,7 @@
 tap "buo/cask-upgrade"
 tap "homebrew/bundle"
-tap "homebrew/cask"
 tap "homebrew/cask-fonts"
 tap "homebrew/cask-versions"
-tap "homebrew/core"
 tap "homebrew/services"
 tap "keith/formulae"
 tap "lencx/chatgpt", "https://github.com/lencx/ChatGPT.git"
@@ -19,6 +17,7 @@ brew "bat"
 brew "fmt"
 brew "grpc"
 brew "bear"
+brew "binutils"
 brew "bison"
 brew "black"
 brew "boost"
@@ -151,7 +150,6 @@ mas "Kindle", id: 302584613
 mas "LINE", id: 539883307
 mas "Prime Video", id: 545519333
 mas "Slack", id: 803453959
-mas "Xcode", id: 497799835
 vscode "dbaeumer.vscode-eslint"
 vscode "eamodio.gitlens"
 vscode "gonzalovsilva.orgcolor"

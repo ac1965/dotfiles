@@ -145,7 +145,7 @@ do_brew_ensure --cask "${DO_BREW_CASKS[@]}"
 cd "${TARGET}" || exit
 make distclean && ./autogen.sh  && \
     CFLAGS=$(xml2-config --cflags) ./configure "${DO_CONFIGURE_OPTS[@]}" && \
-    make -j "${DO_CORES}" && make install && (
+    make V=0 -j "${DO_CORES}" && make install && (
         test -d "${APPS}" && rm -fr "${APPS}"
         open -R nextstep/Emacs.app
     )

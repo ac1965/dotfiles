@@ -17,6 +17,7 @@ set encoding=utf-8
 scriptencoding utf-8
 set fileencodings=ucs-bom,utf-8,cp932,utf-16,utf-16le,iso-2022-jp,euc-jp,default,latin
 set cursorline
+set rtp+=/usr/local/opt/fz
 " set cursorcolumn
 set autoread
 set virtualedit=block

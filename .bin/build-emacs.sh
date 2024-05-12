@@ -12,15 +12,20 @@
 
 DO_BREW_PACKAGES=(
     # Build dependencies
+    # brew install pkg-config automake texinfo jpeg giflib \
+    #  libtiff jansson libpng librsvg gnutls cmake
+    #@ cairo
+    #@imagemagick
     autoconf
-    cairo
     cmake
     gcc
-    libgccjit
+    giflib
     gnupg
     gnutls
-    imagemagick
     jansson
+    libgccjit
+    libtiff
+    librsvg
     libxml2
     pkg-config
 
@@ -39,21 +44,32 @@ DO_BREW_CASKS=(
     mactex-no-gui
 )
 
+# ./configure --disable-dependency-tracking --disable-silent-rules  \
+#            --enable-locallisppath=/opt/homebrew/share/emacs/site-lisp  \
+#            --infodir=/opt/homebrew/Cellar/emacs-plus@29/29.2/share/info/emacs \
+#            --prefix=/opt/homebrew/Cellar/emacs-plus@29/29.2 \
+#            --with-xml2 --with-gnutls --with-native-compilation --without-compress-install \
+#            --without-dbus --without-imagemagick --with-modules --with-rsvg --without-pop \
+#            --with-ns --disable-ns-self-contained
 DO_CONFIGURE_OPTS=(
-#    --with-modules
 #    --with-native-compilation=aot
-    --with-native-compilation=yes
+    --disable-dependency-tracking
+    --disable-silent-rule
     --without-compress-install
-#    --with-ns
+    --without-dbus
+    --without-imagemagick
+    --without-pop
 #    --without-x
-#    --with-xml2
-    --with-cairo
+#    --with-cairo
     --with-gnutls=ifavailable
     --with-json
-#    --with-rsvg
+    --with-modules
+    --with-native-compilation=yes
+#    --with-native-compilation=no
+    --with-rsvg
+    --with-ns
     --with-tree-sitter=ifavailable
-    #
-    --with-imagemagick
+    --with-xml2
 )
 
 # Print the given arguments out in a nice heading

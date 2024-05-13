@@ -51,21 +51,18 @@ DO_BREW_CASKS=(
 #            --with-xml2 --with-gnutls --with-native-compilation --without-compress-install \
 #            --without-dbus --without-imagemagick --with-modules --with-rsvg --without-pop \
 #            --with-ns --disable-ns-self-contained
+#
 DO_CONFIGURE_OPTS=(
-#    --with-native-compilation=aot
     --disable-dependency-tracking
     --disable-silent-rule
     --without-compress-install
     --without-dbus
     --without-imagemagick
     --without-pop
-#    --without-x
-#    --with-cairo
     --with-gnutls=ifavailable
     --with-json
     --with-modules
     --with-native-compilation=yes
-#    --with-native-compilation=no
     --with-rsvg
     --with-ns
     --with-tree-sitter=ifavailable
@@ -158,9 +155,15 @@ DO_CORES=$((2 * $(do_how_many_cores)))
 do_brew_ensure --formula "${DO_BREW_PACKAGES[@]}"
 do_brew_ensure --cask "${DO_BREW_CASKS[@]}"
 
+# cd "$(brew --prefix)/lib"
+# ln -s ../Cellar/libgccjit/12.2.0/lib/gcc/12/libgccjit.dylib ./
+# ln -s ../Cellar/libgccjit/12.2.0/lib/gcc/12/libgccjit.0.dylib ./
+# ln -s ../Cellar/gcc/14.1.0/lib/gcc/current/libgcc_s.1.dylib ./
+# ln -s ../Cellar/gcc/14.1.0/lib/gcc/current/libgcc_s.1.1.dylib ./
+
 cd "${TARGET}" || exit
 make distclean && ./autogen.sh  && \
-    CFLAGS=$(xml2-config --cflags) ./configure "${DO_CONFIGURE_OPTS[@]}" && \
+    LIBRARY_PATH="$(brew --prefix)/lib" CFLAGS=$(xml2-config --cflags) ./configure "${DO_CONFIGURE_OPTS[@]}" && \
     make V=0 -j "${DO_CORES}" && make install && (
         test -d "${APPS}" && rm -fr "${APPS}"
         open -R nextstep/Emacs.app

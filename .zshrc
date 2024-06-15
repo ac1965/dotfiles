@@ -5,6 +5,8 @@
 #   Takao Yamashita <tjy1965@gmail.com>
 #
 
+typeset -U path PATH
+
 test -f ${HOME}/.${USER}_rc && source ${HOME}/.${USER}_rc
 test -f ${HOME}/.docker-alias && source ${HOME}/.docker-alias
 test -f ${HOME}/.cargo/env && source ${HOME}/.cargo/env
@@ -19,8 +21,6 @@ fi
 #eval "$(starship init zsh)"
 
 # Customize to your needs...
-test -d /usr/local/opt/sqlite/bin && export PATH="/usr/local/opt/sqlite/bin:${PATH}"
-test -d /usr/local/opt/ruby/bin && export PATH="/usr/local/opt/ruby/bin:${PATH}"
 test -d /usr/local/texlive/2022/bin/universal-darwin && export PATH="/usr/local/texlive/2022/bin/universal-darwin:${PATH}"
 
 if command -v pyenv 1>/dev/null 2>&1; then
@@ -34,5 +34,5 @@ fi
 if command -v kubectl 1>/dev/null 2>&1; then
     source <(kubectl completion zsh)
     alias k=kubectl
-#    complete -F __start_kubectl k
+    #complete -F __start_kubectl k
 fi

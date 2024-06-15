@@ -19,10 +19,13 @@ fi
 #eval "$(starship init zsh)"
 
 # Customize to your needs...
-test -d /usr/local/opt/sqlite/bin && export PATH="/usr/local/opt/sqlite/bin:$PATH"
+test -d /usr/local/opt/sqlite/bin && export PATH="/usr/local/opt/sqlite/bin:${PATH}"
+test -d /usr/local/opt/ruby/bin && export PATH="/usr/local/opt/ruby/bin:${PATH}"
+test -d /usr/local/texlive/2022/bin/universal-darwin && export PATH="/usr/local/texlive/2022/bin/universal-darwin:${PATH}"
+
 if command -v pyenv 1>/dev/null 2>&1; then
-    export PYENV_ROOT="$HOME/.pyenv"
-    test -d $PENV_ROOT && export PATH="$PYENV_ROOT/bin:$PATH"
+    export PYENV_ROOT="${HOME}/.pyenv"
+    test -d ${PENV_ROOT} && export PATH="${PYENV_ROOT}/bin:${PATH}"
     eval "$(pyenv init -)"
 fi
 if command -v hub 1>/dev/null 2>&1; then
@@ -33,4 +36,3 @@ if command -v kubectl 1>/dev/null 2>&1; then
     alias k=kubectl
 #    complete -F __start_kubectl k
 fi
-test -d /usr/local/opt/ruby/bin && export PATH="/usr/local/opt/ruby/bin:$PATH"

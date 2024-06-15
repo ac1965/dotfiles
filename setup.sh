@@ -15,6 +15,7 @@ for f in $(cat <<EOF
 .vim
 .viminfo
 .bin
+.zshrc
 EOF
 ); do
 	test -f $f -o -d $f && (

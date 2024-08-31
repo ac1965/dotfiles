@@ -1,19 +1,22 @@
 #! /usr/bin/env bash
 
+#
+# GITHUB_REPOS=/Users/ac1965/devel/src CC=/usr/bin/clang  build-emacs.sh
+#
 # Prequisites
 # - Xcode
+# - c
 # - git
-# - imagemagick (allows image viewing)
-# - gnutls (allows communication via SSL, TLS, amd DTLS)
 # - autoconf
 # - automake
-# $ ./autogen.sh && \
-# ./configure --with-native-compilation=aot --without-ns --without-x --with-libxml2=/usr/bin/xml2-config && make -j8
+# - imagemagick (allows image viewing)
+# - gnutls (allows communication via SSL, TLS, amd DTLS)
+#
+# $ ./autogen.sh && ./configure --with-native-compilation=aot --without-ns --without-x && make -j8
 
 DO_BREW_PACKAGES=(
     # Build dependencies
-    # brew install pkg-config automake texinfo jpeg giflib \
-    #  libtiff jansson libpng librsvg gnutls cmake
+    # brew install pkg-config automake texinfo jpeg giflib libtiff jansson libpng librsvg gnutls cmake
     #@ cairo
     #@imagemagick
     autoconf
@@ -37,7 +40,7 @@ DO_BREW_PACKAGES=(
     python
     shfmt
     mupdf
-#    mupdf-tools
+    #    mupdf-tools
 )
 
 DO_BREW_CASKS=(
@@ -53,8 +56,7 @@ DO_BREW_CASKS=(
 #            --with-ns --disable-ns-self-contained
 #
 DO_CONFIGURE_OPTS=(
-    --disable-dependency-tracking
-    --disable-silent-rule
+    --disable-nssilent-rule
     --without-compress-install
     --without-dbus
     --without-imagemagick

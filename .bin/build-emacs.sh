@@ -168,7 +168,7 @@ do_brew_ensure --cask "${DO_BREW_CASKS[@]}"
 
 cd "${TARGET}" || exit
 make distclean && ./autogen.sh  && \
-    LIBRARY_PATH="$(brew --prefix)/opt/gcc/lib/gcc/14:$(brew --prefix)/opt/libgccjit/lib/gcc/14:$(brew --prefix)/opt/gcc/lib/gcc/14/gcc/x86_64-apple-darwin23/14:$(brew --prefix)/lib" CFLAGS=$(xml2-config --cflags) ./configure "${DO_CONFIGURE_OPTS[@]}" && \
+    LIBRARY_PATH="$(brew --prefix gcc)/lib/gcc/14:$(brew --prefix libgccjit)/lib/gcc/14:$(brew --prefix gcc)/lib/gcc/14/gcc/x86_64-apple-darwin23/14:$(brew --prefix)/lib" CFLAGS=$(xml2-config --cflags) ./configure "${DO_CONFIGURE_OPTS[@]}" && \
     make V=0 -j "${DO_CORES}" && make install && (
         test -d "${APPS}" && rm -fr "${APPS}"
         open -R nextstep/Emacs.app

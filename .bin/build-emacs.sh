@@ -13,6 +13,9 @@
 # - gnutls (allows communication via SSL, TLS, amd DTLS)
 #
 # $ ./autogen.sh && ./configure --with-native-compilation=aot --without-ns --without-x && make -j8
+#
+# (setenv "LIBRARY_PATH" "/usr/local/opt/gcc/lib/gcc/14:/usr/local/opt/libgccjit/lib/gcc/14:/usr/local/opt/gcc/lib/gcc/14/gcc/x86_64-apple-darwin23/14")
+#
 
 DO_BREW_PACKAGES=(
     # Build dependencies
@@ -165,7 +168,7 @@ do_brew_ensure --cask "${DO_BREW_CASKS[@]}"
 
 cd "${TARGET}" || exit
 make distclean && ./autogen.sh  && \
-    LIBRARY_PATH="$(brew --prefix)/lib" CFLAGS=$(xml2-config --cflags) ./configure "${DO_CONFIGURE_OPTS[@]}" && \
+    LIBRARY_PATH="$(brew --prefix)/opt/gcc/lib/gcc/14:$(brew --prefix)/opt/libgccjit/lib/gcc/14:$(brew --prefix)/opt/gcc/lib/gcc/14/gcc/x86_64-apple-darwin23/14:$(brew --prefix)/lib" CFLAGS=$(xml2-config --cflags) ./configure "${DO_CONFIGURE_OPTS[@]}" && \
     make V=0 -j "${DO_CORES}" && make install && (
         test -d "${APPS}" && rm -fr "${APPS}"
         open -R nextstep/Emacs.app

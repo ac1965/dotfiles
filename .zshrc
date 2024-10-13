@@ -36,3 +36,5 @@ if command -v kubectl 1>/dev/null 2>&1; then
     alias k=kubectl
     #complete -F __start_kubectl k
 fi
+
+export PATH="/usr/local/opt/gnupg@2.2/bin:$PATH"

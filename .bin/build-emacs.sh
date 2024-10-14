@@ -17,6 +17,8 @@
 # (setenv "LIBRARY_PATH" "/usr/local/opt/gcc/lib/gcc/14:/usr/local/opt/libgccjit/lib/gcc/14:/usr/local/opt/gcc/lib/gcc/14/gcc/x86_64-apple-darwin23/14")
 #
 
+MY_BIN="${HOME}/.bin"
+
 DO_BREW_PACKAGES=(
     # Build dependencies
     # brew install pkg-config automake texinfo jpeg giflib libtiff jansson libpng librsvg gnutls cmake
@@ -146,14 +148,14 @@ SRC_REPOS="https://github.com/emacs-mirror/emacs.git"
 TARGET="${GITHUB_REPOS}/github.com/emacs-mirror/emacs"
 
 do_heading "Pulling Git ${SRC_REPOS}"
-test -x ~/.bin/hub-clone.sh || exit 9
+test -x ${MY_BIN}/hub-clone.sh || exit 9
 if [ -d "${TARGET}" ]; then
     cd "${TARGET}" || exit
     git reset --hard
     git clean -xdf
     git pull
 else
-    ~/.bin/hub-clone.sh "${SRC_REPOS}" # https://github.com/emacs-mirror/emacs.git
+    ${MY_BIN}/hub-clone.sh "${SRC_REPOS}" # https://github.com/emacs-mirror/emacs.git
 fi
 
 DO_CORES=$((2 * $(do_how_many_cores)))

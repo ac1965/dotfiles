@@ -38,6 +38,9 @@ DO_BREW_PACKAGES=(
     pkg-config
 
     # Runtime dependencies
+    git
+    gnupg
+    openssl
     texinfo
     ripgrep
     fd

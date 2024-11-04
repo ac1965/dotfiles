@@ -72,12 +72,13 @@ DO_CONFIGURE_OPTS=(
     --with-gnutls=ifavailable
     --with-json
     --with-modules
-    --with-native-compilation=yes
+    --without-native-compilation
     --with-rsvg
     --with-ns
     --with-tree-sitter=ifavailable
     --with-xml2
 )
+#    --with-native-compilation=yes
 
 # Print the given arguments out in a nice heading
 do_heading() {
@@ -173,8 +174,11 @@ do_brew_ensure --cask "${DO_BREW_CASKS[@]}"
 
 cd "${TARGET}" || exit
 make distclean && ./autogen.sh  && \
-    LIBRARY_PATH="$(brew --prefix gcc)/lib/gcc/14:$(brew --prefix libgccjit)/lib/gcc/14:$(brew --prefix gcc)/lib/gcc/14/gcc/x86_64-apple-darwin23/14:$(brew --prefix)/lib" CFLAGS=$(xml2-config --cflags) ./configure "${DO_CONFIGURE_OPTS[@]}" && \
+    CFLAGS=$(xml2-config --cflags) \
+    ./configure "${DO_CONFIGURE_OPTS[@]}" && \
     make V=0 -j "${DO_CORES}" && make install && (
         test -d "${APPS}" && rm -fr "${APPS}"
         open -R nextstep/Emacs.app
     )
+#    LIBRARY_PATH="$(brew --prefix gcc)/lib/gcc/current:$(brew --prefix libgccjit)/lib/gcc/current:$(brew --prefix gcc)/lib/gcc/current/gcc/x86_64-apple-darwin23/14" \
+#    LDFAGS="-Wl,-rpath,$(brew --prefix gcc)/lib/gcc/current,$(brew --prefix libgccjit)/lib/gcc/current,$(brew --prefix gcc)/lib/gcc/current/gcc/x86_64-apple-darwin23/14" \

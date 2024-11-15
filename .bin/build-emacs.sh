@@ -73,12 +73,12 @@ DO_CONFIGURE_OPTS=(
     --with-json
     --with-modules
     --without-native-compilation
+    # --with-native-compilation=yes
     --with-rsvg
     --with-ns
     --with-tree-sitter=ifavailable
     --with-xml2
 )
-#    --with-native-compilation=yes
 
 # Print the given arguments out in a nice heading
 do_heading() {
@@ -174,6 +174,8 @@ do_brew_ensure --cask "${DO_BREW_CASKS[@]}"
 
 cd "${TARGET}" || exit
 make distclean && ./autogen.sh  && \
+#    LIBRARY_PATH="$(brew --prefix gcc)/lib/gcc/current:$(brew --prefix libgccjit)/lib/gcc/current:$(brew --prefix gcc)/lib/gcc/current/gcc/x86_64-apple-darwin23/14" \
+#    LDFAGS="-Wl,-rpath,$(brew --prefix gcc)/lib/gcc/current,$(brew --prefix libgccjit)/lib/gcc/current,$(brew --prefix gcc)/lib/gcc/current/gcc/x86_64-apple-darwin23/14" \
     CFLAGS=$(xml2-config --cflags) \
     ./configure "${DO_CONFIGURE_OPTS[@]}" && \
     make V=0 -j "${DO_CORES}" && make install && (

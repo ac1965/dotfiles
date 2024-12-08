@@ -47,6 +47,7 @@ command + [/] 画面の移動
 command + w
 command + t タブ
 command + return 最大化/元のサイズ
+command + 矢印キー タブの移動
 ```
 
 ### pyenv & pipenv
@@ -90,7 +91,7 @@ EOF
 個人情報は private.tar.xz.enc
 
 ``` bash
-decrypt private.tar.xz.enc | tar -xvf
+decrypt private.tar.xz.enc | tar -xvJ
 ```
 
 ``` bash

@@ -15,13 +15,13 @@ if [ $# -eq 1 ]; then
         (
             cd ${T}/${host}/${owner}
             if [ -d ${repos} ]; then
-                cd ${repos} && git pull
+                cd ${repos} && git pull || exit 9
             else
-                git clone --recursive ${url}
+                git clone --recursive ${url} || exit 9
             fi
         )
     fi
 else
     echo $0 url
-    exit
+    exit 0
 fi

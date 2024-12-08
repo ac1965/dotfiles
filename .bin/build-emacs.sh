@@ -1,21 +1,19 @@
 #! /usr/bin/env bash
 
-#
-# GITHUB_REPOS=/Users/ac1965/devel/src CC=/usr/bin/clang  build-emacs.sh
-#
-# Prequisites
-# - Xcode
-# - c
-# - git
-# - autoconf
-# - automake
-# - imagemagick (allows image viewing)
-# - gnutls (allows communication via SSL, TLS, amd DTLS)
-#
-# $ ./autogen.sh && ./configure --with-native-compilation=aot --without-ns --without-x && make -j8
-#
-# (setenv "LIBRARY_PATH" "/usr/local/opt/gcc/lib/gcc/14:/usr/local/opt/libgccjit/lib/gcc/14:/usr/local/opt/gcc/lib/gcc/14/gcc/x86_64-apple-darwin23/14")
-#
+# Parse arguments for native compilation toggle
+NATIVE_COMP="--without-native-compilation" # Default
+for arg in "$@"; do
+    case $arg in
+        --native-compilation)
+        NATIVE_COMP="--with-native-compilation=aot"
+        shift
+        ;;
+        --no-native-compilation)
+        NATIVE_COMP="--without-native-compilation"
+        shift
+        ;;
+    esac
+done
 
 MY_BIN="${HOME}/.bin"
 
@@ -35,7 +33,7 @@ DO_BREW_PACKAGES=(
     libtiff
     librsvg
     libxml2
-    pkg-config
+    pkgconf
 
     # Runtime dependencies
     git
@@ -55,11 +53,11 @@ DO_BREW_CASKS=(
     mactex-no-gui
 )
 
-# ./configure --disable-dependency-tracking --disable-silent-rules  \
+# ./configure $NATIVE_COMP --disable-dependency-tracking --disable-silent-rules  \
 #            --enable-locallisppath=/opt/homebrew/share/emacs/site-lisp  \
 #            --infodir=/opt/homebrew/Cellar/emacs-plus@29/29.2/share/info/emacs \
 #            --prefix=/opt/homebrew/Cellar/emacs-plus@29/29.2 \
-#            --with-xml2 --with-gnutls --with-native-compilation --without-compress-install \
+#            --with-xml2 --with-gnutls --without-compress-install \
 #            --without-dbus --without-imagemagick --with-modules --with-rsvg --without-pop \
 #            --with-ns --disable-ns-self-contained
 #
@@ -72,8 +70,6 @@ DO_CONFIGURE_OPTS=(
     --with-gnutls=ifavailable
     --with-json
     --with-modules
-    -without-native-compilation
-    # --with-native-compilation=yes
     --with-rsvg
     --with-ns
     --with-tree-sitter=ifavailable
@@ -175,9 +171,9 @@ do_brew_ensure --cask "${DO_BREW_CASKS[@]}"
 cd "${TARGET}" || exit
 make distclean && ./autogen.sh  && \
     # LIBRARY_PATH="$(brew --prefix gcc)/lib/gcc/current:$(brew --prefix libgccjit)/lib/gcc/current:$(brew --prefix gcc)/lib/gcc/current/gcc/x86_64-apple-darwin23/14" \
-    # DFAGS="-Wl,-rpath,$(brew --prefix gcc)/lib/gcc/current,$(brew --prefix libgccjit)/lib/gcc/current,$(brew --prefix gcc)/lib/gcc/current/gcc/x86_64-apple-darwin23/14" \
+    # LDFAGS="-Wl,-rpath,$(brew --prefix gcc)/lib/gcc/current,$(brew --prefix libgccjit)/lib/gcc/current,$(brew --prefix gcc)/lib/gcc/current/gcc/x86_64-apple-darwin23/14" \
     CFLAGS=$(xml2-config --cflags) \
-    ./configure "${DO_CONFIGURE_OPTS[@]}" && \
+    ./configure $NATIVE_COMP "${DO_CONFIGURE_OPTS[@]}" && \
     make V=0 -j "${DO_CORES}" && make install && (
         test -d "${APPS}" && rm -fr "${APPS}"
         open -R nextstep/Emacs.app

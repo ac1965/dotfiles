@@ -20,6 +20,6 @@ Brewfile
 EOF
 ); do
 	test -f $f -o -d $f && (
-        rsync -avh --no-perms ${f} ${HOME}/.
+        rsync -ah --no-perms ${f} ${HOME}/. && echo -- ${f}
     )
 done

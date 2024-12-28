@@ -73,18 +73,12 @@ DO_BREW_CASKS=(
     #            --with-ns --disable-ns-self-contained
 #
 DO_CONFIGURE_OPTS=(
-    --disable-nssilent-rule
-    --without-compress-install
-    --without-dbus
-    --without-imagemagick
-    --without-pop
     --with-gnutls=ifavailable
     --with-json
     --with-modules
-    --with-rsvg
-    --with-ns
     --with-tree-sitter=ifavailable
     --with-xml2
+    --with-cairo
 )
 
 # Print the given arguments out in a nice heading

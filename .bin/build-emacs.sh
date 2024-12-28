@@ -64,14 +64,6 @@ DO_BREW_CASKS=(
     mactex-no-gui
 )
 
-# ./configure $NATIVE_COMP --disable-dependency-tracking --disable-silent-rules  \
-    #            --enable-locallisppath=/opt/homebrew/share/emacs/site-lisp  \
-    #            --infodir=/opt/homebrew/Cellar/emacs-plus@29/29.2/share/info/emacs \
-    #            --prefix=/opt/homebrew/Cellar/emacs-plus@29/29.2 \
-    #            --with-xml2 --with-gnutls --without-compress-install \
-    #            --without-dbus --without-imagemagick --with-modules --with-rsvg --without-pop \
-    #            --with-ns --disable-ns-self-contained
-#
 DO_CONFIGURE_OPTS=(
     --with-gnutls=ifavailable
     --with-json

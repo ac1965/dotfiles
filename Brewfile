@@ -13,6 +13,7 @@ brew "gcc"
 brew "gdk-pixbuf"
 brew "git"
 brew "git-lfs"
+brew "pinentry"
 brew "gnupg"
 brew "gnu-sed"
 brew "pkgconf"
@@ -34,6 +35,7 @@ brew "ncurses"
 brew "node"
 brew "notmuch"
 brew "pandoc"
+brew "pinentry-mac"
 brew "pipx"
 brew "poppler"
 brew "pyenv"
@@ -57,5 +59,6 @@ mas "iMovie", id: 408981434
 mas "Just Press Record", id: 1033342465
 mas "Kindle", id: 302584613
 mas "LINE", id: 539883307
+mas "Perplexity", id: 6714467650
 mas "Prime Video", id: 545519333
 mas "Slack", id: 803453959

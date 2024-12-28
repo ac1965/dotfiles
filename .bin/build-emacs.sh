@@ -19,34 +19,45 @@ MY_BIN="${HOME}/.bin"
 
 DO_BREW_PACKAGES=(
     # Build dependencies
-    # brew install pkg-config automake texinfo jpeg giflib libtiff jansson libpng librsvg gnutls cmake
-    #@ cairo
-    #@imagemagick
     autoconf
     cmake
+    coreutils
+    dbus
+    expat
     gcc
     giflib
-    gnupg
+    gmp
+    gnu-sed
     gnutls
     jansson
+    libffi
     libgccjit
-    libtiff
+    libiconv
     librsvg
+    libtasn1
+    libtiff
+    libunistring
     libxml2
+    little-cms2
+    mailutils
+    ncurses
     pkgconf
+    zlib
 
     # Runtime dependencies
+    fd
     git
     gnupg
-    openssl
-    texinfo
-    ripgrep
-    fd
-    node
-    python
-    shfmt
     mupdf
-    #    mupdf-tools
+    node
+    openssl
+    python
+    ripgrep
+    shfmt
+    sqlite
+    texinfo
+    tree-sitter
+    webp
 )
 
 DO_BREW_CASKS=(
@@ -54,12 +65,12 @@ DO_BREW_CASKS=(
 )
 
 # ./configure $NATIVE_COMP --disable-dependency-tracking --disable-silent-rules  \
-#            --enable-locallisppath=/opt/homebrew/share/emacs/site-lisp  \
-#            --infodir=/opt/homebrew/Cellar/emacs-plus@29/29.2/share/info/emacs \
-#            --prefix=/opt/homebrew/Cellar/emacs-plus@29/29.2 \
-#            --with-xml2 --with-gnutls --without-compress-install \
-#            --without-dbus --without-imagemagick --with-modules --with-rsvg --without-pop \
-#            --with-ns --disable-ns-self-contained
+    #            --enable-locallisppath=/opt/homebrew/share/emacs/site-lisp  \
+    #            --infodir=/opt/homebrew/Cellar/emacs-plus@29/29.2/share/info/emacs \
+    #            --prefix=/opt/homebrew/Cellar/emacs-plus@29/29.2 \
+    #            --with-xml2 --with-gnutls --without-compress-install \
+    #            --without-dbus --without-imagemagick --with-modules --with-rsvg --without-pop \
+    #            --with-ns --disable-ns-self-contained
 #
 DO_CONFIGURE_OPTS=(
     --disable-nssilent-rule

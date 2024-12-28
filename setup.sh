@@ -2,6 +2,7 @@
 
 # .gitconfig
 for f in $(cat <<EOF
+Brewfile
 .Brewfile
 .docker-alias
 .gitconfig_global
@@ -19,8 +20,6 @@ for f in $(cat <<EOF
 EOF
 ); do
 	test -f $f -o -d $f && (
-		echo -- $f
-        test -e "$HOME/$f" && rm -f "$HOME/$f"
-        ln -fs "$(pwd)/$f" "$HOME/${f:t}"
-	)
+        rsync -avh --no-perms ${f} ${HOME}/.
+    )
 done

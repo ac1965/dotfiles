@@ -57,3 +57,10 @@ fi
 
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+
+#
+autoload -Uz compinit
+compinit
+
+zstyle ':completion:*:(rm|cp|mv|diff):*' ignore-line true
+zstyle ':completion:*' matcher-list 'm:{[:lower:][:upper:]}={[:upper:][:lower:]}'

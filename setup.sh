@@ -17,6 +17,10 @@ Brewfile
 .viminfo
 .bin
 .zshrc
+.zshenv
+.zstyles
+.local
+.config
 EOF
 ); do
 	test -f $f -o -d $f && (

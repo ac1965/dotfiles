@@ -1,0 +1,18 @@
+tap "homebrew/bundle"
+tap "homebrew/services"
+brew "git"
+brew "git-lfs"
+brew "mas"
+brew "pyenv"
+brew "wget"
+cask "font-fira-code"
+cask "font-jetbrains-mono"
+cask "font-jolly-lodger"
+cask "font-noto-color-emoji"
+cask "font-source-code-pro"
+cask "iterm2"
+mas "GarageBand", id: 682658836
+mas "iMovie", id: 408981434
+mas "Keynote", id: 409183694
+mas "Numbers", id: 409203825
+mas "Pages", id: 409201541

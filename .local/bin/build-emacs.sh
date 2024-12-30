@@ -15,7 +15,7 @@ for arg in "$@"; do
     esac
 done
 
-MY_BIN="${HOME}/.bin"
+MY_BIN="${HOME}/.local/bin"
 
 DO_BREW_PACKAGES=(
     # Build dependencies

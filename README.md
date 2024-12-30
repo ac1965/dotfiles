@@ -18,47 +18,44 @@
 ## Homebrew のインストール
 
 ```
-  $ /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
-  $ brew bundle --global
-```
-
-### antidote
-
-```
-git clone --depth=1 https://github.com/mattmc3/antidote.git ${ZDOTDIR:-~}/.antidote
-```
-
-### zprezto
-
-https://dev.classmethod.jp/articles/zsh-prezto/
-
-```
-git clone --recursive https://github.com/sorin-ionescu/prezto.git "${ZDOTDIR:-$HOME}/.zprezto"
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
 ```
 
 ```
-setopt EXTENDED_GLOB
-for rcfile in "${ZDOTDIR:-$HOME}"/.zprezto/runcoms/^README.md(.N); do
-  ln -s "$rcfile" "${ZDOTDIR:-$HOME}/.${rcfile:t}"
-done
+    brew bundle --global
 ```
 
 ### iTerm2
 
 ```
--- 画面の分割
-command + d 画面を左右に分割
-command + shift + d 画面を上下に分割
-command + [/] 画面の移動
-command + w
-command + t タブ
-command + return 最大化/元のサイズ
-command + 矢印キー タブの移動
+    brew install --cask iterm2
+```
+
+https://iterm2colorschemes.com
+
+https://zenn.dev/aldagram_tech/articles/0fc671a41021f3
+
+- ホットキー
+- フルスクリーンで重ねて表示
+
+```
+    -- 画面の分割
+    command + d 画面を左右に分割
+    command + shift + d 画面を上下に分割
+    command + [/] 画面の移動
+    command + w
+    command + t タブ
+    command + return 最大化/元のサイズ
+    command + 矢印キー タブの移動
 ```
 
 ### pyenv & pipenv
 
-https://qiita.com/santa_sukitoku/items/6cbb325a895653c81b36
+```
+    brew install pyenv
+```
+
+    https://qiita.com/santa_sukitoku/items/6cbb325a895653c81b36
 
 ### MacTex
 

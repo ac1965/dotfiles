@@ -2,26 +2,25 @@
 
 # .gitconfig
 for f in $(cat <<EOF
-Brewfile
 .Brewfile
+.bin
+.config
 .docker-alias
 .gitconfig_global
 .gitignore_global
 .latexmkrc
+.local
 .macos
+.vim
+.viminfo
 .vimperator
 .vimperatorrc
 .vimperatorrc.js
 .vimrc
-.vim
-.viminfo
-.bin
-.zshrc
 .zshenv
+.zshrc
 .zstyles
-.local
-.config
-.cache
+Brewfile
 EOF
 ); do
 	test -f $f -o -d $f && (

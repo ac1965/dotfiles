@@ -40,4 +40,4 @@ unset _rc
 [[ ! -f ${ZDOTDIR:-$HOME}/.p10k.zsh ]] || source ${ZDOTDIR:-$HOME}/.p10k.zsh
 
 # User define
-[[ -f ${HOME}/.${USER}.rc ]] && source ${HOME}/.${USER}.rc
+[[ -f ${HOME}/.${USER}_rc ]] && source ${HOME}/.${USER}_rc

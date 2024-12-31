@@ -64,13 +64,17 @@ DO_BREW_CASKS=(
     mactex-no-gui
 )
 
+#    --with-cairo
+#    --without-ns
+#    --with-cocoa
 DO_CONFIGURE_OPTS=(
     --with-gnutls=ifavailable
     --with-json
     --with-modules
     --with-tree-sitter=ifavailable
     --with-xml2
-    --with-cairo
+    --with-xwidgets
+    --with-librsvg
 )
 
 # Print the given arguments out in a nice heading

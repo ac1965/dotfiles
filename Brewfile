@@ -1,25 +1,28 @@
 tap "homebrew/bundle"
 tap "homebrew/services"
 brew "giflib"
-brew "libtiff"
-brew "autoconf"
+brew "little-cms2"
 brew "automake"
+brew "glib"
 brew "llvm"
 brew "clangql"
 brew "cmake"
+brew "gmp"
 brew "coreutils"
 brew "dbus"
+brew "docker"
 brew "expat"
 brew "fd"
 brew "fzf"
+brew "mpfr"
+brew "libmpc"
 brew "gcc"
-brew "gdk-pixbuf"
+brew "gh"
 brew "git"
 brew "git-lfs"
-brew "pinentry"
+brew "gnutls"
 brew "gnupg"
 brew "gnu-sed"
-brew "pkgconf"
 brew "gopls"
 brew "hugo"
 brew "imagemagick"
@@ -39,6 +42,7 @@ brew "tree-sitter"
 brew "neovim"
 brew "node"
 brew "notmuch"
+brew "ollama"
 brew "pandoc"
 brew "pinentry-mac"
 brew "pipx"
@@ -53,20 +57,24 @@ brew "typescript-language-server"
 brew "wget"
 brew "yt-dlp"
 brew "zlib"
-cask "claude"
 cask "font-fira-code"
 cask "font-jetbrains-mono"
 cask "font-jolly-lodger"
 cask "font-noto-color-emoji"
 cask "font-source-code-pro"
+cask "iterm2"
 cask "mactex-no-gui"
 cask "syntax-highlight"
 mas "Amphetamine", id: 937984704
 mas "Developer", id: 640199958
+mas "GarageBand", id: 682658836
 mas "iMovie", id: 408981434
 mas "Just Press Record", id: 1033342465
+mas "Keynote", id: 409183694
 mas "Kindle", id: 302584613
 mas "LINE", id: 539883307
+mas "Numbers", id: 409203825
+mas "Pages", id: 409201541
 mas "Perplexity", id: 6714467650
 mas "Prime Video", id: 545519333
 mas "Slack", id: 803453959

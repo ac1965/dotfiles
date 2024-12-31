@@ -21,6 +21,7 @@ Brewfile
 .zstyles
 .local
 .config
+.cache
 EOF
 ); do
 	test -f $f -o -d $f && (

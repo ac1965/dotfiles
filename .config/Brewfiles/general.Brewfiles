@@ -2,7 +2,13 @@ tap "homebrew/bundle"
 tap "homebrew/services"
 brew "git"
 brew "git-lfs"
+brew "gnu-sed"
+brew "gnupg"
+brew "hugo"
+brew "llm"
 brew "mas"
+brew "msmtp"
+brew "neovim"
 brew "pyenv"
 brew "wget"
 cask "font-fira-code"
@@ -11,8 +17,17 @@ cask "font-jolly-lodger"
 cask "font-noto-color-emoji"
 cask "font-source-code-pro"
 cask "iterm2"
+mas "Amphetamine", id: 937984704
+mas "Developer", id: 640199958
 mas "GarageBand", id: 682658836
-mas "iMovie", id: 408981434
+mas "Just Press Record", id: 1033342465
 mas "Keynote", id: 409183694
+mas "Kindle", id: 302584613
+mas "LINE", id: 539883307
 mas "Numbers", id: 409203825
 mas "Pages", id: 409201541
+mas "Perplexity", id: 6714467650
+mas "Prime Video", id: 545519333
+mas "Slack", id: 803453959
+mas "iMovie", id: 408981434
+mas "iMovie", id: 408981434

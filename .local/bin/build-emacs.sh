@@ -1,17 +1,17 @@
 #! /usr/bin/env bash
 
 # Parse arguments for native compilation toggle
-NATIVE_COMP="--without-native-compilation" # Default
+NATIVE_COMP="--without-native-compilation --with-native-full-aot" # Default
 for arg in "$@"; do
     case $arg in
-        --native-compilation)
-        NATIVE_COMP="--with-native-compilation=aot"
-        shift
-        ;;
-        --no-native-compilation)
-        NATIVE_COMP="--without-native-compilation"
-        shift
-        ;;
+        --native|--native-compilation)
+            NATIVE_COMP="--with-native-compilation --with-native-full-aot"
+            shift
+            ;;
+        --no-native|--no-native-compilation)
+            NATIVE_COMP="--without-native-compilation"
+            shift
+            ;;
     esac
 done
 
@@ -64,14 +64,11 @@ DO_BREW_CASKS=(
     mactex-no-gui
 )
 
-#    --with-cairo
-#    --without-ns
-#    --with-cocoa
 DO_CONFIGURE_OPTS=(
     --with-gnutls=ifavailable
     --with-json
     --with-modules
-    --with-tree-sitter=ifavailable
+    --with-tree-sitter
     --with-xml2
     --with-xwidgets
     --with-librsvg

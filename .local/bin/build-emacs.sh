@@ -1,11 +1,11 @@
 #! /usr/bin/env bash
 
 # Parse arguments for native compilation toggle
-NATIVE_COMP="--without-native-compilation --with-native-full-aot" # Default
+NATIVE_COMP="--without-native-compilation" # Default
 for arg in "$@"; do
     case $arg in
         --native|--native-compilation)
-            NATIVE_COMP="--with-native-compilation --with-native-full-aot"
+            NATIVE_COMP="--with-native-compilation"
             shift
             ;;
         --no-native|--no-native-compilation)

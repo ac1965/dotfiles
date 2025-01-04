@@ -5,6 +5,7 @@
 
 # single character aliases - be sparing!
 alias _=sudo
+alias a=alias
 alias l=ls
 alias g=git
 
@@ -44,6 +45,6 @@ alias zdot='cd ${ZDOTDIR:-~}'
 alias disablesleep='sudo pmset -a disablesleep 1'
 alias enablesleep='sudo  pmset -a disablesleep 0'
 alias la='ls -al'
-alias dev='rm -f ~/.emacs.d && ln -s ~/emacs.d ~/.emacs.d'
-alias prd='rm -f ~/.emacs.d && ln -s ~/dot.emacs.d ~/.emacs.d'
+alias dev='rm -f ~/.emacs.d && ln -s ~/.emacs.d-latest ~/.emacs.d'
+alias prd='rm -f ~/.emacs.d && ln -s ~/.emacs.d-stable ~/.emacs.d'
 alias em='open -a Emacs.app'

@@ -11,9 +11,12 @@ brew "clangql"
 brew "cmake"
 brew "gmp"
 brew "coreutils"
+brew "ctags"
 brew "dbus"
 brew "expat"
 brew "fd"
+brew "gnutls"
+brew "ffmpeg"
 brew "fzf"
 brew "mpfr"
 brew "libmpc"
@@ -21,7 +24,6 @@ brew "gcc"
 brew "gh"
 brew "git"
 brew "git-lfs"
-brew "gnutls"
 brew "gnupg"
 brew "gnu-sed"
 brew "gopls"
@@ -66,6 +68,8 @@ cask "iterm2"
 cask "mactex-no-gui"
 cask "syntax-highlight"
 mas "Amphetamine", id: 937984704
+mas "Command X", id: 6448461551
+mas "CotEditor", id: 1024640650
 mas "Developer", id: 640199958
 mas "GarageBand", id: 682658836
 mas "iMovie", id: 408981434
@@ -77,4 +81,5 @@ mas "Numbers", id: 409203825
 mas "Pages", id: 409201541
 mas "Perplexity", id: 6714467650
 mas "Prime Video", id: 545519333
+mas "QR Journal", id: 483820530
 mas "Slack", id: 803453959

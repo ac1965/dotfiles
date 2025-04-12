@@ -70,6 +70,7 @@ cask "syntax-highlight"
 mas "Amphetamine", id: 937984704
 mas "Command X", id: 6448461551
 mas "CotEditor", id: 1024640650
+mas "Declutter", id: 1574021257
 mas "Developer", id: 640199958
 mas "GarageBand", id: 682658836
 mas "iMovie", id: 408981434

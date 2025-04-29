@@ -39,7 +39,7 @@ unset _rc
 # To customize prompt, run `p10k configure` or edit .p10k.zsh.
 [[ ! -f ${ZDOTDIR:-$HOME}/.p10k.zsh ]] || source ${ZDOTDIR:-$HOME}/.p10k.zsh
 
-[[ -f ${HOME}/.${USER}_rc ]] && source ${HOME}/.${USER}_rc
-[[ -f ${HOME}/.docker-alias ]] && source ${HOME}/.docker-alias
-[[ -f ${HOME}/.cargo/env ]] && source ${HOME}/.cargo/env
-[[ -f ${HOME}/.asdf/asdf.sh ]] && source ${HOME}/.asdf/asdf.sh
+#@[[ -f ${HOME}/.${USER}_rc ]] && source ${HOME}/.${USER}_rc
+#@[[ -f ${HOME}/.docker-alias ]] && source ${HOME}/.docker-alias
+#@[[ -f ${HOME}/.cargo/env ]] && source ${HOME}/.cargo/env
+#@[[ -f ${HOME}/.asdf/asdf.sh ]] && source ${HOME}/.asdf/asdf.sh

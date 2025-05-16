@@ -85,7 +85,7 @@ sudo make install
 
 ### 📂 GUI Emacs.app を開く（GUI ビルドの場合）
 if [ -d "nextstep/Emacs.app" ]; then
-    open -R nextstep/Emacs.app
+    sudo open -R nextstep/Emacs.app
 fi
 
 ### ✅ インストール後の確認

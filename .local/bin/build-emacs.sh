@@ -1,180 +1,116 @@
-#! /usr/bin/env bash
+#!/usr/bin/env bash
 
-# Parse arguments for native compilation toggle
-NATIVE_COMP="--without-native-compilation" # Default
+set -euo pipefail
+
+### 📝 引数の解析：ネイティブコンパイルの切り替え
+NATIVE_COMP="--with-native-compilation"  # デフォルトはネイティブコンパイル有効
 for arg in "$@"; do
     case $arg in
         --native|--native-compilation)
             NATIVE_COMP="--with-native-compilation"
-            shift
             ;;
         --no-native|--no-native-compilation)
             NATIVE_COMP="--without-native-compilation"
-            shift
             ;;
     esac
 done
 
+### 🌐 変数設定
 MY_BIN="${HOME}/.local/bin"
-
-DO_BREW_PACKAGES=(
-    # Build dependencies
-    autoconf
-    cmake
-    coreutils
-    dbus
-    expat
-    gcc
-    giflib
-    gmp
-    gnu-sed
-    gnutls
-    jansson
-    libffi
-    libgccjit
-    libiconv
-    librsvg
-    libtasn1
-    libtiff
-    libunistring
-    libxml2
-    little-cms2
-    mailutils
-    ncurses
-    pkgconf
-    zlib
-
-    # Runtime dependencies
-    fd
-    git
-    gnupg
-    mupdf
-    node
-    openssl
-    python
-    ripgrep
-    shfmt
-    sqlite
-    texinfo
-    tree-sitter
-    webp
+SRC_REPOS="https://github.com/emacs-mirror/emacs.git"
+TARGET="${HOME}/Projects/github.com/emacs-mirror/emacs"
+BREW_FORMULAS=(
+    autoconf cmake coreutils dbus expat gcc giflib gmp gnu-sed gnutls
+    jansson libffi libgccjit libiconv librsvg libtasn1 libtiff libunistring
+    libxml2 little-cms2 mailutils ncurses pkg-config zlib fd git gnupg
+    mupdf node openssl python ripgrep shfmt sqlite texinfo tree-sitter webp
 )
+BREW_CASKS=(mactex-no-gui)
 
-DO_BREW_CASKS=(
-    mactex-no-gui
-)
-
-DO_CONFIGURE_OPTS=(
-    --with-gnutls=ifavailable
-    --with-json
-    --with-modules
-    --with-tree-sitter
-    --with-xml2
-    --with-xwidgets
-    --with-librsvg
-)
-
-# Print the given arguments out in a nice heading
+### 💡 ヘッダー表示関数
 do_heading() {
     printf "\n\033[38;5;013m * %s  \033[0m  \n\n" "$*"
 }
 
-# Return exit code 0 if $1 is the same as any of the rest of the arguments
-contains() {
-    local e match="$1"
-    shift
-    for e in "$@"; do [ "$e" = "$match" ] && return 0; done
-    return 1
-}
-
-# Ensure the given homebrew packages are installed and up to date
-# brew_ensure [ cask ] dep1 [ dep2 ] [ ... ]
+### 🍺 Homebrew パッケージの確認・インストール
 do_brew_ensure() {
-    do_heading "Ensuring Homebrew packages..."
-    echo "$@"
-    local brew_type installed required missing outdated upgrade
-    brew_type="$1"
-    shift
-
-    # List installed packages
-    installed=($(brew list $brew_type -q))
-    # strip off the "@version" part, e.g. "python@3.9" becomes "python"
-    for i in "${!installed[@]}"; do
-        installed[$i]="${installed[$i]%%@*}"
-    done
-
-    # List missing packages (required but not installed)
-    required=("$@")
-    missing=()
-    for p in "${required[@]}"; do
-        contains "$p" "${installed[@]}" || missing+=("$p")
-    done
-
-    # Install missing packages
-    if [ -n "${missing[*]:-}" ]; then
-        echo "Installing packages: ${missing[*]}"
-        brew install $brew_type "${missing[@]}"
-    fi
-
-    # List of outdated packages
-    outdated="$(brew outdated $brew_type -q)"
-    upgrade=()
-    for p in "${required[@]}"; do
-        contains "$p" "${outdated[@]}" && upgrade+=("$p")
-    done
-
-    # Upgrade out outdated packages
-    if [ -n "${upgrade[*]:-}" ]; then
-        echo "Upgrading packages: ${upgrade[*]}"
-        brew upgrade $brew_type "${upgrade[@]}"
-    fi
+    do_heading "🔧 Ensuring Homebrew packages..."
+    brew update
+    brew install "${BREW_FORMULAS[@]}" || true
+    brew install --cask "${BREW_CASKS[@]}" || true
+    brew cleanup
 }
 
-# Print the number of CPU cores on the local machine
-do_how_many_cores() {
-    case "$(uname)" in
-        Darwin)
-            sysctl -n hw.ncpu
-            ;;
-        Linux)
-            awk '/^processor/ {++n} END {print n}' /proc/cpuinfo
-            ;;
-    esac
-}
+### ⚡ CPU コア数を自動検出
+CORES=$((2 * $(sysctl -n hw.ncpu)))
+do_heading "💡 Using ${CORES} CPU cores for compilation."
 
-SRC_REPOS="https://github.com/emacs-mirror/emacs.git"
-TARGET="${GITHUB_REPOS}/github.com/emacs-mirror/emacs"
-
-do_heading "Pulling Git ${SRC_REPOS}"
-test -x ${MY_BIN}/hub-clone.sh || exit 9
+### 📥 Emacs リポジトリのクローンまたは更新
+do_heading "🌐 Cloning or updating Emacs repository..."
 if [ -d "${TARGET}" ]; then
     cd "${TARGET}" || exit
-    git reset --hard
-    git clean -xdf
-    git pull
+    git pull --rebase
 else
-    ${MY_BIN}/hub-clone.sh "${SRC_REPOS}" # https://github.com/emacs-mirror/emacs.git
+    git clone "${SRC_REPOS}" "${TARGET}"
+    cd "${TARGET}" || exit
 fi
 
-DO_CORES=$((2 * $(do_how_many_cores)))
-do_brew_ensure --formula "${DO_BREW_PACKAGES[@]}"
-do_brew_ensure --cask "${DO_BREW_CASKS[@]}"
+### 🔧 ビルドのクリーンアップ
+do_heading "🧹 Cleaning old build files..."
+make distclean || true
+git clean -xdf || true
 
-# cd "$(brew --prefix)/lib"
-# ln -s ../Cellar/libgccjit/12.2.0/lib/gcc/12/libgccjit.dylib ./
-# ln -s ../Cellar/libgccjit/12.2.0/lib/gcc/12/libgccjit.0.dylib ./
-# ln -s ../Cellar/gcc/14.1.0/lib/gcc/current/libgcc_s.1.dylib ./
-# ln -s ../Cellar/gcc/14.1.0/lib/gcc/current/libgcc_s.1.1.dylib ./
+### 🚀 Emacs の構成設定
+do_heading "⚙️ Configuring Emacs build..."
+./autogen.sh
+./configure $NATIVE_COMP \
+    --with-gnutls=ifavailable \
+    --with-json \
+    --with-modules \
+    --with-tree-sitter \
+    --with-xml2 \
+    --with-xwidgets \
+    --with-librsvg \
+    --with-mailutils \
+    --with-native-image-api \
+    --with-cairo
 
-cd "${TARGET}" || exit
-make distclean && ./autogen.sh  && \
-    # LIBRARY_PATH="$(brew --prefix gcc)/lib/gcc/current:$(brew --prefix libgccjit)/lib/gcc/current:$(brew --prefix gcc)/lib/gcc/current/gcc/x86_64-apple-darwin23/14" \
-    # LDFAGS="-Wl,-rpath,$(brew --prefix gcc)/lib/gcc/current,$(brew --prefix libgccjit)/lib/gcc/current,$(brew --prefix gcc)/lib/gcc/current/gcc/x86_64-apple-darwin23/14" \
-    CFLAGS=$(xml2-config --cflags) \
-    ./configure $NATIVE_COMP "${DO_CONFIGURE_OPTS[@]}" && \
-    make V=0 -j "${DO_CORES}" && make install && (
-        test -d "${APPS}" && rm -fr "${APPS}"
-        open -R nextstep/Emacs.app
-    )
-#    LIBRARY_PATH="$(brew --prefix gcc)/lib/gcc/current:$(brew --prefix libgccjit)/lib/gcc/current:$(brew --prefix gcc)/lib/gcc/current/gcc/x86_64-apple-darwin23/14" \
-#    LDFAGS="-Wl,-rpath,$(brew --prefix gcc)/lib/gcc/current,$(brew --prefix libgccjit)/lib/gcc/current,$(brew --prefix gcc)/lib/gcc/current/gcc/x86_64-apple-darwin23/14" \
+### 🚀 ビルド開始
+do_heading "🚀 Building Emacs with ${CORES} cores..."
+make -j "${CORES}"
+
+### 🚀 インストール
+do_heading "💾 Installing Emacs..."
+sudo make install
+
+### 📂 GUI Emacs.app を開く（GUI ビルドの場合）
+if [ -d "nextstep/Emacs.app" ]; then
+    open -R nextstep/Emacs.app
+fi
+
+### ✅ インストール後の確認
+do_heading "✅ Emacs build and installation complete!"
+emacs --version
+
+### 🌐 Emacs バイナリのパス設定
+if [ -d "/Applications/Emacs.app" ]; then
+    sudo ln -sf /Applications/Emacs.app/Contents/MacOS/Emacs /usr/local/bin/emacs
+    sudo ln -sf /Applications/Emacs.app/Contents/MacOS/bin/emacsclient /usr/local/bin/emacsclient
+    do_heading "✅ Emacs is linked in /usr/local/bin."
+fi
+
+### 🔧 環境変数設定（exec-path-from-shell）
+do_heading "🌐 Setting up environment variables for Emacs (exec-path-from-shell)..."
+if [ -f "${HOME}/.zshrc" ]; then
+    shell_profile="${HOME}/.zshrc"
+elif [ -f "${HOME}/.bash_profile" ]; then
+    shell_profile="${HOME}/.bash_profile"
+fi
+
+if ! grep -q 'exec-path-from-shell-initialize' "${shell_profile}"; then
+    echo 'eval "$(exec-path-from-shell-initialize)"' >> "${shell_profile}"
+    do_heading "✅ Added exec-path-from-shell to ${shell_profile}."
+fi
+
+do_heading "🎉 Emacs is ready to use!"
+

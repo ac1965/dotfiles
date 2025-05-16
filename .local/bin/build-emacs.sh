@@ -57,7 +57,7 @@ fi
 
 ### 🔧 ビルドのクリーンアップ
 do_heading "🧹 Cleaning old build files..."
-make distclean || true
+sudo make distclean || true
 git clean -xdf || true
 
 ### 🚀 Emacs の構成設定

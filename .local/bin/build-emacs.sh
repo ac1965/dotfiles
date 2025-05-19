@@ -73,7 +73,9 @@ do_heading "⚙️ Configuring Emacs build..."
     --with-librsvg \
     --with-mailutils \
     --with-native-image-api \
-    --with-cairo
+    --with-cairo \
+    --with-mac \
+    --with-ns
 
 ### 🚀 ビルド開始
 do_heading "🚀 Building Emacs with ${CORES} cores..."
@@ -81,11 +83,11 @@ make -j "${CORES}"
 
 ### 🚀 インストール
 do_heading "💾 Installing Emacs..."
-sudo make install
+make install
 
 ### 📂 GUI Emacs.app を開く（GUI ビルドの場合）
 if [ -d "nextstep/Emacs.app" ]; then
-    sudo open -R nextstep/Emacs.app
+    open -R nextstep/Emacs.app
 fi
 
 ### ✅ インストール後の確認

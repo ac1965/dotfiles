@@ -30,6 +30,7 @@ brew "gopls"
 brew "hugo"
 brew "imagemagick"
 brew "jansson"
+brew "latexml"
 brew "libffi"
 brew "libgccjit"
 brew "libiconv"
@@ -65,6 +66,7 @@ cask "font-jetbrains-mono"
 cask "font-jolly-lodger"
 cask "font-noto-color-emoji"
 cask "font-source-code-pro"
+cask "ghidra"
 cask "iterm2"
 cask "mactex-no-gui"
 cask "syntax-highlight"
@@ -83,5 +85,4 @@ mas "Numbers", id: 409203825
 mas "Pages", id: 409201541
 mas "Perplexity", id: 6714467650
 mas "Prime Video", id: 545519333
-mas "QR Journal", id: 483820530
 mas "Slack", id: 803453959

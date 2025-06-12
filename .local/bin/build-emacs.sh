@@ -2,8 +2,8 @@
 
 set -euo pipefail
 
-### 📝 引数の解析：ネイティブコンパイルの切り替え
-NATIVE_COMP="--with-native-compilation"  # デフォルトはネイティブコンパイル有効
+### 📝 Parse arguments: toggle native compilation
+NATIVE_COMP="--with-native-compilation"  # Native compilation is enabled by default
 for arg in "$@"; do
     case $arg in
         --native|--native-compilation)
@@ -15,7 +15,7 @@ for arg in "$@"; do
     esac
 done
 
-### 🌐 変数設定
+### 🌐 Variable definitions
 MY_BIN="${HOME}/.local/bin"
 SRC_REPOS="https://github.com/emacs-mirror/emacs.git"
 TARGET="${HOME}/Projects/github.com/emacs-mirror/emacs"
@@ -27,7 +27,7 @@ BREW_FORMULAS=(
 )
 BREW_CASKS=(mactex-no-gui)
 
-### 💡 ヘッダー表示関数
+### 💡 Function to display headers
 do_heading() {
     printf "\n\033[38;5;013m * %s  \033[0m  \n\n" "$*"
 }

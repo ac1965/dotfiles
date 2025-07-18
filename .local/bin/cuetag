@@ -1,170 +1,143 @@
-#! /bin/sh
+#!/usr/bin/env zsh
 
-# cuetag.sh - tag files based on cue/toc file information
-# uses cueprint output
-# usage: cuetag.sh <cuefile|tocfile> [file]...
+# cuetag.zsh - tag files based on cue/toc file information
+# usage: cuetag.zsh <cuefile|tocfile> [file]...
+
+set -o errexit
+set -o nounset
+set -o pipefail
 
 CUEPRINT=cueprint
 cue_file=""
 
-usage()
-{
-	echo "usage: cuetag.sh <cuefile|tocfile> [file]..."
+# 📘 ヘルプ
+usage() {
+    echo "Usage: cuetag.zsh <cuefile|tocfile> [file]..."
 }
 
-# Vorbis Comments
-# for FLAC and Ogg Vorbis files
-vorbis()
-{
-	# FLAC tagging
-	# --remove-vc-all overwrites existing comments
-	METAFLAC="metaflac --remove-all-tags --import-tags-from=-"
+# 🎵 Vorbis Comments (FLAC and Ogg Vorbis)
+vorbis() {
+    local track="$1"
+    local file="$2"
+    local tag_cmd=""
+    local value=""
 
-	# Ogg Vorbis tagging
-	# -w overwrites existing comments
-	# -a appends to existing comments
-	VORBISCOMMENT="vorbiscomment -w -c -"
+    case "$file" in
+	*.(flac|FLAC)) tag_cmd="metaflac --remove-all-tags --import-tags-from=-" ;;
+*.(ogg|OGG))   tag_cmd="vorbiscomment -w -c -" ;;
+	       *) echo "$file: unsupported file type for Vorbis tagging" >&2; return 1 ;;
+	       esac
 
-	case "$2" in
-	*.[Ff][Ll][Aa][Cc])
-		VORBISTAG=$METAFLAC
-		;;
-	*.[Oo][Gg][Gg])
-		VORBISTAG=$VORBISCOMMENT
-		;;
-	esac
+	       local fields=(
+		   TITLE VERSION ALBUM TRACKNUMBER TRACKTOTAL
+		   ARTIST PERFORMER COPYRIGHT LICENSE ORGANIZATION
+		   DESCRIPTION GENRE DATE LOCATION CONTACT ISRC
+	       )
 
-	# space seperated list of recomended stardard field names
-	# see http://www.xiph.org/ogg/vorbis/doc/v-comment.html
-	# TRACKTOTAL is not in the Xiph recomendation, but is in common use
-	
-	fields='TITLE VERSION ALBUM TRACKNUMBER TRACKTOTAL ARTIST PERFORMER COPYRIGHT LICENSE ORGANIZATION DESCRIPTION GENRE DATE LOCATION CONTACT ISRC'
+	       local TITLE='%t'
+	       local VERSION=''
+	       local ALBUM='%T'
+	       local TRACKNUMBER='%n'
+	       local TRACKTOTAL='%N'
+	       local ARTIST='%c %p'
+	       local PERFORMER='%p'
+	       local COPYRIGHT=''
+	       local LICENSE=''
+	       local ORGANIZATION=''
+	       local DESCRIPTION='%m'
+	       local GENRE='%g'
+	       local DATE=''
+	       local LOCATION=''
+	       local CONTACT=''
+	       local ISRC='%i %u'
 
-	# fields' corresponding cueprint conversion characters
-	# seperate alternates with a space
+	       {
+		   for field in "${fields[@]}"; do
+		       local convs
+		       eval "convs=( ${(s: :)${(P)field}} )"
+		       for conv in "${convs[@]}"; do
+			   value="$($CUEPRINT -n "$track" -t "${conv}\n" "$cue_file" 2>/dev/null)"
+			   [[ -n "$value" ]] && {
+			       echo "$field=$value"
+			       break
+			   }
+		       done
+		   done
+	       } | eval $tag_cmd "\"\$file\""
+	       }
 
-	TITLE='%t'
-	VERSION=''
-	ALBUM='%T'
-	TRACKNUMBER='%n'
-	TRACKTOTAL='%N'
-	ARTIST='%c %p'
-	PERFORMER='%p'
-	COPYRIGHT=''
-	LICENSE=''
-	ORGANIZATION=''
-	DESCRIPTION='%m'
-	GENRE='%g'
-	DATE=''
-	LOCATION=''
-	CONTACT=''
-	ISRC='%i %u'
+		# 🎧 ID3v1 タグ（MP3）
+		id3() {
+		    local track="$1"
+		    local file="$2"
+		    local value=""
 
-	(for field in $fields; do
-		value=""
-		for conv in `eval echo \\$$field`; do
-			value=`$CUEPRINT -n $1 -t "$conv\n" "$cue_file"`
+		    local fields=(TITLE ALBUM ARTIST YEAR COMMENT GENRE TRACKNUMBER)
+		    local TITLE='%t'
+		    local ALBUM='%T'
+		    local ARTIST='%p'
+		    local YEAR=''
+		    local COMMENT='%c'
+		    local GENRE='%g'
+		    local TRACKNUMBER='%n'
 
-			if [ -n "$value" ]; then
-				echo "$field=$value"
-				break
+		    for field in "${fields[@]}"; do
+			local convs
+			eval "convs=( ${(s: :)${(P)field}} )"
+			for conv in "${convs[@]}"; do
+			    value="$($CUEPRINT -n "$track" -t "${conv}\n" "$cue_file" 2>/dev/null)"
+			    [[ -n "$value" ]] && break
+			done
+
+			if [[ -n "$value" ]]; then
+			    case "$field" in
+				TITLE)       mp3info -t "$value" "$file" ;;
+				ALBUM)       mp3info -l "$value" "$file" ;;
+				ARTIST)      mp3info -a "$value" "$file" ;;
+				YEAR)        mp3info -y "$value" "$file" ;;
+				COMMENT)     mp3info -c "$value" "$file" ;;
+				GENRE)       mp3info -g "$value" "$file" ;;
+				TRACKNUMBER) mp3info -n "$value" "$file" ;;
+			    esac
 			fi
-		done
-	done) | $VORBISTAG "$2"
-}
+		    done
+		}
 
-id3()
-{
-	MP3INFO=mp3info
+		# 🧭 メイン処理
+		main() {
+		    if [[ $# -lt 1 ]]; then
+			usage
+			exit 1
+		    fi
 
-	# space seperated list of ID3 v1.1 tags
-	# see http://id3lib.sourceforge.net/id3/idev1.html
+		    cue_file="$1"
+		    shift
 
-	fields="TITLE ALBUM ARTIST YEAR COMMENT GENRE TRACKNUMBER"
+		    if [[ ! -f "$cue_file" ]]; then
+			echo "Error: '$cue_file' is not a valid file" >&2
+			exit 1
+		    fi
 
-	# fields' corresponding cueprint conversion characters
-	# seperate alternates with a space
+		    local ntrack
+		    ntrack="$($CUEPRINT -d '%N' "$cue_file" 2>/dev/null)"
+		    if [[ -z "$ntrack" ]]; then
+			echo "Error: cueprint failed or invalid cue file: $cue_file" >&2
+			exit 2
+		    fi
 
-	TITLE='%t'
-	ALBUM='%T'
-	ARTIST='%p'
-	YEAR=''
-	COMMENT='%c'
-	GENRE='%g'
-	TRACKNUMBER='%n'
+		    if [[ $# -ne $ntrack ]]; then
+			echo "⚠️  Warning: number of files ($#) does not match number of tracks ($ntrack)" >&2
+		    fi
 
-	for field in $fields; do
-		value=""
-		for conv in `eval echo \\$$field`; do
-			value=`$CUEPRINT -n $1 -t "$conv\n" "$cue_file"`
+		    local trackno=1
+		    for file in "$@"; do
+			case "$file" in
+			    *.(flac|FLAC|ogg|OGG)) vorbis "$trackno" "$file" ;;
+		*.(mp3|MP3))           id3 "$trackno" "$file" ;;
+				       *) echo "$file: unknown file type" >&2 ;;
+				       esac
+				       ((trackno++))
+			   done
+				       }
 
-			if [ -n "$value" ]; then
-				break
-			fi
-		done
-
-		if [ -n "$value" ]; then
-			case $field in
-			TITLE)
-				$MP3INFO -t "$value" "$2"
-				;;
-			ALBUM)
-				$MP3INFO -l "$value" "$2"
-				;;
-			ARTIST)
-				$MP3INFO -a "$value" "$2"
-				;;
-			YEAR)
-				$MP3INFO -y "$value" "$2"
-				;;
-			COMMENT)
-				$MP3INFO -c "$value" "$2"
-				;;
-			GENRE)
-				$MP3INFO -g "$value" "$2"
-				;;
-			TRACKNUMBER)
-				$MP3INFO -n "$value" "$2"
-				;;
-			esac
-		fi
-	done
-}
-
-main()
-{
-	if [ $# -lt 1 ]; then
-		usage
-		exit
-	fi
-
-	cue_file=$1
-	shift
-
-	ntrack=`cueprint -d '%N' "$cue_file"`
-	trackno=1
-
-	if [ $# -ne $ntrack ]; then
-		echo "warning: number of files does not match number of tracks"
-	fi
-
-	for file in "$@"; do
-		case $file in
-		*.[Ff][Ll][Aa][Cc])
-			vorbis $trackno "$file"
-			;;
-		*.[Oo][Gg][Gg])
-			vorbis $trackno "$file"
-			;;
-		*.[Mm][Pp]3)
-			id3 $trackno "$file"
-			;;
-		*)
-			echo "$file: uknown file type"
-			;;
-		esac
-		trackno=$(($trackno + 1))
-	done
-}
-
-main "$@"
+					main "$@"

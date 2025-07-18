@@ -1,118 +1,174 @@
-#!/usr/bin/env bash
+#!/usr/bin/env zsh
 
-set -euo pipefail
+set -o errexit
+set -o nounset
+set -o pipefail
 
-### 📝 Parse arguments: toggle native compilation
-NATIVE_COMP="--with-native-compilation"  # Native compilation is enabled by default
+# --- オプションパース ---
+NATIVE_COMP="--with-native-compilation"
+DEBUG_MODE=false
+DRY_RUN=false
+DRY_RUN_LOG=""
+
 for arg in "$@"; do
-    case $arg in
-        --native|--native-compilation)
-            NATIVE_COMP="--with-native-compilation"
-            ;;
-        --no-native|--no-native-compilation)
-            NATIVE_COMP="--without-native-compilation"
-            ;;
+    case "$arg" in
+	--debug)
+	    DEBUG_MODE=true
+	    ;;
+	--dry-run)
+	    DRY_RUN=true
+	    ;;
+	--dry-run-log=*)
+	    DRY_RUN=true
+	    DRY_RUN_LOG="${arg#--dry-run-log=}"
+	    ;;
+	--native|--native-compilation)
+	    NATIVE_COMP="--with-native-compilation"
+	    ;;
+	--no-native|--no-native-compilation)
+	    NATIVE_COMP="--without-native-compilation"
+	    ;;
     esac
 done
 
-### 🌐 Variable definitions
+if $DEBUG_MODE; then
+    echo "🔍 DEBUG モード有効"
+    set -x
+fi
+
+# --- ヘルパー関数 ---
+function do_heading() {
+    printf "\n\033[38;5;013m * %s  \033[0m\n\n" "$*"
+}
+
+function run() {
+    local cmd="$*"
+    if $DRY_RUN; then
+	echo "[dry-run] $cmd"
+	[[ -n "$DRY_RUN_LOG" ]] && echo "$cmd" >> "$DRY_RUN_LOG"
+    else
+	eval "$cmd"
+    fi
+}
+
+function safe_cd() {
+    local dir="$1"
+    if [[ -d "$dir" ]]; then
+	echo "[cd] $dir"
+	cd "$dir"
+    else
+	if $DRY_RUN; then
+	    echo "[dry-run] cd $dir"
+	else
+	    echo "❌ ディレクトリが存在しません: $dir" >&2
+	    exit 1
+	fi
+    fi
+}
+
+function safe_mkdir() {
+    local dir="$1"
+    if $DRY_RUN; then
+	echo "[dry-run] mkdir -p $dir"
+    else
+	mkdir -p "$dir"
+    fi
+}
+
+# --- 変数定義 ---
 MY_BIN="${HOME}/.local/bin"
 SRC_REPOS="https://github.com/emacs-mirror/emacs.git"
 TARGET="${HOME}/Projects/github.com/emacs-mirror/emacs"
-BREW_FORMULAS=(
+
+typeset -a BREW_FORMULAS=(
     autoconf cmake coreutils dbus expat gcc giflib gmp gnu-sed gnutls
     jansson libffi libgccjit libiconv librsvg libtasn1 libtiff libunistring
     libxml2 little-cms2 mailutils ncurses pkg-config zlib fd git gnupg
     mupdf node openssl python ripgrep shfmt sqlite texinfo tree-sitter webp
 )
-BREW_CASKS=(mactex-no-gui)
+typeset -a BREW_CASKS=(mactex-no-gui)
 
-### 💡 Function to display headers
-do_heading() {
-    printf "\n\033[38;5;013m * %s  \033[0m  \n\n" "$*"
+# --- Homebrew パッケージ ---
+function do_brew_ensure() {
+    do_heading "🔧 Homebrew パッケージを確認中..."
+    run "brew update"
+    run "brew install ${BREW_FORMULAS[*]} || true"
+    run "brew install --cask ${BREW_CASKS[*]} || true"
+    run "brew cleanup"
 }
 
-### 🍺 Homebrew パッケージの確認・インストール
-do_brew_ensure() {
-    do_heading "🔧 Ensuring Homebrew packages..."
-    brew update
-    brew install "${BREW_FORMULAS[@]}" || true
-    brew install --cask "${BREW_CASKS[@]}" || true
-    brew cleanup
-}
-
-### ⚡ CPU コア数を自動検出
+# --- CPUコア数検出 ---
 CORES=$((2 * $(sysctl -n hw.ncpu)))
-do_heading "💡 Using ${CORES} CPU cores for compilation."
+do_heading "💡 ${CORES} コアでビルドします"
 
-### 📥 Emacs リポジトリのクローンまたは更新
-do_heading "🌐 Cloning or updating Emacs repository..."
-if [ -d "${TARGET}" ]; then
-    cd "${TARGET}" || exit
-    git pull --rebase
+# --- リポジトリ取得 ---
+do_heading "🌐 Emacs リポジトリの準備..."
+if [[ -d "$TARGET" ]]; then
+    safe_cd "$TARGET"
+    run "git pull --rebase"
 else
-    git clone "${SRC_REPOS}" "${TARGET}"
-    cd "${TARGET}" || exit
+    run "git clone $SRC_REPOS $TARGET"
+    safe_cd "$TARGET"
 fi
 
-### 🔧 ビルドのクリーンアップ
-do_heading "🧹 Cleaning old build files..."
-make distclean || true
-git clean -xdf || true
+# --- ビルド準備 ---
+do_heading "🧹 古いビルドファイルを削除..."
+run "make distclean || true"
+run "git clean -xdf || true"
 
-### 🚀 Emacs の構成設定
-do_heading "⚙️ Configuring Emacs build..."
-./autogen.sh
-./configure $NATIVE_COMP \
-    --with-gnutls=ifavailable \
-    --with-json \
-    --with-modules \
-    --with-tree-sitter \
-    --with-xml2 \
-    --with-xwidgets \
-    --with-librsvg \
-    --with-mailutils \
-    --with-native-image-api \
-    --with-cairo \
-    --with-mac \
-    --with-ns
+# --- 構成 ---
+do_heading "⚙️ Emacs の構成設定..."
+run "./autogen.sh"
+run "./configure $NATIVE_COMP \
+  --with-gnutls=ifavailable \
+  --with-json \
+  --with-modules \
+  --with-tree-sitter \
+  --with-xml2 \
+  --with-xwidgets \
+  --with-librsvg \
+  --with-mailutils \
+  --with-native-image-api \
+  --with-cairo \
+  --with-mac \
+  --with-ns"
 
-### 🚀 ビルド開始
-do_heading "🚀 Building Emacs with ${CORES} cores..."
-make -j "${CORES}"
+# --- ビルド ---
+do_heading "🚀 Emacs をビルド中 (${CORES} cores)..."
+run "make -j $CORES"
 
-### 🚀 インストール
-do_heading "💾 Installing Emacs..."
-make install
+# --- インストール ---
+do_heading "💾 Emacs をインストール中..."
+run "make install"
 
-### 📂 GUI Emacs.app を開く（GUI ビルドの場合）
-if [ -d "nextstep/Emacs.app" ]; then
-    open -R nextstep/Emacs.app
+# --- GUI アプリ起動 ---
+if [[ -d "nextstep/Emacs.app" ]]; then
+    run "open -R nextstep/Emacs.app"
 fi
 
-### ✅ インストール後の確認
-do_heading "✅ Emacs build and installation complete!"
-emacs --version
+# --- バージョン確認 ---
+do_heading "✅ Emacs のビルド完了！バージョン情報:"
+run "emacs --version"
 
-### 🌐 Emacs バイナリのパス設定
-if [ -d "/Applications/Emacs.app" ]; then
-    sudo ln -sf /Applications/Emacs.app/Contents/MacOS/Emacs /usr/local/bin/emacs
-    sudo ln -sf /Applications/Emacs.app/Contents/MacOS/bin/emacsclient /usr/local/bin/emacsclient
-    do_heading "✅ Emacs is linked in /usr/local/bin."
+# --- バイナリリンク ---
+if [[ -d "/Applications/Emacs.app" ]]; then
+    run "sudo ln -sf /Applications/Emacs.app/Contents/MacOS/Emacs /usr/local/bin/emacs"
+    run "sudo ln -sf /Applications/Emacs.app/Contents/MacOS/bin/emacsclient /usr/local/bin/emacsclient"
+    do_heading "✅ Emacs を /usr/local/bin にリンクしました"
 fi
 
-### 🔧 環境変数設定（exec-path-from-shell）
-do_heading "🌐 Setting up environment variables for Emacs (exec-path-from-shell)..."
-if [ -f "${HOME}/.zshrc" ]; then
-    shell_profile="${HOME}/.zshrc"
-elif [ -f "${HOME}/.bash_profile" ]; then
-    shell_profile="${HOME}/.bash_profile"
+# --- exec-path-from-shell の確認 ---
+do_heading "🌐 exec-path-from-shell の設定を確認..."
+local shell_profile=""
+if [[ -f "$HOME/.zshrc" ]]; then
+    shell_profile="$HOME/.zshrc"
+elif [[ -f "$HOME/.bash_profile" ]]; then
+    shell_profile="$HOME/.bash_profile"
 fi
 
-if ! grep -q 'exec-path-from-shell-initialize' "${shell_profile}"; then
-    echo 'eval "$(exec-path-from-shell-initialize)"' >> "${shell_profile}"
-    do_heading "✅ Added exec-path-from-shell to ${shell_profile}."
+if [[ -n "$shell_profile" && ! $(grep -q 'exec-path-from-shell-initialize' "$shell_profile") ]]; then
+    run "echo 'eval \"\$(exec-path-from-shell-initialize)\"' >> $shell_profile"
+    do_heading "✅ ${shell_profile} に exec-path-from-shell を追加しました"
 fi
 
-do_heading "🎉 Emacs is ready to use!"
-
+do_heading "🎉 Emacs の準備が完了しました！"

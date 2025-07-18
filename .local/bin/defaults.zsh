@@ -1,54 +1,75 @@
 #!/bin/zsh
 
-# バックアップ用のディレクトリ
+# 保存ディレクトリ（環境変数優先）
 BACKUP_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/mac_defaults_backup"
 
-# ヘルプメッセージ
+# ヘルプ表示
 function show_help() {
-    echo "Usage: $0 [backup|restore|migrate] [domain]"
-    echo "  保存先: $BACKUP_DIR"
-    echo "  backup  : 指定したドメインの設定をバックアップします"
-    echo "  restore : 指定したドメインの設定をリストアします"
-    echo "  migrate : バックアップを別のMacに移行してリストアします"
-    echo "  domain  : バックアップまたはリストア対象のドメイン（例: com.apple.finder）"
+    cat <<EOF
+Usage: $0 [backup|restore|migrate] <domain>
+
+  保存先 : $BACKUP_DIR
+
+  backup   : 指定したドメインの設定をバックアップします
+  restore  : バックアップした設定をリストアします
+  migrate  : バックアップを別の Mac に SCP で移行します
+  domain   : 対象のドメイン名（例: com.apple.finder）
+
+EOF
     exit 1
 }
 
-# バックアップ処理
+# バックアップ関数
 function backup() {
     local domain=$1
-    mkdir -p "$BACKUP_DIR"
     local backup_file="${BACKUP_DIR}/${domain}.plist"
-    echo "Backing up domain '${domain}' to '${backup_file}'..."
-    defaults export "$domain" "$backup_file" && echo "Backup completed: ${backup_file}" || echo "Backup failed"
-}
 
-# リストア処理
-function restore() {
-    local domain=$1
-    local backup_file="${BACKUP_DIR}/${domain}.plist"
-    if [[ -f "$backup_file" ]]; then
-        echo "Restoring domain '${domain}' from '${backup_file}'..."
-        defaults import "$domain" "$backup_file" && echo "Restore completed" || echo "Restore failed"
+    mkdir -p "$BACKUP_DIR"
+    echo "📦 バックアップ中: ${domain} → ${backup_file}"
+    if defaults export "$domain" "$backup_file"; then
+        echo "✅ バックアップ完了: ${backup_file}"
     else
-        echo "Backup file '${backup_file}' not found. Restore aborted."
+        echo "❌ バックアップ失敗"
     fi
 }
 
-# 移行処理（別Macに移行）
+# リストア関数
+function restore() {
+    local domain=$1
+    local backup_file="${BACKUP_DIR}/${domain}.plist"
+
+    if [[ -f "$backup_file" ]]; then
+        echo "♻️ リストア中: ${domain} ← ${backup_file}"
+        if defaults import "$domain" "$backup_file"; then
+            echo "✅ リストア完了"
+        else
+            echo "❌ リストア失敗"
+        fi
+    else
+        echo "⚠️ バックアップファイルが見つかりません: ${backup_file}"
+    fi
+}
+
+# 移行関数
 function migrate() {
     local domain=$1
     local backup_file="${BACKUP_DIR}/${domain}.plist"
+    local remote_host="user@remote-mac.local"
+
     if [[ -f "$backup_file" ]]; then
-        echo "Migrating domain '${domain}'..."
-        scp "$backup_file" user@remote-mac.local:"$BACKUP_DIR/" && echo "Migration completed" || echo "Migration failed"
+        echo "🚚 移行中: ${backup_file} → ${remote_host}:${BACKUP_DIR}/"
+        if scp "$backup_file" "${remote_host}:${BACKUP_DIR}/"; then
+            echo "✅ 移行完了"
+        else
+            echo "❌ 移行失敗"
+        fi
     else
-        echo "Backup file '${backup_file}' not found. Migration aborted."
+        echo "⚠️ バックアップファイルが見つかりません: ${backup_file}"
     fi
 }
 
 # メインロジック
-if [[ $# -lt 2 ]]; then
+if [[ $# -ne 2 ]]; then
     show_help
 fi
 
@@ -56,16 +77,8 @@ action=$1
 domain=$2
 
 case "$action" in
-    backup)
-        backup "$domain"
-        ;;
-    restore)
-        restore "$domain"
-        ;;
-    migrate)
-        migrate "$domain"
-        ;;
-    *)
-        show_help
-        ;;
+    backup)  backup "$domain" ;;
+    restore) restore "$domain" ;;
+    migrate) migrate "$domain" ;;
+    *)       show_help ;;
 esac

@@ -76,6 +76,7 @@ cask "iterm2"
 cask "mactex-no-gui"
 cask "syntax-highlight"
 mas "Amphetamine", id: 937984704
+mas "Apollo", id: 6448019325
 mas "Command X", id: 6448461551
 mas "CotEditor", id: 1024640650
 mas "Declutter", id: 1574021257

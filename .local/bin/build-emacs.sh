@@ -157,18 +157,4 @@ if [[ -d "/Applications/Emacs.app" ]]; then
     do_heading "✅ Emacs を /usr/local/bin にリンクしました"
 fi
 
-# --- exec-path-from-shell の確認 ---
-do_heading "🌐 exec-path-from-shell の設定を確認..."
-local shell_profile=""
-if [[ -f "$HOME/.zshrc" ]]; then
-    shell_profile="$HOME/.zshrc"
-elif [[ -f "$HOME/.bash_profile" ]]; then
-    shell_profile="$HOME/.bash_profile"
-fi
-
-if [[ -n "$shell_profile" && ! $(grep -q 'exec-path-from-shell-initialize' "$shell_profile") ]]; then
-    run "echo 'eval \"\$(exec-path-from-shell-initialize)\"' >> $shell_profile"
-    do_heading "✅ ${shell_profile} に exec-path-from-shell を追加しました"
-fi
-
 do_heading "🎉 Emacs の準備が完了しました！"

@@ -146,15 +146,4 @@ if [[ -d "nextstep/Emacs.app" ]]; then
     run "open -R nextstep/Emacs.app"
 fi
 
-# --- バージョン確認 ---
-do_heading "✅ Emacs のビルド完了！バージョン情報:"
-run "emacs --version"
-
-# --- バイナリリンク ---
-if [[ -d "/Applications/Emacs.app" ]]; then
-    run "sudo ln -sf /Applications/Emacs.app/Contents/MacOS/Emacs /usr/local/bin/emacs"
-    run "sudo ln -sf /Applications/Emacs.app/Contents/MacOS/bin/emacsclient /usr/local/bin/emacsclient"
-    do_heading "✅ Emacs を /usr/local/bin にリンクしました"
-fi
-
 do_heading "🎉 Emacs の準備が完了しました！"

@@ -1,4 +1,4 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env bash
 
 set -o errexit
 set -o nounset
@@ -12,22 +12,11 @@ DRY_RUN_LOG=""
 
 for arg in "$@"; do
     case "$arg" in
-	--debug)
-	    DEBUG_MODE=true
-	    ;;
-	--dry-run)
-	    DRY_RUN=true
-	    ;;
-	--dry-run-log=*)
-	    DRY_RUN=true
-	    DRY_RUN_LOG="${arg#--dry-run-log=}"
-	    ;;
-	--native|--native-compilation)
-	    NATIVE_COMP="--with-native-compilation"
-	    ;;
-	--no-native|--no-native-compilation)
-	    NATIVE_COMP="--without-native-compilation"
-	    ;;
+        --debug) DEBUG_MODE=true ;;
+        --dry-run) DRY_RUN=true ;;
+        --dry-run-log=*) DRY_RUN=true; DRY_RUN_LOG="${arg#--dry-run-log=}" ;;
+        --native|--native-compilation) NATIVE_COMP="--with-native-compilation" ;;
+        --no-native|--no-native-compilation) NATIVE_COMP="--without-native-compilation" ;;
     esac
 done
 
@@ -44,62 +33,110 @@ function do_heading() {
 function run() {
     local cmd="$*"
     if $DRY_RUN; then
-	echo "[dry-run] $cmd"
-	[[ -n "$DRY_RUN_LOG" ]] && echo "$cmd" >> "$DRY_RUN_LOG"
+        echo "[dry-run] $cmd"
+        [[ -n "$DRY_RUN_LOG" ]] && echo "$cmd" >> "$DRY_RUN_LOG"
     else
-	eval "$cmd"
+        eval "$cmd"
     fi
 }
 
 function safe_cd() {
     local dir="$1"
     if [[ -d "$dir" ]]; then
-	echo "[cd] $dir"
-	cd "$dir"
+        echo "[cd] $dir"
+        cd "$dir"
     else
-	if $DRY_RUN; then
-	    echo "[dry-run] cd $dir"
-	else
-	    echo "❌ ディレクトリが存在しません: $dir" >&2
-	    exit 1
-	fi
+        if $DRY_RUN; then
+            echo "[dry-run] cd $dir"
+        else
+            echo "❌ ディレクトリが存在しません: $dir" >&2
+            exit 1
+        fi
     fi
 }
 
-function safe_mkdir() {
-    local dir="$1"
-    if $DRY_RUN; then
-	echo "[dry-run] mkdir -p $dir"
-    else
-	mkdir -p "$dir"
-    fi
-}
+# --- OS 判定 ---
+OS=$(uname -s)
+case "$OS" in
+    Darwin)
+        PKG_MANAGER="brew"
+        CORES=$((2 * $(sysctl -n hw.ncpu)))
+        INSTALL_CMD="brew install"
+        EXTRA_CONFIG="--with-mac --with-ns --with-xwidgets"
+        ;;
+    Linux)
+        PKG_MANAGER="apt"
+        CORES=$((2 * $(nproc)))
+        INSTALL_CMD="sudo apt install -y"
+        EXTRA_CONFIG="--with-xwidgets --with-cairo"
+        ;;
+    *)
+        echo "❌ 未対応のOS: $OS" >&2
+        exit 1
+        ;;
+esac
 
-# --- 変数定義 ---
-MY_BIN="${HOME}/.local/bin"
-SRC_REPOS="https://github.com/emacs-mirror/emacs.git"
-TARGET="${HOME}/Projects/github.com/emacs-mirror/emacs"
+do_heading "💡 $OS 環境を検出 (${CORES} cores)"
 
-typeset -a BREW_FORMULAS=(
-    autoconf cmake coreutils dbus expat gcc giflib gmp gnu-sed gnutls
-    jansson libffi libgccjit libiconv librsvg libtasn1 libtiff libunistring
-    libxml2 little-cms2 mailutils ncurses pkg-config zlib fd git gnupg
-    mupdf node openssl python ripgrep shfmt sqlite texinfo tree-sitter webp
-)
-typeset -a BREW_CASKS=(mactex-no-gui)
+# --- パッケージインストール ---
+function install_packages_mac() {
+    local formulas=(
+        autoconf cmake coreutils dbus expat gcc giflib gmp gnu-sed gnutls
+        jansson libffi libgccjit libiconv librsvg libtasn1 libtiff libunistring
+        libxml2 little-cms2 mailutils ncurses pkg-config zlib fd git gnupg
+        mupdf node openssl python ripgrep shfmt sqlite texinfo tree-sitter webp
+        webkit2gtk
+    )
+    local casks=(mactex-no-gui)
 
-# --- Homebrew パッケージ ---
-function do_brew_ensure() {
     do_heading "🔧 Homebrew パッケージを確認中..."
     run "brew update"
-    run "brew install ${BREW_FORMULAS[*]} || true"
-    run "brew install --cask ${BREW_CASKS[*]} || true"
+    run "brew install ${formulas[*]} || true"
+    run "brew install --cask ${casks[*]} || true"
     run "brew cleanup"
 }
 
-# --- CPUコア数検出 ---
-CORES=$((2 * $(sysctl -n hw.ncpu)))
-do_heading "💡 ${CORES} コアでビルドします"
+function install_packages_ubuntu() {
+    local packages=(
+        build-essential autoconf automake cmake gnutls-bin libgnutls28-dev
+        libgtk-3-dev libjansson-dev libjpeg-dev libpng-dev libgif-dev
+        libtiff-dev libncurses-dev libxpm-dev libxml2-dev libxaw7-dev
+        libxft-dev libxrandr-dev libxinerama-dev libharfbuzz-dev libwebp-dev
+        libgccjit-12-dev libtree-sitter-dev mailutils texinfo ripgrep
+        git fd-find sqlite3 libwebkit2gtk-4.0-dev
+    )
+
+    do_heading "🔧 APT パッケージを確認中..."
+    run "sudo apt update"
+    run "$INSTALL_CMD ${packages[*]}"
+}
+
+if [[ "$OS" == "Darwin" ]]; then
+    install_packages_mac
+else
+    install_packages_ubuntu
+fi
+
+# --- xwidgets 用 PKG_CONFIG_PATH 設定 ---
+if [[ "$OS" == "Darwin" ]]; then
+    export PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/opt/homebrew/lib/pkgconfig:$PKG_CONFIG_PATH"
+else
+    export PKG_CONFIG_PATH="/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/lib/pkgconfig:$PKG_CONFIG_PATH"
+fi
+do_heading "📌 PKG_CONFIG_PATH = $PKG_CONFIG_PATH"
+
+# --- 依存パッケージチェック ---
+DEPENDENCIES=(gtk+-3.0 webkit2gtk-4.0 gnutls libjansson)
+for dep in "${DEPENDENCIES[@]}"; do
+    if ! pkg-config --exists "$dep"; then
+        echo "⚠️  依存パッケージが見つかりません: $dep"
+    fi
+done
+
+# --- ビルド対象 ---
+MY_BIN="${HOME}/.local/bin"
+SRC_REPOS="https://github.com/emacs-mirror/emacs.git"
+TARGET="${HOME}/Projects/github.com/emacs-mirror/emacs"
 
 # --- リポジトリ取得 ---
 do_heading "🌐 Emacs リポジトリの準備..."
@@ -125,13 +162,10 @@ run "./configure $NATIVE_COMP \
   --with-modules \
   --with-tree-sitter \
   --with-xml2 \
-  --with-xwidgets \
   --with-librsvg \
   --with-mailutils \
   --with-native-image-api \
-  --with-cairo \
-  --with-mac \
-  --with-ns"
+  $EXTRA_CONFIG"
 
 # --- ビルド ---
 do_heading "🚀 Emacs をビルド中 (${CORES} cores)..."
@@ -139,11 +173,17 @@ run "make -j $CORES"
 
 # --- インストール ---
 do_heading "💾 Emacs をインストール中..."
-run "make install"
+if [[ "$OS" == "Darwin" ]]; then
+    run "make install"
+else
+    run "sudo make install"
+fi
 
-# --- GUI アプリ起動 ---
-if [[ -d "nextstep/Emacs.app" ]]; then
+# --- GUI 起動 ---
+if [[ "$OS" == "Darwin" && -d "nextstep/Emacs.app" ]]; then
     run "open -R nextstep/Emacs.app"
+elif [[ "$OS" == "Linux" ]] && command -v emacs >/dev/null 2>&1; then
+    run "emacs &"
 fi
 
 do_heading "🎉 Emacs の準備が完了しました！"

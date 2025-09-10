@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+i#!/usr/bin/env bash
 
 set -o errexit
 set -o nounset
@@ -62,7 +62,7 @@ case "$OS" in
         PKG_MANAGER="brew"
         CORES=$((2 * $(sysctl -n hw.ncpu)))
         INSTALL_CMD="brew install"
-        EXTRA_CONFIG="--with-mac --with-ns --with-xwidgets"
+        EXTRA_CONFIG="--with-ns"
         ;;
     Linux)
         PKG_MANAGER="apt"
@@ -82,21 +82,25 @@ do_heading "💡 $OS 環境を検出 (${CORES} cores)"
 function install_packages_mac() {
     local formulas=(
         autoconf cmake coreutils dbus expat gcc giflib gmp gnu-sed gnutls
-        jansson libffi libgccjit libiconv librsvg libtasn1 libtiff libunistring
+        jansson libffi libgccjit librsvg libtasn1 libtiff libunistring
         libxml2 little-cms2 mailutils ncurses pkg-config zlib fd git gnupg
         mupdf node openssl python ripgrep shfmt sqlite texinfo tree-sitter webp
-        webkit2gtk
     )
     local casks=(mactex-no-gui)
 
     do_heading "🔧 Homebrew パッケージを確認中..."
     run "brew update"
-    run "brew install ${formulas[*]} || true"
-    run "brew install --cask ${casks[*]} || true"
+    for f in ${formulas[@]}; do
+        run "brew list --versions $f >/dev/null 2>&1 || brew install $f"
+    done
+    for c in ${casks[@]}; do
+        run "brew list --cask --versions $c >/dev/null 2>&1 || brew install --cask $c"
+    done
     run "brew cleanup"
 }
 
 function install_packages_ubuntu() {
+    # Ubuntu（例: 22.04系）想定。libgccjit のバージョンは環境に合わせて調整可。
     local packages=(
         build-essential autoconf automake cmake gnutls-bin libgnutls28-dev
         libgtk-3-dev libjansson-dev libjpeg-dev libpng-dev libgif-dev
@@ -117,16 +121,33 @@ else
     install_packages_ubuntu
 fi
 
-# --- xwidgets 用 PKG_CONFIG_PATH 設定 ---
+# --- PKG_CONFIG_PATH 設定 ---
 if [[ "$OS" == "Darwin" ]]; then
-    export PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/opt/homebrew/lib/pkgconfig:$PKG_CONFIG_PATH"
+    # Homebrew prefix（Apple Silicon: /opt/homebrew, Intel: /usr/local）
+    BREW_PREFIX="$(brew --prefix 2>/dev/null || true)"
+    if [[ -z "${BREW_PREFIX:-}" ]]; then
+        if [[ -d /opt/homebrew ]]; then
+            BREW_PREFIX="/opt/homebrew"
+        else
+            BREW_PREFIX="/usr/local"
+        fi
+    fi
+    # 未定義で落ちないよう ${VAR:-} を使用
+    export PKG_CONFIG_PATH="${BREW_PREFIX}/lib/pkgconfig:${BREW_PREFIX}/opt/gnutls/lib/pkgconfig:${BREW_PREFIX}/opt/jansson/lib/pkgconfig:${BREW_PREFIX}/opt/libxml2/lib/pkgconfig:${BREW_PREFIX}/opt/librsvg/lib/pkgconfig:${BREW_PREFIX}/opt/tree-sitter/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
 else
-    export PKG_CONFIG_PATH="/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/lib/pkgconfig:$PKG_CONFIG_PATH"
+    export PKG_CONFIG_PATH="/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
 fi
-do_heading "📌 PKG_CONFIG_PATH = $PKG_CONFIG_PATH"
+do_heading "📌 PKG_CONFIG_PATH = ${PKG_CONFIG_PATH:-}"
 
-# --- 依存パッケージチェック ---
-DEPENDENCIES=(gtk+-3.0 webkit2gtk-4.0 gnutls libjansson)
+# --- 依存パッケージチェック（pkg-config） ---
+if [[ "$OS" == "Darwin" ]]; then
+    # NS 版 Emacs で有用な依存
+    DEPENDENCIES=(gnutls jansson libxml-2.0 librsvg-2.0 tree-sitter)
+else
+    # Linux/GTK 版では xwidgets 対応で GTK/WebKit2GTK も確認
+    DEPENDENCIES=(gtk+-3.0 webkit2gtk-4.0 gnutls jansson libxml-2.0 librsvg-2.0 tree-sitter)
+fi
+
 for dep in "${DEPENDENCIES[@]}"; do
     if ! pkg-config --exists "$dep"; then
         echo "⚠️  依存パッケージが見つかりません: $dep"

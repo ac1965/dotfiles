@@ -9,23 +9,27 @@
 
 ## MacOS のクリーンアップ
 
-### 私のMac は Sonoma 以降が動作しているIntel搭載なので
-
+- アクティベーションを外す
+- MacBook Pro (AppleM4 14-inch, 11.2024)
 - MacBook Pro (13-inch, 2020, Four Thunderbolt 3 ports)
 
    https://support.apple.com/ja-jp/HT212749
 
 ## Homebrew のインストール
 
-```
-    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
-```
+- ターミナルから次のコマンドをコピペ
 
 ```
+	cd Downloads && git clone https://github.com/ac1965/dotfiles
+	/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
     brew bundle --global
 ```
 
 ### iTerm2
+
+`brew bundle --global` を実行すると *Brewfile* に記載されたパッケージのひとつとして iTerm2 もインストールする。
+
+単独でイントールする場合は以下のコマンドを実行する。
 
 ```
     brew install --cask iterm2
@@ -36,17 +40,21 @@ https://iterm2colorschemes.com
 https://zenn.dev/aldagram_tech/articles/0fc671a41021f3
 
 - ホットキー
-- フルスクリーンで重ねて表示
+
+- 任意のデスクトップ上にフルスクリーンで重ねて表示
+
+- ショートカットキー
 
 ```
     -- 画面の分割
     command + d 画面を左右に分割
     command + shift + d 画面を上下に分割
-    command + [/] 画面の移動
-    command + w
-    command + t タブ
-    command + return 最大化/元のサイズ
+    command + n ウィンドウを作成
+    command + w ウィンドウを閉じる
+	command + t タブを作成
     command + 矢印キー タブの移動
+    command + [/] 画面の移動
+    command + return 最大化/元のサイズ
 ```
 
 ### pyenv & pipenv
@@ -120,5 +128,5 @@ openssl enc -d -aes-256-cbc -pbkdf2 -iter 99999 -in "${1}"
 ### Emacs のインストール
 
 ```
-  $ build-emacs.sh
+  build-emacs.sh --native
 ```

@@ -1,4 +1,4 @@
-i#!/usr/bin/env bash
+#!/usr/bin/env bash
 
 set -o errexit
 set -o nounset
@@ -89,14 +89,16 @@ function install_packages_mac() {
     local casks=(mactex-no-gui)
 
     do_heading "🔧 Homebrew パッケージを確認中..."
-    run "brew update"
+    run "brew install curl"
+    run "export HOMEBREW_FORCE_BREWED_CURL=1"
+    run "caffeinate -dimsu brew update"
     for f in ${formulas[@]}; do
-        run "brew list --versions $f >/dev/null 2>&1 || brew install $f"
+        run "caffeinate -dimsu brew list --versions $f >/dev/null 2>&1 || caffeinate -dimsu brew install $f"
     done
     for c in ${casks[@]}; do
-        run "brew list --cask --versions $c >/dev/null 2>&1 || brew install --cask $c"
+        run "caffeinate -dimsu brew list --cask --versions $c >/dev/null 2>&1 || caffeinate -dimsu brew install --cask $c"
     done
-    run "brew cleanup"
+    run "caffeinate -dimsu brew cleanup"
 }
 
 function install_packages_ubuntu() {

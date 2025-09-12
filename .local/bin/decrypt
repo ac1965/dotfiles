@@ -1,3 +1,43 @@
 #!/bin/bash
+# Decrypt to STDOUT for piping (e.g., `decrypt_cbc file.enc | tar -xvJ`).
+# Cipher: AES-256-CBC + PBKDF2 (default 210k iterations).
+# No messages on STDOUT (binary only). All prompts/errors go to STDERR.
+# Passphrase priority: PASSPHRASE env > /dev/tty prompt. Passed via -pass env:... or -pass fd:3.
+# Safety: refuse to write binary to a terminal (STDOUT must be piped or redirected).
 
-openssl enc -d -aes-256-cbc -pbkdf2 -iter 99999 -in "${1}"
+set -euo pipefail
+
+if [ $# -ne 1 ]; then
+  echo "Usage: $0 <file.enc>" >&2
+  exit 1
+fi
+
+in="$1"
+iter="${ITER:-210000}"
+
+# Refuse writing binary to a terminal
+if [ -t 1 ]; then
+  echo "Refusing to write binary to terminal. Pipe or redirect the output." >&2
+  echo "Example: $0 file.enc | tar -xvJ" >&2
+  exit 1
+fi
+
+# Build openssl command
+cmd=(openssl aes-256-cbc -d -pbkdf2 -iter "$iter" -in "$in" -out -)
+
+if [ "${PASSPHRASE:-}" != "" ]; then
+  # Use env to avoid exposing the passphrase on argv
+  PASSPHRASE="$PASSPHRASE" "${cmd[@]}" -pass env:PASSPHRASE
+else
+  # Read from /dev/tty so we don't consume pipeline stdin, then feed via fd:3
+  if [ -r /dev/tty ]; then
+    # shellcheck disable=SC2162
+    read -s -p "Passphrase: " pass </dev/tty >&2; echo >&2
+    exec 3<<<"$pass"
+    "${cmd[@]}" -pass fd:3
+  else
+    echo "No PASSPHRASE set and no /dev/tty available for prompt." >&2
+    echo "Set PASSPHRASE env or run interactively." >&2
+    exit 1
+  fi
+fi

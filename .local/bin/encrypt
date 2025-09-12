@@ -1,3 +1,28 @@
 #!/bin/bash
+# Since OpenSSL enc parsing can be brittle, call the cipher subcommand directly.
+# AES-256-CBC + PBKDF2 (210k iterations), output perms via umask 077,
+# then remove the source in order: gshred > shred > rm.
 
-openssl enc -aes-256-cbc -e -pbkdf2 -iter 99999 -salt -in "${1}" -out "${1}".enc && rm -f "${1}"
+set -euo pipefail
+
+if [ $# -ne 1 ]; then
+  echo "Usage: $0 <file>"
+  exit 1
+fi
+
+in="$1"
+out="$in.enc"
+iter="${ITER:-210000}"
+
+umask 077
+openssl aes-256-cbc -e -pbkdf2 -iter "$iter" -salt -in "$in" -out "$out"
+
+if command -v gshred >/dev/null 2>&1; then
+  gshred -u -- "$in"
+elif command -v shred >/dev/null 2>&1; then
+  shred -u -- "$in"
+else
+  rm -f -- "$in"
+fi
+
+echo "✅ Encrypted: $out"

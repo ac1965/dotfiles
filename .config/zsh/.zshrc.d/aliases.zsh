@@ -1,145 +1,165 @@
 #!/bin/zsh
 #
-# .aliases - Set whatever shell aliases you want.
-#
+# aliases.refactored.zsh
+# - Zsh alias/function set, organized by domain
+# - Safe on macOS; Linux guards included where needed
+# - Completions wired for functions (compdef)
+# - Keep this file idempotent
 
-# single character aliases - be sparing!
-alias _=sudo
-alias a=alias
-alias l=ls
-alias g=git
+setopt aliases
 
-# mask built-ins with better defaults
-alias vi=vim
+# --- Guard: interactive only ------------------------------------------------
+[[ -o interactive ]] || return 0
 
-# fix common typos
+# --- Helper: platform detection --------------------------------------------
+is_macos() { [[ "$OSTYPE" == darwin* ]]; }
+is_linux() { [[ "$OSTYPE" == linux* ]]; }
+
+# --- Completion / keybind (Prezto/Oh-My-Zsh 連携前提でもOK) -----------------
+# (必要に応じて外部でロードされる想定)
+
+# --- General tools ----------------------------------------------------------
+alias _='sudo'
+alias please='sudo'
+alias a='alias'
+alias l='ls'
+alias la='ls -al'
+alias ll='ls -alF'
+alias vi='vim'
 alias quit='exit'
 
-# tar
-alias tarls="tar -tvf"
-alias untar="tar -xf"
-
-# find
-alias fd='find . -type d -name'
-alias ff='find . -type f -name'
-
-# url encode/decode
-alias urldecode='python3 -c "import sys, urllib.parse as ul; \
-    print(ul.unquote_plus(sys.argv[1]))"'
-alias urlencode='python3 -c "import sys, urllib.parse as ul; \
-    print (ul.quote_plus(sys.argv[1]))"'
-
-# misc
-alias please=sudo
+# Open zshrc quickly
 alias zshrc='${EDITOR:-vim} "${ZDOTDIR:-$HOME}"/.zshrc'
+
+# Quick benchmark for login shell startup (10 runs)
 alias zbench='for i in {1..10}; do /usr/bin/time zsh -lic exit; done'
-alias zdot='cd ${ZDOTDIR:-~}'
 
-# =========================
-if [[ -r "${HOME}/.p10k.zsh" ]]; then
-  source "${HOME}/.p10k.zsh"
-fi
-
-# --- Completion / keybind (Prezto連携)
-autoload -Uz compinit; compinit -u
-bindkey -e
-
-# --- iTerm2 integration
-# クリップボードへパイプ： pbcopy / pbpaste
-alias copy='pbcopy'
-alias paste='pbpaste'
-
-# --- General tools
-export EDITOR="nvim"
-export PAGER="less -R"
-
-# --- fzf (あれば)
-[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
-
-# --- Docker aliases（別ファイルを読み込む: ~/.docker-alias）
-[ -f ~/.docker-alias ] && source ~/.docker-alias
-
-# --- LLM quick helpers (Ollama)
-alias oll='ollama'
-alias oll-serve='ollama serve'
-# 代表モデル例： llama3（名称は手元に合わせて）
-alias oll-q='ollama run llama3 "日本語で要約して"'
-
-# --- Git short hands
-alias gs='git status -sb'
-alias ga='git add -A'
-alias gc='git commit -m'
-alias gp='git push'
-alias gl='git log --oneline --graph --decorate --all'
-
-# --- Directory / quality of life
-alias ll='ls -alF'
+# --- Directory / QoL --------------------------------------------------------
 alias ..='cd ..'
 alias ...='cd ../..'
+alias zdot='cd ${ZDOTDIR:-~}'
 
-# --- Prompt に Docker 情報を埋め込みたい場合の関数例
-docker_branch() {
-  # 稼働中コンテナ数を表示 (重い場合は間引き推奨)
-  local n; n=$(docker ps -q 2>/dev/null | wc -l | tr -d ' ')
-  [[ "$n" != "0" ]] && echo "🐳${n}"
-}
-# Powerlevel10k の custom segment で $(docker_branch) を描画しても良い
+# Better mkcd
+mkcd() { mkdir -p -- "$1" && cd -- "$1"; }
+compdef _directories mkcd
 
-# --- iTerm2: 放送入力を使う時の表示ヒント
-alias iterm-bcast-on='echo "[iTerm2 Broadcast: ON] ⌘⇧I"'
-alias iterm-bcast-off='echo "[iTerm2 Broadcast: OFF] 再度 ⌘⇧I"'
+# Archive helpers
+alias tarls='tar -tvf'       # usage: tarls file.tar.gz
+alias untar='tar -xf'        # usage: untar file.tar.gz -C /dest
 
-# =========================
-# Docker aliases & helpers
-# =========================
-
-# Compose 基本
-alias dkup='docker compose up -d'
-alias dkdown='docker compose down'
-alias dkps='docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"'
-alias dkimg='docker images'
-alias dknet='docker network ls'
-alias dkvol='docker volume ls'
-alias dkstats='docker stats'     # リソース監視（終了: Ctrl+C）
-
-# Logs
-# 例: dklf web   → サービス web のフォロー表示
-dklf() { docker compose logs -f --tail=200 "${1:-}"; }
-
-# Exec / shell
-# 例: dksh web   → サービス web に sh で入る
-dksh() { docker compose exec "${1:-}" sh; }
-dkbash() { docker compose exec "${1:-}" bash; }
-
-# Into コンテナ ID 指定派
-# 例: denter <container_id>
-denter() { docker exec -it "$1" sh; }
-
-# Prune（要注意: 未使用リソースを全掃除）
-alias dkprune='docker system prune -af --volumes'
-
-# Stop/Remove all（危険操作: 明示確認）
-dkstopall() { docker stop $(docker ps -q); }
-dkrmall()   { docker rm -f $(docker ps -aq); }
-
-# Build / Recreate
-alias dkbuild='docker compose build --no-cache'
-alias dkreup='docker compose up -d --force-recreate'
-
-# Tail 特定コンテナ（docker ps 名前一致）
-dktail() {
-  local name="${1:-}"
-  [[ -z "$name" ]] && { echo "usage: dktail <name-pattern>"; return 1; }
-  docker logs -f --tail=200 "$(docker ps --format '{{.Names}}' | grep -m1 "$name")"
+extract() {  # usage: extract archive.{tar.gz,zip,7z}
+      local f="$1"
+      [[ -z "$f" || ! -f "$f" ]] && { echo "usage: extract <archive>"; return 1; }
+      case "$f" in
+        *.tar.bz2|*.tbz2)   tar xjf "$f" ;;
+        *.tar.gz|*.tgz)     tar xzf "$f" ;;
+        *.tar.xz|*.txz)     tar xJf "$f" ;;
+        *.tar.zst|*.tzst)   tar --zstd -xf "$f" ;;
+        *.tar)              tar xf "$f" ;;
+        *.zip)              unzip "$f" ;;
+        *.7z)               7z x "$f" ;;
+        *)                  echo "extract: unknown format: $f" ; return 2 ;;
+      esac
 }
 
-# オーケストレーション: ペイン分割運用の想定
-# 左: dklf <svc> / 右上: dkstats / 右下: ollama run ...
+# Find helpers
+alias fd="find . -type d -name"
+alias ff="find . -type f -name"
+
+# URL encode/decode (python3)
+urlencode() { python3 - "$@" <<'PY'
+import sys, urllib.parse
+for s in sys.argv[1:] or [sys.stdin.read()]:
+    print(urllib.parse.quote_plus(s.strip()))
+PY
+}
+urldecode() { python3 - "$@" <<'PY'
+import sys, urllib.parse
+for s in sys.argv[1:] or [sys.stdin.read()]:
+    print(urllib.parse.unquote_plus(s.strip()))
+PY
+}
+
+# macOS clipboard
+if is_macos; then
+    alias copy='pbcopy'
+    alias paste='pbpaste'
+fi
 
 # ac1965
 alias disablesleep='sudo pmset -a disablesleep 1'
 alias enablesleep='sudo  pmset -a disablesleep 0'
-alias la='ls -al'
 alias dev='rm -f ~/.emacs.d && ln -s ~/.emacs.d-develop ~/.emacs.d'
 alias prd='rm -f ~/.emacs.d && ln -s ~/.emacs.d-stable ~/.emacs.d'
 alias em='open -a Emacs.app'
+
+# --- Git short hands --------------------------------------------------------
+alias g='git'
+alias gs='git status -sb'
+alias ga='git add -A'
+alias gc='git commit -m'
+alias gca='git commit -a -m'
+alias gcm='git commit -m'
+alias gco='git checkout'
+alias gcb='git checkout -b'
+alias gb='git branch -v'
+alias gba='git branch -a'
+alias gpl='git pull --ff-only'
+alias gp='git push'
+alias gpsup='git push --set-upstream origin "$(git rev-parse --abbrev-ref HEAD)"'
+alias gl='git log --oneline --graph --decorate --all'
+alias gfix='git commit --amend --no-edit'
+alias gstash='git stash -u'
+alias gpop='git stash pop'
+alias gdt='git difftool'
+alias gbl='git blame -w -M'
+
+# Convenient "add+commit+push"
+gacp() {
+    local msg="${*:-Update}"
+    git add -A && git commit -m "$msg" && git push
+}
+compdef _git gacp
+
+# --- fzf (if installed) -----------------------------------------------------
+if command -v fzf >/dev/null 2>&1; then
+    ffz() { find "${1:-.}" -type f 2>/dev/null | fzf; }
+    dfz() { find "${1:-.}" -type d 2>/dev/null | fzf; }
+fi
+
+# --- Docker aliases / functions --------------------------------------------
+# (Optional external file)
+[[ -f "${HOME}/.docker-alias" ]] && source "${HOME}/.docker-alias"
+
+alias d='docker'
+alias dc='docker compose'
+alias dps='docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"'
+alias dim='docker images'
+alias dprune='docker system prune -f'
+
+dsh() { docker compose exec "${1:-}" bash; }
+compdef _docker dsh
+denter() { docker exec -it "$1" sh; }
+compdef _docker denter
+dkstopall() { docker stop $(docker ps -q); }
+dkrmall() { docker rm -f $(docker ps -aq); }
+dktail() {
+    local name="${1:-}"
+    [[ -z "$name" ]] && { echo "usage: dktail <name-pattern>"; return 1; }
+    docker logs -f "$(docker ps --format '{{.Names}}' | grep -m1 "$name")"
+}
+
+# --- LLM quick helpers (Ollama) --------------------------------------------
+alias oll='ollama'
+alias oll-serve='ollama serve'
+# quick Japanese summarize
+alias oll-q='ollama run llama3 "日本語で要約して"'
+
+# --- iTerm2 integration -----------------------------------------------------
+alias iterm-bcast-on='echo "[iTerm2 Broadcast: ON] ⌘⇧I"'
+alias iterm-bcast-off='echo "[iTerm2 Broadcast: OFF] ⌘⇧I"'
+
+# --- Prompt / example hook placeholders ------------------------------------
+# (left intentionally as comments for user-specific prompt integration)
+
+# End of file

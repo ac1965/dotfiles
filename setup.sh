@@ -5,6 +5,7 @@ for f in $(cat <<EOF
 .Brewfile
 .bin
 .config
+.docs
 .docker-alias
 .gitconfig_global
 .gitignore_global

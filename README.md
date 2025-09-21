@@ -1,13 +1,6 @@
 
 # dotfiles
 
-## インストール
-
-```
-  $ git clone https://github.com/ac1965/dotfiles.git
-  $ dotfiles/setup.sh
-```
-
 ## MacOS のクリーンアップ
 
 - アクティベーションを外す
@@ -15,6 +8,13 @@
 - MacBook Pro (13-inch, 2020, Four Thunderbolt 3 ports)
 
    https://support.apple.com/ja-jp/HT212749
+
+## インストール
+
+```
+  $ git clone https://github.com/ac1965/dotfiles.git
+  $ dotfiles/setup.sh
+```
 
 ## Homebrew のインストール
 

@@ -89,15 +89,22 @@ function install_packages_mac() {
     local casks=(mactex-no-gui)
 
     do_heading "🔧 Homebrew パッケージを確認中..."
-    run "brew install curl"
+
+    # --- curl は常に Homebrew 版を使うが、既に入っていれば出力を抑止 ---
+    if ! brew list --versions curl >/dev/null 2>&1; then
+        run "brew install curl"
+    fi
     run "export HOMEBREW_FORCE_BREWED_CURL=1"
+
     run "caffeinate -dimsu brew update"
+
     for f in ${formulas[@]}; do
         run "caffeinate -dimsu brew list --versions $f >/dev/null 2>&1 || caffeinate -dimsu brew install $f"
     done
     for c in ${casks[@]}; do
         run "caffeinate -dimsu brew list --cask --versions $c >/dev/null 2>&1 || caffeinate -dimsu brew install --cask $c"
     done
+
     run "caffeinate -dimsu brew cleanup"
 }
 

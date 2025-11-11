@@ -1,0 +1,260 @@
+#+title: 🎶 音源からMIDIと譜面を自動生成するパイプライン
+#+author: YAMASHITA, Takao
+#+language: ja
+#+property: header-args :comments link :mkdirp yes
+#+startup: show2levels indent
+
+* はじめに
+このプロジェクトは、音源ファイル（WAV, MP3, AIFCなど）から  
+**ステム分離 → MIDI変換 → 歌詞抽出 → 譜面化(MusicXML)**  
+までを自動で行う macOS 向けパイプラインです。
+
+主な構成要素：
+- **UVR5**：ボーカル・楽器の分離  
+- **NeuralNote**：楽器をMIDI化（GUI操作）  
+- **process.sh**：ボーカルの自動処理（MIDI + 歌詞 + MusicXML）  
+- **MuseScore**：最終的な譜面確認用
+
+* ディレクトリ構成
+#+begin_src text
+project-root/
+├── README.org               # このドキュメント（tangle対応）
+├── Makefile                 # make run で実行できる
+├── process.sh               # 音声→MIDI/SRT/MusicXML 自動処理
+├── full_music_pipeline.sh   # ステム分離から全自動
+├── requirements.txt         # Python依存リスト
+└── out/
+    ├── stems/               # UVR5 出力
+    ├── midi/                # NeuralNote 出力
+    ├── vocals_basic_pitch.mid
+    ├── vocals.srt
+    └── vocals_with_lyrics.musicxml
+#+end_src
+
+* セットアップ（初回のみ）
+macOS / Linux 共通で以下を実行してください。
+
+#+begin_src bash
+# Homebrew がなければ先にインストール
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# 必要ツール
+brew install ffmpeg
+
+# 仮想環境を作成してアクティブ化
+python3 -m venv .venv
+source .venv/bin/activate
+
+# 依存関係をまとめてインストール
+pip install --upgrade pip setuptools wheel
+pip install -r requirements.txt
+#+end_src
+
+* requirements.txt :tangle requirements.txt
+:PROPERTIES:
+:header-args: :tangle requirements.txt :mkdirp yes
+:END:
+#+begin_src text
+# Audio to MIDI / Lyrics / Score Pipeline dependencies
+uvr5
+basic-pitch
+faster-whisper
+music21
+mido
+srt
+librosa
+soundfile
+numpy
+scipy
+tqdm
+requests
+torch
+torchaudio
+onnxruntime
+#+end_src
+
+* 処理フロー（Mermaid）
+#+begin_src mermaid
+flowchart TD
+    A[🎵 音源ファイル] --> B[🎛 UVR5 ステム分離]
+    B -->|vocals.wav| C1[🎤 ボーカル]
+    B -->|piano/bass/drums.wav| C2[🎹 楽器群]
+    C2 --> D[🧠 NeuralNote<br>Audio→MIDI (GUI)]
+    D --> E[💾 楽器MIDI出力]
+    C1 --> F[⚙️ process.sh]
+    F --> F1[🎶 Basic Pitch<br>音声→MIDI]
+    F --> F2[🗣 Faster-Whisper<br>音声→SRT(歌詞)]
+    F --> F3[🧩 music21<br>MIDI+SRT→MusicXML]
+    F3 --> G[📄 歌詞付き譜面(MusicXML)]
+    F3 --> H[🎼 MuseScore で開く]
+    E --> I[🎚 DAWへインポート]
+    G --> I
+    I --> J[🎵 完成！（スコア＋MIDI統合）]
+#+end_src
+
+* 実行方法
+#+begin_src bash
+# 実行権限を付与
+chmod +x process.sh full_music_pipeline.sh
+
+# 音源ファイルを指定してフルパイプライン実行
+make run INPUT="my_song.wav" OUT="out"
+#+end_src
+
+* process.sh :tangle process.sh
+:PROPERTIES:
+:header-args: :tangle process.sh :mkdirp yes
+:END:
+#+begin_src bash
+#!/usr/bin/env bash
+# 音声→MIDI→SRT→MusicXML（歌詞連携）を自動実行
+set -euo pipefail
+
+AUDIO_IN=""
+OUT_DIR=""
+WHISPER_MODEL="medium"
+LANG="ja"
+OPEN_MSCORE="false"
+VENV_DIR=".venv-process"
+BASIC_PITCH_OUT_SUB="midi"
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -i|--input) AUDIO_IN="$2"; shift 2 ;;
+    -o|--out) OUT_DIR="$2"; shift 2 ;;
+    --lang) LANG="$2"; shift 2 ;;
+    --whisper-model) WHISPER_MODEL="$2"; shift 2 ;;
+    --open-mscore) OPEN_MSCORE="true"; shift ;;
+    *) echo "Usage: ./process.sh -i <audio> -o <out> [--lang ja] [--whisper-model medium] [--open-mscore]"; exit 1 ;;
+  esac
+done
+
+[[ -z "$AUDIO_IN" || -z "$OUT_DIR" ]] && { echo "[ERR] -i/--input と -o/--out は必須です"; exit 1; }
+
+mkdir -p "$OUT_DIR"
+ABS_OUT="$(cd "$OUT_DIR" && pwd)"
+
+if [[ ! -d "$VENV_DIR" ]]; then
+  echo "[INFO] Python venv 作成中..."
+  python3 -m venv "$VENV_DIR"
+fi
+source "$VENV_DIR/bin/activate"
+pip install -q --upgrade pip setuptools wheel
+pip install -q -r requirements.txt
+
+BASENAME="$(basename "$AUDIO_IN")"
+STEM="${BASENAME%.*}"
+WORK_WAV="$ABS_OUT/${STEM}_44100mono.wav"
+
+echo "[INFO] 44.1kHz mono WAV に変換: $WORK_WAV"
+ffmpeg -y -i "$AUDIO_IN" -ac 1 -ar 44100 -vn "$WORK_WAV" >/dev/null 2>&1
+
+MIDI_DIR="$ABS_OUT/$BASIC_PITCH_OUT_SUB"
+mkdir -p "$MIDI_DIR"
+echo "[INFO] Basic Pitch 実行中..."
+basic-pitch "$WORK_WAV" --output-dir "$MIDI_DIR" >/dev/null
+MIDI_PATH="$(ls "$MIDI_DIR"/*_basic_pitch.mid | head -n 1)"
+[[ -z "$MIDI_PATH" ]] && { echo "[ERR] MIDI 出力が見つかりません"; exit 1; }
+
+ASR_DIR="$ABS_OUT/lyrics"
+mkdir -p "$ASR_DIR"
+echo "[INFO] Faster-Whisper 実行中..."
+faster-whisper-transcribe --model "$WHISPER_MODEL" --language "$LANG" --task transcribe \
+  --vad_filter True --output_format srt --output_dir "$ASR_DIR" "$WORK_WAV" >/dev/null 2>&1 || true
+
+SRT_PATH="$(ls "$ASR_DIR"/*.srt | head -n 1)"
+[[ -z "$SRT_PATH" ]] && { echo "[ERR] SRT ファイルが見つかりません"; exit 1; }
+
+XML_OUT="$ABS_OUT/${STEM}_with_lyrics.musicxml"
+echo "[INFO] MusicXML 生成中..."
+python3 - "$MIDI_PATH" "$SRT_PATH" "$XML_OUT" <<'PY'
+import sys,re,srt
+from music21 import converter,note
+midi,srtf,xml=sys.argv[1:]
+sc=converter.parse(midi)
+melody=max(sc.parts,key=lambda p:len(p.recurse().getElementsByClass(note.Note)))
+notes=list(melody.recurse().getElementsByClass(note.Note))
+subs=list(srt.parse(open(srtf,encoding='utf-8').read()))
+words=[]
+for sub in subs:
+  line=re.sub(r'\s+',' ',sub.content.strip())
+  for w in line.split(' '):
+    for i,s in enumerate(w.split('-')):
+      if s: words.append(s if i==len(w.split('-'))-1 else s+'-')
+for i,n in enumerate(notes):
+  if i>=len(words): break
+  n.lyric=words[i]
+sc.write('musicxml',fp=xml)
+PY
+
+echo "[OK] 出力完了:"
+echo " - MIDI: $MIDI_PATH"
+echo " - SRT:  $SRT_PATH"
+echo " - XML:  $XML_OUT"
+
+[[ "$OPEN_MSCORE" == "true" ]] && open -a "MuseScore 4" "$XML_OUT" || true
+#+end_src
+
+* full_music_pipeline.sh :tangle full_music_pipeline.sh
+:PROPERTIES:
+:header-args: :tangle full_music_pipeline.sh :mkdirp yes
+:END:
+#+begin_src bash
+#!/usr/bin/env bash
+# 音源→ステム分離→NeuralNote→process.sh 全自動化
+set -euo pipefail
+
+AUDIO_IN=""
+OUT_DIR=""
+LANG="ja"
+WHISPER_MODEL="medium"
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -i|--input) AUDIO_IN="$2"; shift 2 ;;
+    -o|--out) OUT_DIR="$2"; shift 2 ;;
+    --lang) LANG="$2"; shift 2 ;;
+    --model) WHISPER_MODEL="$2"; shift 2 ;;
+    *) echo "Usage: ./full_music_pipeline.sh -i <audio> -o <out>"; exit 1 ;;
+  esac
+done
+
+[[ -z "$AUDIO_IN" || -z "$OUT_DIR" ]] && { echo "[ERR] 入力と出力は必須です"; exit 1; }
+
+ABS_OUT="$(cd "$OUT_DIR" && pwd)"
+mkdir -p "$ABS_OUT"
+
+echo "[STEP1] UVR5でステム分離"
+python3 -m uvr5 --input "$AUDIO_IN" --output "$ABS_OUT/stems" \
+  --model "MDX-Net_Inst_HQ_3,MDX-Net_Voc_FT,MDX-Net_Drums" >/dev/null 2>&1 || {
+  echo "[WARN] UVR5 CLI が見つからないか失敗しました"
+}
+
+echo "[STEP2] NeuralNoteで楽器MIDI化（手動）"
+read -p "NeuralNote で出力が終わったら Enter を押してください: " _
+
+VOCAL_STEM="$(ls "$ABS_OUT/stems"/*voc* 2>/dev/null | head -n 1 || true)"
+[[ -z "$VOCAL_STEM" ]] && VOCAL_STEM="$AUDIO_IN"
+
+echo "[STEP3] process.sh を実行"
+./process.sh -i "$VOCAL_STEM" -o "$ABS_OUT" --lang "$LANG" --whisper-model "$WHISPER_MODEL" --open-mscore
+
+echo "✅ 完了: 出力は $ABS_OUT に保存されました"
+#+end_src
+
+* Makefile :tangle Makefile
+:PROPERTIES:
+:header-args: :tangle Makefile :mkdirp yes
+:END:
+#+begin_src makefile
+INPUT ?= song.wav
+OUT ?= out
+
+run:
+	@echo "=== フルパイプライン実行中 ==="
+	@./full_music_pipeline.sh -i "$(INPUT)" -o "$(OUT)" --lang ja --model medium
+	@echo "=== 完了: 出力は $(OUT) に保存されました ==="
+
+clean:
+	rm -rf .venv-process .venv out
+#+end_src

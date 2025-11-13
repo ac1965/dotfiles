@@ -2,3 +2,5 @@
 Makefile
 requirements.txt
 scripts
+Dockerfile
+docker-compose.yaml

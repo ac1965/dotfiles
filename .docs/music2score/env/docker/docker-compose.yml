@@ -1,0 +1,10 @@
+services:
+  music2score:
+    build:
+      context: ../..
+      dockerfile: env/docker/Dockerfile
+    container_name: music2score
+    volumes:
+      - ../../input:/input
+      - ../../out:/out
+    command: ["/opt/music2score/env/common/scripts/process.sh", "/input/foo.wav"]

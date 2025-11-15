@@ -4,7 +4,7 @@
 #+PROPERTY: header-args :noweb no-export :mkdirp yes
 
 * Overview
-本プロジェクトは、単一の音源ファイルから以下を自動生成するパイプラインです。
+本プロジェクトは、音源ファイルから以下を自動生成するパイプラインです。
 
 1. Demucs によるステム分離（複数モデル＋アンサンブル対応）
 2. Basic Pitch による各パート MIDI 生成
@@ -18,7 +18,7 @@
 - WSL2 (Ubuntu)
 - Docker（単体／docker compose）
 
-共通コード・依存関係は =env/common/= に 1 つだけ出力し、
+共通コード・依存関係は =env/common/= に 出力し、
 環境固有のファイルは =env/macOS/=, =env/wsl2/=, =env/docker/= に出力します。
 
 * 想定ディレクトリ構成
@@ -114,7 +114,7 @@
   read -r -a MODEL_ARR <<< "$MODELS_SANE"
   if [ "${#MODEL_ARR[@]}" -eq 0 ]; then
     MODEL_ARR=(htdemucs)
-  fio
+  fi
   echo "[models] parsed: ${#MODEL_ARR[@]} -> ${MODEL_ARR[*]}"
 
   # === 2) Demucs per-model ===
@@ -150,7 +150,11 @@
     local f="$1"
     if [ -f "$f" ]; then
       echo "[basic-pitch] $f"
-      basic-pitch "$MIDI_DIR" "$f" >/dev/null 2>&1 || true
+      basic-pitch \
+        --save-midi \
+        --no-melodia \
+        "$MIDI_DIR" \
+        "$f" >/dev/null 2>&1 || true
     fi
   }
 
@@ -198,42 +202,50 @@
   import argparse
   from pathlib import Path
   from typing import List
+
   import numpy as np
   import soundfile as sf
 
+
   STEMS = ["vocals", "bass", "drums", "other", "guitar", "piano"]
 
-  def load_stereo(path: Path) -> tuple[np.ndarray, int] | tuple[None, None]:
+
+  def load_stereo(path: Path):
+      """Load audio as float32 stereo."""
       if not path.exists():
           return None, None
       y, sr = sf.read(path)
       if y.ndim == 1:
-          y = np.stack([y, y], axis=0)      # (2, n)
+          y = np.stack([y, y], axis=0)  # (2, n)
       elif y.ndim == 2:
           # soundfile: (n, ch) → (ch, n)
-          if y.shape[1] <= 4:               # assume (n, ch)
+          if y.shape[1] <= 4:  # assume (n, ch)
               y = y.T
       else:
           raise ValueError(f"Unexpected shape {y.shape} for {path}")
       return y.astype(np.float32), sr
 
+
   def pad_to_max(waves: List[np.ndarray]) -> np.ndarray:
+      """Pad all waveforms to the max length."""
       maxlen = max(w.shape[1] for w in waves)
       padded = []
       for w in waves:
           if w.shape[1] < maxlen:
               z = np.zeros((2, maxlen), dtype=w.dtype)
-              z[:, :w.shape[1]] = w
+              z[:, : w.shape[1]] = w
               w = z
           padded.append(w)
-      return np.stack(padded, axis=0)   # (k, 2, n)
+      return np.stack(padded, axis=0)  # (k, 2, n)
+
 
   def median_fuse(waves: List[np.ndarray]) -> np.ndarray:
       stack = pad_to_max(waves)
-      return np.median(stack, axis=0)   # (2, n)
+      return np.median(stack, axis=0)  # (2, n)
+
 
   def tmean_fuse(waves: List[np.ndarray], alpha: float) -> np.ndarray:
-      stack = pad_to_max(waves)         # (k, 2, n)
+      stack = pad_to_max(waves)
       k = stack.shape[0]
       lo = int(alpha * k)
       hi = k - lo
@@ -241,11 +253,16 @@
       trimmed = stack_sorted[lo:hi]
       return trimmed.mean(axis=0)
 
-  def main() -> None:
+
+  def main():
       ap = argparse.ArgumentParser()
       ap.add_argument("--models", required=True, help="space-separated model names")
-      ap.add_argument("--stem-root", required=True, help="root where model/track/stem.wav lives")
-      ap.add_argument("--track", required=True, help="basename of track (without extension)")
+      ap.add_argument(
+          "--stem-root", required=True, help="root where model/track/stem.wav lives"
+      )
+      ap.add_argument(
+          "--track", required=True, help="basename of track (without extension)"
+      )
       ap.add_argument("--out-dir", required=True, help="output dir for ensembled stems")
       ap.add_argument("--method", default="median", choices=["median", "tmean"])
       ap.add_argument("--tmean-alpha", type=float, default=0.1)
@@ -256,29 +273,47 @@
       out_track_dir = Path(args.out_dir) / args.track
       out_track_dir.mkdir(parents=True, exist_ok=True)
 
+      print(f"[ensemble] models={models}")
+      print(f"[ensemble] stem_root={stem_root}")
+      print(f"[ensemble] out_dir={out_track_dir}")
+
       for stem in STEMS:
-          cand: list[np.ndarray] = []
-          sr_ref: int | None = None
+          cand: List[np.ndarray] = []
+          sr_ref = None
+
+          print(f"[ensemble] === Processing stem: {stem} ===")
+
           for m in models:
-              p = stem_root / m / args.track / f"{stem}.wav"
-              y, sr = load_stereo(p)
-              if y is None:
-                  continue
-              if sr_ref is None:
-                  sr_ref = sr
-              cand.append(y)
+              # Pattern A: <root>/<model>/<track>/<stem>.wav
+              p1 = stem_root / m / args.track / f"{stem}.wav"
+              # Pattern B: <root>/<model>/<model>/<track>/<stem>.wav (Demucs 5+)
+              p2 = stem_root / m / m / args.track / f"{stem}.wav"
+
+              for p in (p1, p2):
+                  y, sr = load_stereo(p)
+                  if y is not None:
+                      print(f"[ensemble] found: {p}")
+                      if sr_ref is None:
+                          sr_ref = sr
+                      cand.append(y)
+                      break
+              else:
+                  print(f"[ensemble] NOT found for model {m}: p1={p1}, p2={p2}")
+
           if not cand:
+              print(f"[ensemble] --- No candidates for {stem}, skipping.")
               continue
 
+          # Fuse
           if args.method == "tmean":
               y_out = tmean_fuse(cand, args.tmean_alpha)
           else:
               y_out = median_fuse(cand)
 
-          assert sr_ref is not None
           out_path = out_track_dir / f"{stem}.wav"
           sf.write(out_path.as_posix(), y_out.T, sr_ref, subtype="PCM_16")
-          print(f"[ensemble] wrote {out_path} from {len(cand)} model(s)")
+          print(f"[ensemble] wrote: {out_path}  (from {len(cand)} model(s))")
+
 
   if __name__ == "__main__":
       main()
@@ -441,21 +476,26 @@
   PY   := $(VENV)/bin/python
   PIP  := $(VENV)/bin/pip
 
-  # MuseScore 4.app の CLI パス（必要に応じて変更）
   MSCORE_BIN := /Applications/MuseScore\ 4.app/Contents/MacOS/mscore
   export MSCORE_BIN
 
   all: install
 
-  install:
+  # venv がなければ作る
+  $(VENV)/bin/activate:
   	python3 -m venv $(VENV)
-  	$(PIP) install -U pip
+
+  install: $(VENV)/bin/activate
+  	$(PY) -m pip install -U pip
   	$(PIP) install -r ../common/requirements.txt
 
-  run:
+  run: $(VENV)/bin/activate
+  	# venv の bin を PATH に足してからシェルスクリプトを bash で実行
+  	PATH="$(VENV)/bin:$$PATH" \
   	MODELS="htdemucs htdemucs_6s" \
-  	ENSEMBLE_METHOD=tmean TMEAN_ALPHA=0.1 \
-  	../common/scripts/process.sh "../input/foo.wav"
+  	ENSEMBLE_METHOD=tmean \
+  	TMEAN_ALPHA=0.1 \
+  	bash ../common/scripts/process.sh "../input/foo.wav"
 #+end_src
 
 * WSL2 用環境（env/wsl2）
@@ -476,10 +516,12 @@
   	sudo apt update
   	sudo apt install -y ffmpeg libsndfile1 musescore
   	python3 -m venv $(VENV)
+  	source $(VENV)/bin/activate
   	$(PIP) install -U pip
   	$(PIP) install -r ../common/requirements.txt
 
   run:
+  	source $(VENV)/bin/activate
   	MODELS="htdemucs htdemucs_6s" \
   	ENSEMBLE_METHOD=median \
   	../common/scripts/process.sh "../input/foo.wav"
@@ -487,7 +529,7 @@
 
 * Docker 用環境（env/docker）
 
-** Dockerfile（ビルドコンテキストは project-root）
+** Dockerfile
 
 #+begin_src dockerfile :tangle env/docker/Dockerfile
 FROM python:3.10-slim
@@ -513,6 +555,7 @@ ENTRYPOINT ["/opt/music2score/env/common/scripts/process.sh"]
 
 #+begin_src makefile :tangle env/docker/Makefile
   IMAGE := music2score
+  AUDIO ?= foo.wav
 
   build:
   	docker build -t $(IMAGE) -f Dockerfile ../..
@@ -521,7 +564,7 @@ ENTRYPOINT ["/opt/music2score/env/common/scripts/process.sh"]
   	docker run --rm \
   	  -v ../../input:/input \
   	  -v ../../out:/out \
-  	  $(IMAGE) /input/foo.wav
+  	  $(IMAGE) /input/$(AUDIO)
 #+end_src
 
 ** docker-compose.yml

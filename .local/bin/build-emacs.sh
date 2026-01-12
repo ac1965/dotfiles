@@ -154,6 +154,7 @@ run ./autogen.sh
 run ./configure \
   --with-ns \
   --enable-mac-app=yes \
+  --with-xwidgets \
   "$NATIVE_COMP" \
   --with-json \
   --with-tree-sitter \

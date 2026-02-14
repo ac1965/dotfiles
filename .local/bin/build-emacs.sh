@@ -66,6 +66,7 @@ heading "Homebrew dependencies"
 BREW_FORMULAS=(
   autoconf gcc libgccjit gnutls pkg-config
   texinfo jansson libxml2 imagemagick tree-sitter
+  gmp
 )
 
 for f in "${BREW_FORMULAS[@]}"; do
@@ -73,12 +74,24 @@ for f in "${BREW_FORMULAS[@]}"; do
 done
 
 BREW_PREFIX="$(brew --prefix)"
-export PKG_CONFIG_PATH="${BREW_PREFIX}/lib/pkgconfig:${BREW_PREFIX}/opt/libgccjit/lib/pkgconfig"
+
+export PKG_CONFIG_PATH="$(brew --prefix gmp)/lib/pkgconfig:$BREW_PREFIX/lib/pkgconfig"
 
 export CC=clang
-export LIBRARY_PATH="$BREW_PREFIX/lib/gcc/15"
-export CPATH="$BREW_PREFIX/include"
-export DYLD_LIBRARY_PATH="$BREW_PREFIX/lib/gcc/15"
+
+GCCJIT_DIR="$(dirname "$(find "$BREW_PREFIX" -name 'libgccjit.dylib' -print -quit)")"
+
+if [[ -z "$GCCJIT_DIR" ]]; then
+  echo "❌ libgccjit.dylib not found"
+  exit 1
+fi
+
+echo "Using libgccjit from: $GCCJIT_DIR"
+
+export DYLD_LIBRARY_PATH="$GCCJIT_DIR:${DYLD_LIBRARY_PATH:-}"
+export LIBRARY_PATH="$GCCJIT_DIR:${LIBRARY_PATH:-}"
+export LDFLAGS="-L$GCCJIT_DIR ${LDFLAGS:-}"
+export CPPFLAGS="${CPPFLAGS:-}"
 
 # ============================================================
 # Paths
@@ -118,14 +131,11 @@ heading "Configuring"
 ./autogen.sh
 
 ./configure \
+  CC=clang \
   --with-ns \
-  --enable-mac-app=yes \
-  --with-xwidgets \
   "$NATIVE_COMP" \
-  --with-json \
   --with-tree-sitter \
   --with-imagemagick \
-  --with-gnutls \
   --prefix="$PREFIX"
 
 # ============================================================

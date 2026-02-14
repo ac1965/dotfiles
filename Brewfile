@@ -61,6 +61,7 @@ brew "ncurses"
 brew "neovim"
 brew "node"
 brew "notmuch"
+brew "openjdk"
 brew "pandoc"
 brew "pinentry-mac"
 brew "pipenv"
@@ -70,6 +71,7 @@ brew "pyenv"
 brew "pyenv-virtualenv"
 brew "python-lsp-server"
 brew "qt"
+brew "rbenv"
 brew "ripgrep"
 brew "rust"
 brew "rustup"
@@ -97,6 +99,7 @@ cask "font-meslo-for-powerlevel10k"
 cask "font-noto-color-emoji"
 cask "font-noto-sans-cjk"
 cask "font-noto-sans-jp"
+cask "font-noto-sans-symbols-2"
 cask "font-roboto-mono-nerd-font"
 cask "font-source-code-pro"
 cask "ghidra"
@@ -124,3 +127,4 @@ mas "Perplexity", id: 6714467650
 mas "Prime Video", id: 545519333
 mas "Slack", id: 803453959
 mas "Spark", id: 1176895641
+mas "Xcode", id: 497799835

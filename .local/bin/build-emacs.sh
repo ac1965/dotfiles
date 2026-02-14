@@ -1,15 +1,8 @@
- #!/usr/bin/env bash
+#!/usr/bin/env bash
 #
 # build-emacs-macos.sh
 #
-# Build GNU Emacs from source on macOS (CLI + GUI unified)
-# - native-comp supported
-# - Homebrew based
-#
-# Result:
-#   CLI : ~/.local/bin/emacs        -> Emacs.app/Contents/MacOS/Emacs
-#   CLI : ~/.local/bin/emacsclient  -> Emacs.app/Contents/MacOS/bin/emacsclient
-#   GUI : /Applications/Emacs.app
+# Build GNU Emacs on macOS (CLI + GUI, clean separation)
 #
 
 set -Eeuo pipefail
@@ -19,21 +12,10 @@ set -Eeuo pipefail
 # ============================================================
 NATIVE_COMP="--with-native-compilation"
 DEBUG=false
-DRY_RUN=false
-DRY_RUN_LOG=""
 
 for arg in "$@"; do
   case "$arg" in
-    --debug)
-      DEBUG=true
-      ;;
-    --dry-run)
-      DRY_RUN=true
-      ;;
-    --dry-run-log=*)
-      DRY_RUN=true
-      DRY_RUN_LOG="${arg#--dry-run-log=}"
-      ;;
+    --debug) DEBUG=true ;;
     --no-native|--no-native-compilation)
       NATIVE_COMP="--without-native-compilation"
       ;;
@@ -53,14 +35,7 @@ heading() {
   printf "\n\033[38;5;39m==> %s\033[0m\n\n" "$*"
 }
 
-run() {
-  if $DRY_RUN; then
-    echo "[dry-run] $*"
-    [[ -n "$DRY_RUN_LOG" ]] && echo "$*" >> "$DRY_RUN_LOG"
-  else
-    "$@"
-  fi
-}
+run() { "$@"; }
 
 require_cmd() {
   command -v "$1" >/dev/null 2>&1 || {
@@ -70,95 +45,79 @@ require_cmd() {
 }
 
 # ============================================================
-# Environment detection
+# Environment
 # ============================================================
-OS="$(uname -s)"
-if [[ "$OS" != "Darwin" ]]; then
-  echo "❌ This script supports macOS only." >&2
+[[ "$(uname -s)" == "Darwin" ]] || {
+  echo "❌ macOS only" >&2
   exit 1
-fi
+}
 
 CORES="$(sysctl -n hw.logicalcpu)"
-
-heading "Detected macOS (${CORES} cores)"
 
 require_cmd brew
 require_cmd git
 require_cmd pkg-config
 
 # ============================================================
-# Homebrew dependencies
+# Homebrew deps
 # ============================================================
-heading "Checking Homebrew dependencies"
+heading "Homebrew dependencies"
 
 BREW_FORMULAS=(
-  autoconf
-  gcc
-  libgccjit
-  gnutls
-  pkg-config
-  texinfo
-  jansson
-  libxml2
-  imagemagick
-  tree-sitter
+  autoconf gcc libgccjit gnutls pkg-config
+  texinfo jansson libxml2 imagemagick tree-sitter
 )
 
 for f in "${BREW_FORMULAS[@]}"; do
-  run brew list --versions "$f" >/dev/null 2>&1 || run brew install "$f"
+  brew list --versions "$f" >/dev/null 2>&1 || brew install "$f"
 done
 
-# ============================================================
-# PKG_CONFIG_PATH
-# ============================================================
 BREW_PREFIX="$(brew --prefix)"
-export PKG_CONFIG_PATH="${BREW_PREFIX}/lib/pkgconfig:${BREW_PREFIX}/opt/libgccjit/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
+export PKG_CONFIG_PATH="${BREW_PREFIX}/lib/pkgconfig:${BREW_PREFIX}/opt/libgccjit/lib/pkgconfig"
 
-heading "PKG_CONFIG_PATH"
-echo "$PKG_CONFIG_PATH"
+export CC=clang
+export LIBRARY_PATH="$BREW_PREFIX/lib/gcc/15"
+export CPATH="$BREW_PREFIX/include"
+export DYLD_LIBRARY_PATH="$BREW_PREFIX/lib/gcc/15"
 
 # ============================================================
 # Paths
 # ============================================================
 SRC_REPO="https://github.com/emacs-mirror/emacs.git"
 SRC_DIR="${HOME}/Projects/github.com/emacs-mirror/emacs"
+
 PREFIX="${HOME}/.local"
+CLI_BIN="${PREFIX}/bin"
 APP_DST="/Applications/Emacs.app"
 
-CLI_BIN="${PREFIX}/bin/emacs"
-CLI_CLIENT_BIN="${PREFIX}/bin/emacsclient"
-
-APP_BIN="${APP_DST}/Contents/MacOS/Emacs"
-APP_CLIENT_BIN="${APP_DST}/Contents/MacOS/bin/emacsclient"
-
 # ============================================================
-# Fetch source
+# Fetch
 # ============================================================
-heading "Preparing Emacs source"
+heading "Fetching source"
 
 if [[ -d "$SRC_DIR/.git" ]]; then
   cd "$SRC_DIR"
-  run git pull --rebase
+  git pull --rebase
 else
-  run git clone "$SRC_REPO" "$SRC_DIR"
+  git clone "$SRC_REPO" "$SRC_DIR"
   cd "$SRC_DIR"
 fi
 
 # ============================================================
 # Clean
 # ============================================================
-heading "Cleaning previous build artifacts"
-run make distclean || true
-run git clean -xdf || true
+heading "Cleaning"
+make distclean || true
+git clean -xdf || true
 
 # ============================================================
 # Configure
 # ============================================================
-heading "Configuring Emacs"
+heading "Configuring"
 
-run ./autogen.sh
+./autogen.sh
 
-run ./configure \
+./configure \
   --with-ns \
   --enable-mac-app=yes \
   --with-xwidgets \
@@ -172,14 +131,29 @@ run ./configure \
 # ============================================================
 # Build
 # ============================================================
-heading "Building Emacs"
-run make -j"$CORES"
+heading "Building"
+make -j"$CORES"
 
 # ============================================================
-# Install CLI support files (lisp, etc, emacsclient)
+# Install (data only)
 # ============================================================
-heading "Installing CLI support files"
-run make install
+heading "Installing lisp / etc"
+make install
+
+# ============================================================
+# Install CLI from src/emacs (重要)
+# ============================================================
+heading "Installing CLI emacs from src/emacs"
+
+mkdir -p "$CLI_BIN"
+
+if [[ -x src/emacs ]]; then
+  install -m 755 src/emacs       "$CLI_BIN/emacs"
+  install -m 755 lib-src/emacsclient "$CLI_BIN/emacsclient"
+else
+  echo "❌ src/emacs not found" >&2
+  exit 1
+fi
 
 # ============================================================
 # Install GUI app
@@ -187,46 +161,27 @@ run make install
 heading "Installing Emacs.app"
 
 if [[ -d nextstep/Emacs.app ]]; then
-  run rm -rf "$APP_DST"
-  run cp -R nextstep/Emacs.app "$APP_DST"
+  rm -rf "$APP_DST"
+  cp -R nextstep/Emacs.app "$APP_DST"
 else
-  echo "❌ Emacs.app not found. Build failed?" >&2
-  exit 1
-fi
-
-# ============================================================
-# Symlink CLI binaries to Emacs.app
-# ============================================================
-heading "Linking CLI binaries to Emacs.app"
-
-run mkdir -p "$(dirname "$CLI_BIN")"
-
-if [[ -x "$APP_BIN" ]]; then
-  run ln -sf "$APP_BIN" "$CLI_BIN"
-else
-  echo "❌ Emacs.app binary not found: $APP_BIN" >&2
-  exit 1
-fi
-
-if [[ -x "$APP_CLIENT_BIN" ]]; then
-  run ln -sf "$APP_CLIENT_BIN" "$CLI_CLIENT_BIN"
-else
-  echo "❌ emacsclient not found in Emacs.app: $APP_CLIENT_BIN" >&2
+  echo "❌ Emacs.app not built" >&2
   exit 1
 fi
 
 # ============================================================
 # Result
 # ============================================================
-heading "Build completed successfully"
+heading "Done"
 
-echo "CLI emacs       : $CLI_BIN -> $APP_BIN"
-echo "CLI emacsclient : $CLI_CLIENT_BIN -> $APP_CLIENT_BIN"
-echo "GUI             : $APP_DST"
+echo "CLI:"
+echo "  $CLI_BIN/emacs"
+echo "  $CLI_BIN/emacsclient"
 echo
-echo "Run:"
-echo "  emacs"
-echo "  emacsclient -c"
-echo "  open $APP_DST"
+echo "GUI:"
+echo "  $APP_DST"
 echo
-echo "🎉 Emacs build finished successfully"
+echo "Usage:"
+echo "  emacs            # CLI"
+echo "  emacs --batch    # batch / make / CI"
+echo "  open $APP_DST    # GUI"
+echo "  emacsclient -c   # GUI client"

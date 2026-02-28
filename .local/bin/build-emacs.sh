@@ -2,7 +2,13 @@
 #
 # build-emacs-macos.sh
 #
-# Build GNU Emacs on macOS (CLI + GUI, clean separation)
+# Deterministic GNU Emacs build for macOS
+# - Apple Silicon / Intel 対応
+# - Cocoa (Nextstep) 安定ビルド
+# - Clang toolchain 使用
+# - Homebrew libgccjit による native-comp
+# - fingerprint 安定
+# - forward-safe (Emacs 30/31)
 #
 
 set -Eeuo pipefail
@@ -10,20 +16,21 @@ set -Eeuo pipefail
 # ============================================================
 # Options
 # ============================================================
-NATIVE_COMP="--with-native-compilation"
+
+NATIVE_COMP="--with-native-compilation=aot"
 DEBUG=false
 
 for arg in "$@"; do
-  case "$arg" in
-    --debug) DEBUG=true ;;
-    --no-native|--no-native-compilation)
-      NATIVE_COMP="--without-native-compilation"
-      ;;
-    *)
-      echo "Unknown option: $arg" >&2
-      exit 1
-      ;;
-  esac
+	case "$arg" in
+	--debug) DEBUG=true ;;
+	--no-native | --no-native-compilation)
+		NATIVE_COMP="--without-native-compilation"
+		;;
+	*)
+		echo "Unknown option: $arg" >&2
+		exit 1
+		;;
+	esac
 done
 
 $DEBUG && set -x
@@ -31,167 +38,194 @@ $DEBUG && set -x
 # ============================================================
 # Helpers
 # ============================================================
-heading() {
-  printf "\n\033[38;5;39m==> %s\033[0m\n\n" "$*"
-}
 
-run() { "$@"; }
+heading() {
+	printf "\n\033[38;5;39m==> %s\033[0m\n\n" "$*"
+}
 
 require_cmd() {
-  command -v "$1" >/dev/null 2>&1 || {
-    echo "❌ required command not found: $1" >&2
-    exit 1
-  }
+	command -v "$1" >/dev/null 2>&1 || {
+		echo "❌ required command not found: $1" >&2
+		exit 1
+	}
 }
 
 # ============================================================
-# Environment
+# Platform Detection
 # ============================================================
+
 [[ "$(uname -s)" == "Darwin" ]] || {
-  echo "❌ macOS only" >&2
-  exit 1
+	echo "❌ macOS only"
+	exit 1
 }
 
-CORES="$(sysctl -n hw.logicalcpu)"
+ARCH="$(uname -m)"
+
+case "$ARCH" in
+arm64) BREW_PREFIX="/opt/homebrew" ;;
+x86_64) BREW_PREFIX="/usr/local" ;;
+*)
+	echo "❌ Unsupported arch: $ARCH"
+	exit 1
+	;;
+esac
+
+echo "Architecture: $ARCH"
+echo "Homebrew prefix: $BREW_PREFIX"
+
+# ============================================================
+# Requirements
+# ============================================================
 
 require_cmd brew
 require_cmd git
 require_cmd pkg-config
-
-# ============================================================
-# Homebrew deps
-# ============================================================
-heading "Homebrew dependencies"
+require_cmd xcrun
+require_cmd clang
 
 BREW_FORMULAS=(
-  autoconf gcc libgccjit gnutls pkg-config
-  texinfo jansson libxml2 imagemagick tree-sitter
-  gmp
+	autoconf texinfo pkg-config
+	libgccjit gnutls jansson libxml2
+	imagemagick tree-sitter gmp
 )
 
+heading "Installing required Homebrew packages"
+
 for f in "${BREW_FORMULAS[@]}"; do
-  brew list --versions "$f" >/dev/null 2>&1 || brew install "$f"
+	brew list --versions "$f" >/dev/null 2>&1 || brew install "$f"
 done
 
-BREW_PREFIX="$(brew --prefix)"
+# ============================================================
+# Apple Clang Toolchain (Stable Cocoa build)
+# ============================================================
 
-export PKG_CONFIG_PATH="$(brew --prefix gmp)/lib/pkgconfig:$BREW_PREFIX/lib/pkgconfig"
+heading "Configuring Apple Clang toolchain"
 
-export CC=clang
+export CC="$(xcrun --find clang)"
+export CXX="$(xcrun --find clang++)"
+export LD="$CC"
+export AR="$(xcrun --find ar)"
+export RANLIB="$(xcrun --find ranlib)"
+export NM="$(xcrun --find nm)"
 
-GCCJIT_DIR="$(dirname "$(find "$BREW_PREFIX" -name 'libgccjit.dylib' -print -quit)")"
+echo "Using Clang: $CC"
 
-if [[ -z "$GCCJIT_DIR" ]]; then
-  echo "❌ libgccjit.dylib not found"
-  exit 1
+# ============================================================
+# SDK and Flags
+# ============================================================
+
+heading "Configuring SDK and compiler flags"
+
+export SDKROOT="$(xcrun --show-sdk-path)"
+
+if [[ "$ARCH" == "arm64" ]]; then
+	export CFLAGS="-O3 -arch arm64 -isysroot $SDKROOT"
+else
+	export CFLAGS="-O3 -arch x86_64 -isysroot $SDKROOT"
 fi
 
-echo "Using libgccjit from: $GCCJIT_DIR"
-
-export DYLD_LIBRARY_PATH="$GCCJIT_DIR:${DYLD_LIBRARY_PATH:-}"
-export LIBRARY_PATH="$GCCJIT_DIR:${LIBRARY_PATH:-}"
-export LDFLAGS="-L$GCCJIT_DIR ${LDFLAGS:-}"
-export CPPFLAGS="${CPPFLAGS:-}"
+export CPPFLAGS="-isysroot $SDKROOT -I$BREW_PREFIX/include"
+export LDFLAGS="-isysroot $SDKROOT -L$BREW_PREFIX/lib -framework AppKit"
+export PKG_CONFIG_PATH="$BREW_PREFIX/lib/pkgconfig"
 
 # ============================================================
-# Paths
+# libgccjit for native-comp
 # ============================================================
+
+heading "Configuring libgccjit"
+
+LIBGCCJIT_PREFIX="$(brew --prefix libgccjit)"
+export CPPFLAGS="-I$LIBGCCJIT_PREFIX/include $CPPFLAGS"
+export LDFLAGS="-L$LIBGCCJIT_PREFIX/lib $LDFLAGS"
+
+# ============================================================
+# Source
+# ============================================================
+
+heading "Preparing source"
+
 SRC_REPO="https://github.com/emacs-mirror/emacs.git"
-SRC_DIR="${HOME}/Projects/github.com/emacs-mirror/emacs"
-
-PREFIX="${HOME}/.local"
-CLI_BIN="${PREFIX}/bin"
-APP_DST="/Applications/Emacs.app"
-
-# ============================================================
-# Fetch
-# ============================================================
-heading "Fetching source"
+SRC_DIR="$HOME/Projects/github.com/emacs-mirror/emacs"
 
 if [[ -d "$SRC_DIR/.git" ]]; then
-  cd "$SRC_DIR"
-  git pull --rebase
+	cd "$SRC_DIR"
+	git pull --rebase
 else
-  git clone "$SRC_REPO" "$SRC_DIR"
-  cd "$SRC_DIR"
+	git clone "$SRC_REPO" "$SRC_DIR"
+	cd "$SRC_DIR"
 fi
 
 # ============================================================
 # Clean
 # ============================================================
-heading "Cleaning"
-make distclean || true
-git clean -xdf || true
+
+heading "Cleaning previous build"
+
+make distclean >/dev/null 2>&1 || true
+git clean -xdf >/dev/null 2>&1 || true
+
+# ============================================================
+# Autogen
+# ============================================================
+
+heading "Running autogen"
+
+./autogen.sh
 
 # ============================================================
 # Configure
 # ============================================================
-heading "Configuring"
 
-./autogen.sh
+heading "Configuring Emacs"
 
 ./configure \
-  CC=clang \
-  --with-ns \
-  "$NATIVE_COMP" \
-  --with-tree-sitter \
-  --with-imagemagick \
-  --prefix="$PREFIX"
+	CC="$CC" \
+	CXX="$CXX" \
+	AR="$AR" \
+	RANLIB="$RANLIB" \
+	NM="$NM" \
+	--with-ns \
+	"$NATIVE_COMP" \
+	--with-tree-sitter \
+	--with-json \
+	--with-gnutls \
+	--with-imagemagick \
+	--with-modules \
+	--prefix="$HOME/.local"
 
 # ============================================================
 # Build
 # ============================================================
-heading "Building"
+
+heading "Building Emacs"
+
+CORES="$(sysctl -n hw.logicalcpu)"
 make -j"$CORES"
 
 # ============================================================
-# Install (data only)
+# Install
 # ============================================================
-heading "Installing lisp / etc"
+
+heading "Installing"
+
 make install
 
-# ============================================================
-# Install CLI from src/emacs (重要)
-# ============================================================
-heading "Installing CLI emacs from src/emacs"
+mkdir -p "$HOME/.local/bin"
+install -m 755 src/emacs "$HOME/.local/bin/emacs"
+install -m 755 lib-src/emacsclient "$HOME/.local/bin/emacsclient"
 
-mkdir -p "$CLI_BIN"
-
-if [[ -x src/emacs ]]; then
-  install -m 755 src/emacs       "$CLI_BIN/emacs"
-  install -m 755 lib-src/emacsclient "$CLI_BIN/emacsclient"
-else
-  echo "❌ src/emacs not found" >&2
-  exit 1
-fi
+APP_DST="/Applications/Emacs.app"
+rm -rf "$APP_DST"
+cp -R nextstep/Emacs.app "$APP_DST"
 
 # ============================================================
-# Install GUI app
+# Summary
 # ============================================================
-heading "Installing Emacs.app"
 
-if [[ -d nextstep/Emacs.app ]]; then
-  rm -rf "$APP_DST"
-  cp -R nextstep/Emacs.app "$APP_DST"
-else
-  echo "❌ Emacs.app not built" >&2
-  exit 1
-fi
-
-# ============================================================
-# Result
-# ============================================================
-heading "Done"
-
-echo "CLI:"
-echo "  $CLI_BIN/emacs"
-echo "  $CLI_BIN/emacsclient"
 echo
-echo "GUI:"
-echo "  $APP_DST"
-echo
-echo "Usage:"
-echo "  emacs            # CLI"
-echo "  emacs --batch    # batch / make / CI"
-echo "  open $APP_DST    # GUI"
-echo "  emacsclient -c   # GUI client"
+echo "======================================="
+echo "Build complete"
+echo "Arch:   $ARCH"
+echo "CC:     $CC"
+echo "Prefix: $HOME/.local"
+echo "======================================="

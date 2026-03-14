@@ -55,6 +55,8 @@ brew "mailutils"
 brew "mas"
 brew "ninja"
 brew "meson"
+brew "yt-dlp"
+brew "mpv"
 brew "msmtp"
 brew "mupdf"
 brew "ncurses"
@@ -86,7 +88,6 @@ brew "uv"
 brew "watchexec"
 brew "wget"
 brew "yapf"
-brew "yt-dlp"
 brew "zlib"
 brew "laishulu/homebrew/macism"
 cask "caffeine"
@@ -128,3 +129,4 @@ mas "Prime Video", id: 545519333
 mas "Slack", id: 803453959
 mas "Spark", id: 1176895641
 mas "Xcode", id: 497799835
+uv "aider-chat", with: ["pip"]

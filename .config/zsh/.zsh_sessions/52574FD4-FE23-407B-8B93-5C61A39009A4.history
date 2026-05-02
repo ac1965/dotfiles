@@ -1,0 +1,10 @@
+cd Downloads/dotfiles
+ls
+cat README.md
+decrypt private.tar.xz.enc | tar -xvJ
+cd private
+./setup.sh 
+cd ..
+cat README.md
+brew bundle --global
+brew install --cask iterm2

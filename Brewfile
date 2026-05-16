@@ -1,8 +1,6 @@
 tap "akicho8/shogi"
 tap "laishulu/homebrew"
 brew "agg"
-brew "giflib"
-brew "little-cms2"
 brew "openssl@3"
 brew "aria2"
 brew "asciinema"
@@ -19,6 +17,7 @@ brew "ctags"
 brew "cuetools"
 brew "curl"
 brew "dbus"
+brew "little-cms2"
 brew "dos2unix"
 brew "expat"
 brew "fd"
@@ -29,8 +28,10 @@ brew "mpfr"
 brew "gawk"
 brew "libmpc"
 brew "gcc"
+brew "giflib"
 brew "gh"
 brew "ghidra", link: false
+brew "tesseract"
 brew "git"
 brew "git-lfs"
 brew "gnutls"
@@ -55,6 +56,8 @@ brew "lilypond"
 brew "llm"
 brew "mailutils"
 brew "mas"
+brew "node"
+brew "mermaid-cli", link: false
 brew "ninja"
 brew "meson"
 brew "yt-dlp"
@@ -64,7 +67,7 @@ brew "mupdf"
 brew "ncurses"
 brew "tree-sitter"
 brew "neovim"
-brew "node"
+brew "nkf"
 brew "notmuch"
 brew "openjdk"
 brew "pandoc"
@@ -84,6 +87,7 @@ brew "sevenzip"
 brew "shfmt"
 brew "shntool"
 brew "sox"
+brew "tesseract-lang"
 brew "texinfo"
 brew "tree-sitter-cli"
 brew "typescript-language-server"
@@ -126,8 +130,8 @@ mas "Just Press Record", id: 1033342465
 mas "Keynote", id: 409183694
 mas "Kindle", id: 302584613
 mas "LINE", id: 539883307
-mas "Numbers", id: 409203825
 mas "Numbers", id: 361304891
+mas "Numbers", id: 409203825
 mas "Pages", id: 409201541
 mas "Perplexity", id: 6714467650
 mas "Prime Video", id: 545519333

@@ -952,7 +952,6 @@ rg -n "vertico|marginalia|corfu|org-roam" lisp\
 : 1760286047:0;find personal -name "*.elc"
 : 1760286098:0;EMACS=/Applications/Emacs.app/Contents/MacOS/Emacs EARLY=./early-init.el INIT=./init.el make clean
 : 1760286365:0;r,
-: 1760286450:0;ls .cache
 : 1760286472:0;find .cache/eln-cache 
 : 1760286508:0;find eln-cache
 : 1760286731:0;find .cache/eln-cache
@@ -987,7 +986,6 @@ rg -n "vertico|marginalia|corfu|org-roam" lisp\
 : 1760333785:0;vi AA
 : 1760334423:0;rm -fr .make
 : 1760335188:0;history
-: 1760335219:0;history -a
 : 1760335481:0;gawk
 : 1760335492:0;brew install gawk
 : 1760335505:0;SINCE=$(date -j -f "%Y-%m-%d %H:%M" "2025-10-12 20:15" +%s)\
@@ -1192,7 +1190,6 @@ done
 : 1761556425:0;brew install graphviz
 : 1761556454:0;brew install node
 : 1761556466:0;npm -g install @mermaid-js/mermaid-cli
-: 1761567229:0;which mmdc
 : 1761567236:0;mmdc
 : 1761567256:0;which dot
 : 1761571463:0;cat >>
@@ -1325,7 +1322,6 @@ J
 : 1762743860:0;brew install ffmpeg\
 
 : 1762743874:0;python3 -m venv .venv && source .venv/bin/activate
-: 1762743888:0;pip install --upgrade pip
 : 1762745526:0;pip install demucs==4.0.1
 : 1762745791:0;mv .venv ~
 : 1762745942:0;python -m pip install --upgrade "pip>=24.2" "setuptools>=70" "wheel>=0.42" "packaging>=24"\
@@ -1679,7 +1675,6 @@ bash ./process.sh\
 : 1762869533:0;chmod +x *.sh
 : 1762869854:0;curl -I https://pypi.org/simple
 : 1762869901:0;pip install --upgrade pip setuptools wheel
-: 1762869969:0;ip install -r requirements.txt
 : 1762870022:0;cat requirements.txt
 : 1762870053:0;cat requirements.txt|pnc
 : 1762870162:0;pip install git+https://github.com/Anjok07/ultimatevocalremovergui.git\
@@ -1797,7 +1792,6 @@ ENSEMBLE_METHOD=tmean TMEAN_ALPHA=0.1 \\
 : 1763126547:0;cp -r ~/Documents/dotfiles/.docs/music2score .
 : 1763126614:0;cd Documents/d
 : 1763126689:0;rm -fr docker env Linux macOS
-: 1763126697:0;la -a
 : 1763126754:0;cp -a ~/Documents/dotfiles/.docs/music2score .
 : 1763126818:0;cd music2score/env
 : 1763127024:0;python - <<'PY'\
@@ -2128,7 +2122,6 @@ which mscore
 : 1763334066:0;echo in >> .gitignore
 : 1763334090:0;mv build out
 : 1763334096:0;mkdir in
-: 1763334131:0;cd out
 : 1763334225:0;mv ~/Downloads/build/*.{mid,musicxml,mxl,pdf,wav"
 : 1763334240:0;mv ~/Downloads/build/*.{mid,musicxml,mxl,pdf,wav} .
 : 1763334266:0;rm baz.pdf foo.pdf input.normalized_basic_pitch.*
@@ -2501,7 +2494,6 @@ git push -u origin main
 : 1764478920:0;uv python pin 3.11
 : 1764479097:0;python --version # Recommend: 3.11
 : 1764479145:0;rm .python-version
-: 1764479149:0;python --version  
 : 1764479160:0;pyenv 
 : 1764479249:0;pyenv install 3.11
 : 1764479381:0;pyenv local 3.11
@@ -2583,7 +2575,6 @@ dataset/clean/voice01.wav\
 : 1764501271:0;vi extract_feature_print.py
 : 1764590470:0;cd Documents/devel/repos/audio2score
 : 1764590526:0;ls build/
-: 1764590653:0;la ~/Downloads
 : 1764590746:0;make score INPUT=../sounds/The\ jazz\ scene\ of\ the\ 2010s.mp3
 : 1764590766:0;make score INPUT="../sounds/The\ jazz\ scene\ of\ the\ 2010s.mp3"
 : 1764590963:0;mv The\ jazz\ scene\ of\ the\ 2010s.mp3 TheJazzSceneOfThe2010s.mp3
@@ -2686,7 +2677,6 @@ done
 : 1766228956:0;la Projects/github.com/emacs-mirror/emacs/nextstep
 : 1766228979:0;ls -ld Projects/github.com/emacs-mirror/emacs/nextstep
 : 1766228997:0;ls -ld Projects/github.com/emacs-mirror/emacs/nextstep/Emacs.app
-: 1766229041:0;la .local
 : 1766229087:0;rm -fr Projects/github.com/emacs-mirror/emacs/nextstep
 : 1766229117:0;sudo rm -fr Projects/github.com/emacs-mirror/emacs/nextstep
 : 1766229254:0;sudo rm -fr Projects/github.com/emacs-mirror
@@ -2861,7 +2851,6 @@ done
 : 1768130461:0;la ~/.cache/emacs/
 : 1768130469:0;la ~/.cache/emacs/eln-cache/31_0_50-55d525e2
 : 1768130480:0;la ~/.cache/emacs/straight
-: 1768130498:0;la .cache/emacs/eln-cache
 : 1768130508:0;la .cache/emacs/eln-cache/31_0_50-55d525e2
 : 1768181864:0;la ~/.local/bin
 : 1768181876:0;la .local/bin
@@ -2997,7 +2986,6 @@ def fetch(url: str) -> str:\\
 : 1768691837:0;mini-tangler.py README.org out/
 : 1768691850:0;mini-tangler.py -h
 : 1768691877:0;mini-tangler.py README.org --root out
-: 1768691939:0;rm -fr out
 : 1768693541:0;cat lisp/core/*.el lisp/ui/*.el lisp/completion/*.el lisp/orgx/*.el lisp/dev/*.el lisp/utils/*.el |pbc
 : 1768693627:0;cat lisp/modules.el lisp/core/*.el lisp/ui/*.el lisp/completion/*.el lisp/orgx/*.el lisp/dev/*.el lisp/utils/*.el |pbc
 : 1768736694:0;cd dataset
@@ -3104,7 +3092,6 @@ def fetch(url: str) -> str:\\
 : 1769213639:0;rbenv install 4.0.1
 : 1769213759:0;rbenv global 4.0.1
 : 1769213785:0;gem install narou
-: 1769213966:0;ls out
 : 1769215132:0;cp narou.rb narou
 : 1769215137:0;chmod +x narou
 : 1769215236:0;rm -f ~/.local/bin/narou
@@ -3398,7 +3385,6 @@ LIMIT 5;"\
 : 1771027304:0;ln gcc-15 gcc
 : 1771027322:0;gcc -v
 : 1771027400:0;rm /opt/homebrew/bin/gcc
-: 1771027417:0;hash -r
 : 1771027419:0;type gcc
 : 1771027693:0;env 
 : 1771027730:0;la /opt/homebrew/opt/llvm/lib
@@ -3489,7 +3475,6 @@ find "$GCC13_PREFIX" -name 'libgccjit*.dylib'
 : 1771140258:0;rm -fr eln-cache lisp .cache tree-sitter recentf.eld places.eld url straight history init.el early-init.el .var personal
 : 1771141843:0;rm -fr parts/
 : 1771142530:0;g diff 
-: 1771145502:0;vi NOTE.txt
 : 1771145523:0;cat NOTE.txt >> .gitignore
 : 1771145586:0;echo NOTE.txt >> .gitignore
 : 1771145602:0;gi diff
@@ -3497,7 +3482,6 @@ find "$GCC13_PREFIX" -name 'libgccjit*.dylib'
 : 1771154757:0;ls lisp/
 : 1771154878:0;ls lisp/modules.el
 : 1771154894:0;vi lisp/modules.el 
-: 1771155099:0;rm -fr personal lisp 
 : 1771155111:0;ls lisp/ui
 : 1771156118:0;cp README.org a
 : 1771160350:0;cat parts/README.org.part.004.txt| pbc
@@ -3527,7 +3511,6 @@ find "$GCC13_PREFIX" -name 'libgccjit*.dylib'
 : 1772255610:0;vi early-init.el 
 : 1772255907:0;./setup.sh
 : 1772256634:0;xcrun --show-sdk-path
-: 1772257126:0;cat ~/.local/bin/build-emacs.sh|pbc
 : 1772258548:0;cp -a ~/.local/bin/build-emacs.sh .local/bin
 : 1772258686:0;emacs -nw
 : 1772258953:0;cd ~/Documents/dotfiles/
@@ -3715,12 +3698,10 @@ p.write_text(textwrap.dedent(p.read_text()))\
 : 1773027830:0;rm -fr lisp
 : 1773027898:0;mv ~/Downloads/Makefile.txt Makefile
 : 1773028011:0;mv ~/Downloads/Makefile-2.txt Makefile
-: 1773028107:0;ls lisp
 : 1773028148:0;vi lisp/core/core-history.el
 : 1773031446:0;curl -fsSL https://claude.ai/install.sh | bash
 : 1773031509:0;claude --help
 : 1773032235:0;rm -fr parts
-: 1773034054:0;ls ~/.local/bin
 : 1773034086:0;json2txt.py
 : 1773034117:0;json2txt.py ~/Downloads/data-2026-03-09-04-39-51-batch-0000/conversations.json
 : 1773034125:0;vi chat_export.txt
@@ -3732,7 +3713,6 @@ p.write_text(textwrap.dedent(p.read_text()))\
 : 1773035116:0;mv ~/Downloads/claude_to_org.py ~/.
 : 1773035144:0;mv ~/claude_to_org.py ~/.local/bin
 : 1773035166:0;rehash -r
-: 1773052195:0;exit
 : 1773052367:0;greo dired- REAA\ 
 : 1773052379:0;grep -n dired- README.org
 : 1773052525:0;mv ~/Downloads/spring\ snow.txt ]
@@ -3783,7 +3763,6 @@ p.write_text(textwrap.dedent(p.read_text()))\
 : 1773417578:0;rm -fr emms 
 : 1773442780:0;rm -fr .var .etc .cache init.el early-init.el lisp personal el
 : 1773442794:0;rm -fr .var .etc .cache init.el early-init.el lisp personal straight
-: 1773443758:0;vi Makefile
 : 1773444207:0;cp ~/Downloads/Makefile .
 : 1773444806:0;rm ~/Downloads/*el
 : 1773445136:0;ls var
@@ -3941,7 +3920,6 @@ grep -r '{{< x ' content/
 do\
 mv "$f" "${f%.emz}.gz"\
 done
-: 1773708600:0;..
 : 1773708611:0;ls *.emz
 : 1773708618:0;mv *.emz emz
 : 1773708745:0;ls -lt |head
@@ -4116,7 +4094,6 @@ Tangled 90 code blocks from README.org\
 : 1774102654:0;prd
 : 1774147936:0;ã€€npm install -g @mermaid-js/mermaid-cli
 : 1774147963:0;brew install npm
-: 1774147988:0;npm install -g @mermaid-js/mermaid-cli
 : 1774148053:0;npm fund
 : 1774148069:0;npm install -g npm@11.12.0
 : 1774439359:0;brew install notmuch
@@ -4216,19 +4193,6 @@ cat .venv/lib/python3.12/site-packages/_retranscribe.pth\
 : 1774700506:0;cp ~/Downloads/org_tangle-3.py org_tangle.py
 : 1774700699:0;uv syc
 : 1774700898:0;cp ~/Downloads/README-4.org README.org
-: 1774700939:0;âƒ½¯ uv sync\
-Resolved 177 packages in 421ms\
-  Ãƒ· Failed to build `retranscribe @ file:///Users/ac1965/Projects/Retranscribe`\
-  âƒ´ƒ¼âƒ´€âƒ¶¶ The build backend returned an error\
-  âƒµ°âƒ´€âƒ¶¶ Call to `setuptools.backends.legacy:build.build_editable` failed (exit status: 1)\
-\
-      [stderr]\
-      Traceback (most recent call last):\
-        File "<string>", line 8, in <module>\
-      ModuleNotFoundError: No module named 'setuptools.backends'\
-\
-      hint: This error likely indicates that `retranscribe@0.2.0` depends on `setuptools.backends`, but doesn't declare it as a build dependency.\
-      If `retranscrib
 : 1774701038:0;vi pyproject.toml
 : 1774701232:0;uv run retranscribe analyze  ../audio2score/mp3/sprig_snow.mp3
 : 1774701298:0;uv run retranscribe analyze  ./sprig_snow.mp3
@@ -4470,8 +4434,6 @@ grep -r "isfinite\|shape\|dtype" $(python3 -c "import torchcrepe; import os; pri
 : 1775265264:0;cat lisp/modules.el|  pbc
 : 1775265421:0;vi personal/user.el
 : 1775265459:0;cat personal/user.el|pbc
-: 1775265551:0;la .cache
-: 1775265566:0;la .cache/emacs
 : 1775277538:0;rm -fr ~/.cache/emacs
 : 1775277574:0;rm -fr .cache .var .etc eln-cache early-init.el init.el lisp personal .org-id-locations bookmarks.eld
 : 1775277813:0;la .cache/emacs/straight
@@ -4480,7 +4442,6 @@ grep -r "isfinite\|shape\|dtype" $(python3 -c "import torchcrepe; import os; pri
 : 1775278097:0;ls ~/.emacs.d/.cache/emacs/straight/build-31.0/simple-httpd
 : 1775278175:0;grep straight-base-dir early-init.el
 : 1775457377:0;mkdir BudgetEvaluation-2026
-: 1775572410:0;la out
 : 1775572433:0;rm -fr out out-
 : 1775572449:0;ls *log
 : 1775572460:0;ls *.log
@@ -4563,7 +4524,6 @@ head -20 ~/.emacs.d/lisp/orgx/orgx-roam-ui.el
 : 1776048115:0;zip other.zip other
 : 1776048122:0;zip other.zip other/
 : 1776048150:0;zip -v other.zip
-: 1776168034:0;g restore .
 : 1776216461:0;brew install sevenzip
 : 1776216634:0;7zz a -tzip -mem=AES256 -paster1129 out.zip 161 159
 : 1776216677:0;mkdir a
@@ -4647,7 +4607,6 @@ d
 : 1776494653:0;rm f
 : 1776494854:0;cd frontend
 : 1776494909:0;mv ~/Downloads/files.zip .
-: 1776494913:0;unzip files.zip
 : 1776494919:0;mv Dockerfile.frontend Dockerfile
 : 1776494924:0;rm files.zip
 : 1776494934:0;docker compose build --no-cache frontend
@@ -4675,7 +4634,6 @@ d
 : 1776508099:0;git remote add origin git@github.com:ac1965/BudgetEvaluatio.git
 : 1776508109:0;git push -u origin main
 : 1776508546:0;docker compose restart ollama backend
-: 1776508817:0;ls 
 : 1776508821:0;cd 041
 : 1776508837:0;cat C-1.txt|pbc
 : 1776510103:0;cat 041/C-1.txt|pbc
@@ -4749,7 +4707,6 @@ EOF
 : 1776552843:0;docker compose build db
 : 1776552873:0;docker compose build --no-cache db
 : 1776552965:0;docker compose db
-: 1776557358:0;vi .gitignore
 : 1776557411:0;g add .gitignore && g commit -avm "Update" && g push
 : 1776557532:0;rm -fr backend frontend db nginx docker-compose.*
 : 1776557540:0;g add . && g commit -avm "Update" && g push 
@@ -4764,7 +4721,6 @@ EOF
 : 1776566722:0;docker compose up\ 
 : 1776566786:0;docker compose exec ollama ollama pull coney_/gpt-oss_claude-sonnet4.6
 : 1776567648:0;cp .env.local
-: 1776567656:0;cat .gitignore
 : 1776567672:0;cp .env.prod.example .env.local
 : 1776567679:0;vi .env.local
 : 1776567819:0;docker compose exec ollama ollama pull qwen2.5
@@ -4772,10 +4728,8 @@ EOF
 : 1776567873:0;docker compose attach
 : 1776568566:0;docker compose up
 : 1776583804:0;mv ~/Downloads/BudgetValidityAssessmentSystem_DesignSpecification.org .
-: 1776583892:0;python org_tangle.py README.org
 : 1776583896:0;docker compose down
 : 1776583901:0;docker compose up --build
-: 1776588941:0;g status
 : 1776652632:0;mv ~/Downloads/è¦ƒ«ç©ƒ­ä¾ƒ½éƒ€¼æƒ»¸_è¦ƒ«ç©ƒ­æƒ»¸è©ƒµä¾ƒãƒ£ã‚§ãƒ£ƒ£ã‚¯ãƒ£ªã‚¹ãƒ£ƒ¨.xlsx estimate-evaluation.xlsx
 : 1776652888:0;ll
 : 1776652990:0;vi point.txt
@@ -4791,7 +4745,6 @@ EOF
 : 1776690716:0;rm BudgetValidityAssessmentSystem_DesignSpecification.pdf
 : 1776762445:0;ls  memo-20260422.txt
 : 1776762469:0;7zz a -tzip -mem=AES256 -paster1129 out.zip memo-20260422.txt
-: 1776949852:0;build-emacs.sh
 : 1776953726:0;brew tap akicho8/shogi
 : 1776953797:0;brew install --cask shogi-home
 : 1776953883:0;pen -a ShogiHome
@@ -4799,35 +4752,21 @@ EOF
 : 1776953989:0;open -a ShogiHome\ 
 : 1776953994:0;open -a ShogiHome
 : 1776988344:0;cat early-init.el init.el|pbc
-: 1776991679:0;rm -fr .cache .etc .mypy_cache .ropeproject .var eln-cache emms lisp personal
-: 1776992409:0;cd 
 : 1776992446:0;mkdir 149
 : 1776992449:0;cd 149
 : 1776992456:0;vi A.txt
-: 1777021063:0;cd .emacs.d
-: 1777043293:0;mv ~/Downloads/README.org .
-: 1777043338:0;EMACS=/Applications/Emacs.app/Contents/MacOS/Emacs make -C ~/.emacs.d tangle
-: 1777043365:0;EMACS=/Applications/Emacs.app/Contents/MacOS/Emacs make -C ~/.emacs.d reload
-: 1777072622:0;cd Downloads
 : 1777072632:0;la -lt |head -20
 : 1777072658:0;la -lt
-: 1777073360:0;openwebui.sh
-: 1777098207:0;cd Documents/misc
 : 1777098598:0;mv ~/Downloads/backup-refactored.ps1 .
 : 1777098614:0;mv backup-refactored.ps1 backup-refactored.txt
 : 1777102410:0;mv ~/Downloads/Collect-LatestListFiles.ps1 .
 : 1777102424:0;mv Collect-LatestListFiles.ps1 Collect-LatestListFiles.txt
 : 1777112248:0;ls ~/Downloads/*xlsx
 : 1777112466:0;mv -v ~/Downloads/*.xlsx .
-: 1777130749:0;g push
 : 1777130784:0;rm -fr dotfiles
-: 1777130808:0;g clone git@github.com:ac1965/dotfiles.git
 : 1777133129:0;rm Brewfile
-: 1777133133:0;cd dotfiles
 : 1777133173:0;brew bundle dump --force
-: 1777133210:0;cd Projects/dotfiles
 : 1777133218:0;cp ~/Brewfile .
-: 1777161363:0;brew update && brew upgrade 
 : 1777161451:0;cd Documents
 : 1777161466:0;ls devel
 : 1777161502:0;rm -fr devel
@@ -4842,38 +4781,29 @@ EOF
 : 1777165043:0;7zz e files.zip
 : 1777165281:0;7zz a -tzip -mem=AES256 -paster1129 out.zip files.zip budget_evaluation.txt estimate-evaluation.xlsx point.txt RFQ-std.txt
 : 1777165620:0;mkdir Ref
-: 1777166480:0;rm eval.zip
 : 1777166488:0;ls *pdf
 : 1777166517:0;find . -name "*.pdf"
 : 1777171261:0;cd misc
 : 1777171274:0;rm out.zip
 : 1777171287:0;rm sent.zip
 : 1777173007:0;cd BudgetEvaluation-2026/Ref
-: 1777173027:0;7zz e out.zip
 : 1777173063:0;rm out.zip 
 : 1777179222:0;ls *ip
 : 1777179232:0;7zz a -tzip -mem=AES256 -paster1129 eval.zip BudgetEvaluation-2026
-: 1777185496:0;la
 : 1777185525:0;cd 159
-: 1777185528:0;la -t
 : 1777185536:0;vi C-1.txt
 : 1777185569:0;mv C-1.txt ../151/D.txt
-: 1777215390:0;cd ..
 : 1777215400:0;find . -name "*.txt"
-: 1777215866:0;cd BudgetEvaluation-2026
 : 1777216756:0;mv ~/Downloads/TransferShitekiJikou_CrossPlatform.bas .
 : 1777219523:0;mv ~/Downloads/TransferShitekiJikou.bas .
 : 1777222904:0;ls *xlms
 : 1777222990:0;open BudgetEvaluatio.xlsm
 : 1777223288:0;cat TransferShitekiJikou.txt|pbc
 : 1777304618:0;mv ~/Downloads/Copy-LatestReviewFiles.ps1 .
-: 1777335989:0;...
 : 1777335993:0;cd Org
 : 1777336003:0;vi inbox.org
 : 1777336048:0;cd ../misc
 : 1777336061:0;mv ~/Downloads/use_safari_macOS.org .
-: 1777336183:0;cd
-: 1777336186:0;cd Projects
 : 1777336195:0;mkdir memo
 : 1777336206:0;cd memo
 : 1777336236:0;mv ~/Documents/misc/use_safari_macOS.org .
@@ -4887,65 +4817,34 @@ EOF
 : 1777338502:0;rm a.org
 : 1777338586:0;ls ~/Downloads
 : 1777338671:0;mv ~/Downloads/use_* .
-: 1777338675:0;g diff
-: 1777338679:0;ls
-: 1777338690:0;g add . && g commit -avm "Update" && g push
-: 1777377108:0;cd Documents/misc/BudgetEvaluation-2026
 : 1777377146:0;mv ~/Dw\ 
 : 1777377160:0;mv ~/Downloads/TransferShitekiJikou.bas TransferShitekiJikou.txt
-: 1777377165:0;vi TransferShitekiJikou.txt
-: 1777377815:0;cd Downloads
 : 1777377818:0;ls files
 : 1777377827:0;mkdir b
 : 1777377835:0;mv files.zip b
 : 1777377840:0;cd b
 : 1777377844:0;unzip files.zip
 : 1777377851:0;vi TransferShitekiJikou.bas
-: 1777377932:0;cd 
-: 1777377936:0;cd Documents/misc/BudgetEvaluation-2026
 : 1777377979:0;cp ~/Downloads/b/TransferShitekiJikou.bas TransferShitekiJikou.txt
-: 1777377985:0;vi TransferShitekiJikou.txt
-: 1777383922:0;cd Ref
-: 1777383927:0;la
 : 1777384071:0;vi RALI.txt
 : 1777384107:0;open RALI.txt
-: 1777462936:0;cd
-: 1777462946:0;brew update && brew upgrade 
-: 1777463139:0;openwebui.sh
-: 1777479696:0;brew update && brew upgrade 
-: 1777479738:0;build-emacs.sh
-: 1777605537:0;cd Documents/misc/BudgetEvaluation-2026
-: 1777605541:0;la
 : 1777605564:0;rm TransferShitekiJikou.txt vba-*
-: 1777605567:0;cd Ref
-: 1777605569:0;ls
 : 1777605608:0;mv ~/Downloads/TransferShitekiJikou_v2.bas .
-: 1777605613:0;la
 : 1777605635:0;mv TransferShitekiJikou_v2.bas TransferShitekiJikou_v2.txt
 : 1777605640:0;vi TransferShitekiJikou_v2.txt
 : 1777605773:0;cat TransferShitekiJikou_v2.txt|pbc
-: 1777606071:0;la
 : 1777621903:0;brew install tesseract
 : 1777621921:0;	brew install tesseract-lang  
 : 1777621949:0;tesseract input.png output -l jpn
 : 1777621976:0;tesseract --version
 : 1777622000:0;tesseract --list-langs
 : 1777622015:0;tesseract --list-langs|grep jpn
-: 1777622148:0;cd
 : 1777622165:0;mkdir ~/dp
 : 1777622176:0;mkdir ~/Downloads/abc
 : 1777622327:0;cd ~/Downloads/abc
-: 1777622329:0;ls
 : 1777622431:0;for f in *.png\
 do\
 echo file $i
-: 1777622661:0;magick mogrify \\
-  -path processed \\
-  -colorspace Gray \\
-  -threshold 60% \\
-  -density 300 \\
-  IMG_86*png 
-: 1777622671:0;ls
 : 1777622679:0;magick mogrify \\
   -path processed \\
   -colorspace Gray \\
@@ -4969,22 +4868,13 @@ do
   -threshold 60% \\
   -density 300 \\
 ../IM*png
-: 1777622944:0;cd ..
 : 1777622969:0;rm -fr abc/bc
-: 1777622979:0;rm -fr abc
-: 1777622998:0;mkdir abc
-: 1777623277:0;cd abc
-: 1777623279:0;ls
 : 1777623341:0;mkdir p
 : 1777623343:0;cd p
 : 1777623394:0;mv ../*png .
-: 1777623395:0;ls
-: 1777623398:0;cd ..
 : 1777623414:0;mv p input
 : 1777623419:0;magick mogrify -path processed -colorspace Gray -threshold 60% -density 300 input/*.png
-: 1777623446:0;ls
 : 1777623528:0;ecj]
-: 1777623535:0;ls
 : 1777623621:0;echo $(basename input/IMG_8651.png )
 : 1777623673:0;echo $(basename input/IMG_8651.png .png )
 : 1777623856:0;for f in input/IMG_86*png\
@@ -4999,7 +4889,6 @@ convert $f -colorspace Gray -threshold 60% -density 300 $(basename $f) done
 do\
 echo $f\
 convert $f -colorspace Gray -threshold 60% -density 300 $(basename $f); done
-: 1777623916:0;ls
 : 1777624397:0;for f in IMG_86*png\
 do\
 tesseract $f\\ 
@@ -5007,19 +4896,13 @@ tesseract $f\\
 do\
 tesseract $f input/$f \
 done
-: 1777625980:0;cd ..
-: 1777625997:0;rm -fr abc
-: 1777626034:0;mkdir abc
 : 1777626313:0;mv abc raw
 : 1777626405:0;mkdir abc
 : 1777626424:0;mv raw abc
-: 1777626436:0;cd abc
-: 1777626444:0;ls
 : 1777626451:0;mkdir proc
 : 1777627025:0;for f in raw/*,png\
 do\
 echo $f
-: 1777627034:0;ls
 : 1777627052:0;mkdir tsv
 : 1777627185:0;magick raw/IMG_8651.png -colorspace Gray \\
     -resize 200% \\
@@ -5043,57 +4926,34 @@ Resolved 177 packages in 421ms\
       hint: This error likely indicates that `retranscribe@0.2.0` depends on `setuptools.backends`, but doesn't declare it as a build dependency.\
       If `retranscrib
 : 1777627596:0;tesseract proc/IMG_8651.png tsv/20261820  -l jpn --oem 
-: 1777627604:0;tesseract proc/IMG_8651.png tsv/20261820  -l jpn 
 : 1777627630:0;more tsv/20261820.tsv
 : 1777627636:0;more tsv/20261820.txt
 : 1777628003:0;open proc/IMG_8651.png
 : 1777628515:0;tesseract proc/IMG_8651.png tsv/20261820  -l jpn 
-: 1777642403:0;cd
 : 1777642409:0;cd Documents/misc/BudgetEvaluation-2026
 : 1777642413:0;cd 046
-: 1777642415:0;la
 : 1777642425:0;cp ../047/R-1.txt .
-: 1777649113:0;cd
 : 1777682642:0;cd Projects
 : 1777682661:0;g clone https://github.com/PaddlePaddle/PaddleOCR
 : 1777694619:0;cd PaddleOCR
-: 1777694621:0;ls
 : 1777694955:0;python --version  
 : 1777695133:0;python3 -m venv ~/venv/paddleocr_arm
 : 1777695156:0;source ~/venv/paddleocr_arm/bin/activate
-: 1777695171:0;pip install paddlepaddle==2.6.1
 : 1777695188:0;pip install --upgrade pip
 : 1777695193:0;pip install paddlepaddle==2.6.1
 : 1777701114:0;pip install paddlepaddle==2.6.2
 : 1777701203:0;ip install -r requirements.txt
-: 1777702888:0;ffmpeg -f avfoundation -list_devices true -i ""
-: 1777702931:0;cd
 : 1777702950:0;cd Downloads/sc\ 
-: 1777702956:0;cd Downloads
-: 1777702960:0;la -t
 : 1777702965:0;cd abc
-: 1777702967:0;ls
-: 1777703054:0;vi ocr_pipeline.sh
 : 1777703122:0;chmod +x ocr_pipeline.sh
 : 1777703136:0;./ocr_pipeline.sh -D .
 : 1777703152:0;vi +34 ocr_pipeline.sh
-: 1777703195:0;./ocr_pipeline.sh
 : 1777703328:0;./ocr_pipeline.sh -d 0 -i 10 -r 2560x1440 -l eng
 : 1777703354:0;./ocr_pipeline.sh -d 1 -i 10 -r 2560x1440 
-: 1777703363:0;vi ocr_pipeline.sh
-: 1777703396:0;./ocr_pipeline.sh -b . -i 10 -r 2560x1440 
-: 1777703427:0;la
-: 1777703436:0;ls log
 : 1777703457:0;rm -fr capture csv log proc processed raw tsv
-: 1777703461:0;./ocr_pipeline.sh -b . -i 10 -r 2560x1440 
-: 1777703466:0;ls
 : 1777703472:0;ls log
 : 1777703477:0;vi log/pipeline.log
 : 1777703525:0;cat log/pipeline.log|pbc
-: 1777703547:0;ffmpeg -f avfoundation -list_devices true -i ""
-: 1777703798:0;ls
-: 1777703806:0;open test.png
-: 1777703836:0;ffmpeg -f avfoundation -list_devices true -i ""
 : 1777703846:0;rm test.png
 : 1777703955:0;ffmpeg -f avfoundation \\
   -video_size 1920x1080 \\
@@ -5102,41 +4962,14 @@ Resolved 177 packages in 421ms\
   -i "1:none" \\
   -frames:v 1 test.png
 : 1777703962:0;open test.png
-: 1777704126:0;cat ocr_pipeline.sh|pbc
 : 1777704132:0;./ocr_pipeline.sh -b . -i 10 -r 2560x1440 
-: 1777704602:0;cat ocr_pipeline.sh|pbc
-: 1777704988:0;ffmpeg -f avfoundation -list_devices true -i ""
-: 1777705161:0;ffmpeg -f avfoundation -i "UGREEN 25854:none"
-: 1777705264:0;ffmpeg -f avfoundation \\
-  -framerate 30 \\
-  -video_size 1920x1080 \\
-  -i "1:none" \\
-  -frames:v 1 out.png
-: 1777705271:0;ls
-: 1777705281:0;open out.png
-: 1777705319:0;ffmpeg -f avfoundation \\
-  -framerate 30 \\
-  -video_size 1920x1080 \\
-  -i "1:none" \\
-  -frames:v 1 out.png
-: 1777705329:0;open out.png
 : 1777705347:0;ffmpeg -f avfoundation -i "UGREEN 25854:none"
-: 1777705366:0;ffmpeg -f avfoundation -list_devices true -i ""
-: 1777705386:0;ffmpeg -f avfoundation \\
-  -framerate 30 \\
-  -video_size 1920x1080 \\
-  -i "1:none" \\
-  -frames:v 1 out.png
-: 1777705414:0;open out.png
 : 1777705778:0;ffmpeg -f avfoundation \\
   -framerate 30 \\
   -video_size 1920x1080 \\
   -i "UGREEN 25854:none" \\
   -frames:v 1 out.png
-: 1777705788:0;open out.png
-: 1777705840:0;ls
 : 1777705847:0;rm out.png test.png
-: 1777705852:0;vi ocr_pipeline.sh
 : 1777705896:0;ffmpeg -f avfoundation \\
   -framerate 30 \\
   -video_size 1920x1080 \\
@@ -5144,140 +4977,75 @@ Resolved 177 packages in 421ms\
   -frames:v 1 out.png
 : 1777705904:0;open out.png
 : 1777705929:0;ffmpeg -f avfoundation -list_devices true -i ""
-: 1777705991:0;vi ocr_pipeline.sh
 : 1777706116:0;./ocr_pipeline.sh -d 1
 : 1777706208:0;./ocr_pipeline.sh -d 1 -f 30
-: 1777706224:0;vi ocr_pipeline.sh
 : 1777706290:0;unset DEVICE_INDEX\
 ./ocr_pipeline.sh
-: 1777706356:0;cat ocr_pipeline.sh|pbc
-: 1777706538:0;vi ocr_pipeline.sh
-: 1777706576:0;./ocr_pipeline.sh 
-: 1777706601:0;ls processed
-: 1777706672:0;./ocr_pipeline.sh 
-: 1777706870:0;vi ocr_pipeline.sh
-: 1777706884:0;./ocr_pipeline.sh 
-: 1777706943:0;vi ocr_pipeline.sh
-: 1777706980:0;./ocr_pipeline.sh 
-: 1777706998:0;vi ocr_pipeline.sh
 : 1777707006:0;./ocr_pipeline.sh 
-: 1777707064:0;cd
 : 1777707104:0;history -a
 : 1777707137:0;brew install tesseract-lang
 : 1777707162:0;brew info tesseract-lang
 : 1777707184:0;brew reinstall tesseract-lan
 : 1777707192:0;brew reinstall tesseract-lang
-: 1777707303:0;cd Downloads/abc
-: 1777707312:0;./ocr_pipeline.sh
 : 1777707336:0;cat ocr_pipeline.sh|pbc
 : 1777707439:0;mkdir -p ~/tessdata\
 cd ~/tessdata\
 \
 curl -LO https://github.com/tesseract-ocr/tessdata_best/raw/main/jpn.traineddata
 : 1777707454:0;export TESSDATA_PREFIX=~/tessdata
-: 1777707509:0;vi ocr_pipeline.sh
-: 1777707537:0;la
-: 1777707541:0;cd 
-: 1777707545:0;cd Downloads/abc
-: 1777707548:0;vi ocr_pipeline.sh
-: 1777707596:0;./ocr_pipeline.sh
 : 1777707636:0;ls ~/tessdata
 : 1777707658:0;rm ~/tessdata/q
-: 1777707675:0;vi ocr_pipeline.sh
-: 1777707745:0;./ocr_pipeline.sh
 : 1777707935:0;cd ~/tessdata\
 \
 curl -LO https://github.com/tesseract-ocr/tessdata_best/raw/main/jpn_vert.traineddata
-: 1777707942:0;cd
-: 1777707953:0;cd Downloads/abc
-: 1777707958:0;./ocr_pipeline.sh
-: 1777708018:0;vi ocr_pipeline.sh
-: 1777708216:0;./ocr_pipeline.sh
-: 1777708254:0;vi ocr_pipeline.sh
-: 1777708338:0;./ocr_pipeline.sh
 : 1777708419:0;vi ocr_pipeline.sh
-: 1777708477:0;./ocr_pipeline.sh
 : 1777708816:0;cd  ~/tessdata
 : 1777708820:0;rm -f ~/tessdata/jpn*.traineddata\
 \
 curl -LO https://github.com/tesseract-ocr/tessdata_best/raw/main/jpn.traineddata\
 curl -LO https://github.com/tesseract-ocr/tessdata_best/raw/main/jpn_vert.traineddata
-: 1777708829:0;cd
 : 1777708842:0;cd Downloads/abc
 : 1777708859:0;./ocr_pipeline.sh
-: 1777708963:0;ls
 : 1777708985:0;mkdir ~/ocr_pipeline
 : 1777708993:0;ls ~/ocr_pipeline
 : 1777709021:0;mv ocr_pipeline.sh ~/.local/bin
-: 1777709030:0;cd ..
 : 1777709040:0;rm -fr abc
-: 1777709041:0;cd
 : 1777709059:0;hash -r
-: 1777709063:0;ocr_pipeline.sh
 : 1777709077:0;cd ocr_pipeline/log
-: 1777709078:0;ls
 : 1777709081:0;vi pipeline.log
 : 1777709100:0;rm pipeline.log
-: 1777709104:0;cd ..
-: 1777709106:0;ls
-: 1777709111:0;ls processed
 : 1777709129:0;rm -f processed/*
-: 1777709143:0;ocr_pipeline.sh
 : 1777709157:0;open processed/20260502_170543.png
 : 1777709259:0;tesseract processed/20260502_170543.png tsv/1  -l jpn 
 : 1777709282:0;vi tsv/1.txt 
-: 1777709323:0;cd tsv
-: 1777709329:0;ls
 : 1777709356:0;cat 20260502_170543.txt
 : 1777709391:0;..
 : 1777709398:0;rm -fr processed tsv
-: 1777709409:0;ocr_pipeline.sh
 : 1777709419:0;ls processed
 : 1777709424:0;ls tsv
 : 1777709429:0;cat tsv/20260502_171009.txt
-: 1777709573:0;ocr_pipeline.sh
-: 1777709590:0;ls
 : 1777709600:0;cat tsv/20260502_171253.txt
 : 1777709798:0;cat log/pipeline.log
-: 1777710021:0;ocr_pipeline.sh
-: 1777710119:0;cd 
 : 1777710151:0;cd ocr_pipeline/csv/
-: 1777710154:0;ls
 : 1777710172:0;cat 20260502_172134.csv
-: 1777710177:0;cd ..
 : 1777710193:0;cd tsv
-: 1777710194:0;ls
-: 1777710224:0;cd ..
 : 1777710250:0;rm -fr processed tsv csv/
-: 1777710252:0;ls
 : 1777710261:0;ls capture
 : 1777710269:0;rm -fr capture
 : 1777710524:0;cat ~/.local/bin/build-emacs.sh|pbc
 : 1777710771:0;cat ~/.local/bin/ocr_pipeline.sh|pbc
-: 1777711092:0;ocr_pipeline.sh
-: 1777711326:0;ls
 : 1777711352:0;ls ~/.local/bin
 : 1777711384:0;rm -fr session_20260502_173812 log
 : 1777711460:0;ocr_pipeline.sh
-: 1777711528:0;ls
 : 1777711561:0;ls session_20260502_174420/tsv/0001_20260502_174431.tsv
 : 1777711568:0;cat session_20260502_174420/tsv/0001_20260502_174431.tsv
-: 1777711616:0;ls
 : 1777711630:0;cat session_20260502_174420/csv/0001_20260502_174431.csv
 : 1777711645:0;la session_20260502_174420/csv
-: 1777711998:0;cd
 : 1777712007:0;cd Projects/dotfiles
-: 1777712010:0;ls
-: 1777712021:0;la
 : 1777712059:0;cat setup.sh
 : 1777712102:0;cp setup.sh reverse.sh
-: 1777712111:0;vi reverse.sh
-: 1777712318:0;./reverse.sh
 : 1777712353:0;la .local/bin/
-: 1777712358:0;g add . && g commit -avm "Update" && g push
-: 1777712387:0;la
 : 1777712408:0;g push
-: 1777712454:0;la
 : 1777712466:0;la -a
 : 1777712493:0;rm -fr .config/.config
 : 1777712519:0;rm -fr .docs/.docs
@@ -5285,22 +5053,195 @@ curl -LO https://github.com/tesseract-ocr/tessdata_best/raw/main/jpn_vert.traine
 : 1777712540:0;rm .vim/.vim
 : 1777712547:0;rm -fr .vim/.vim
 : 1777712566:0;rm -fr .vimperator/.vimperator
-: 1777712584:0;g add . && g commit -avm "Update" && g push
-: 1777712745:0;echo ".local/share/claude/" >> .gitignore\
-echo ".local/.local/" >> .gitignore
-: 1777712755:0;vi .gitignore
-: 1777712780:0;g add . && g commit -avm "Update" && g push
 : 1777712821:0;echo ".local/share/claude/" >> .gitignore\
 echo ".local/.local/" >> .gitignore
-: 1777712826:0;vi .gitignore
-: 1777712851:0;g add . && g commit -avm "Update" && g push
-: 1777712904:0;cd ..
 : 1777712912:0;mv dotfiles d
 : 1777712930:0;g clone git@github.com:ac1965/dotfiles.git
 : 1777713060:0;cd dotfiles
 : 1777713073:0;cp ../d/reverse.sh .
 : 1777713089:0;cp ../d/.gitignore .
 : 1777713094:0;la .local
-: 1777713105:0;vi .gitignore
 : 1777713122:0;vi reverse.sh
 : 1777713174:0;./reverse.sh
+: 1777713198:0;g status
+: 1777713329:0;cp budget_review_qa.xlsx ~/Documents/misc/BudgetEvaluation-2026/Ref
+: 1777792551:0;cd Documents/misc
+: 1777792561:0;mv rsync.bat rsync.txt
+: 1777813157:0;cd BudgetEvaluation-2026
+: 1777813165:0;cd Ref
+: 1777814293:0;cd Downloads/files
+: 1777818367:0;unzip ouit.zip
+: 1777818485:0;mkdir out
+: 1777818492:0;7zz e out.zip out
+: 1777818502:0;7zz h
+: 1777818523:0;cd .venv
+: 1777818730:0;7zz l ouit.zip 
+: 1777818742:0;7zz e ouit.zip 
+: 1777818763:0;rm -fr out 
+: 1777818776:0;mv ouit out
+: 1777818804:0;rm ouit.zip
+: 1777818914:0;7zz a out
+: 1777818982:0;ls out
+: 1777819009:0;mv \(R08\)æƒ¬ƒ§æƒ±ƒ¸äºƒ«éƒ€ƒ¥ä¸€è¦§ä½ƒ¼æƒ¨ƒ°_æƒ´¹_20260311.xlsm out
+: 1777819023:0;mv BudgetEvaluatio.xlsm out
+: 1777819140:0;7zz a out out
+: 1777819147:0;7zz l out.7z
+: 1777819200:0;open out/BudgetEvaluatio.xlsm
+: 1777823979:0;mv PasteTransposeAndReformat.bas out
+: 1777824041:0;cat out/PasteTransposeAndReformat.bas |pbc
+: 1777855388:0;touch Collect-LatestExcel-v2.txt
+: 1777856240:0;mv ../Sync-Folders-v2.txt .
+: 1777862584:0;mkdir ~/Documents/misc/BudgetEvaluation-2026/Ref/out
+: 1777862643:0;cp rsync-v3.txt Sync-Folders-v2.txt Collect-LatestExcel-v2.txt ~/Documents/misc/BudgetEvaluation-2026/Ref/out
+: 1777876589:0;cp rsync-v3.txt Sync-Folders-v2.txt Collect-LatestExcel-v2.txt eval
+: 1777876605:0;7zz a -tzip -mem=AES256 -paster1129 eval.zip eval
+: 1777876618:0;7zz l eval.zip
+: 1777876668:0;cp eval.zip ~/Documents/misc/BudgetEvaluation-2026/Ref
+: 1777878679:0;rm -fr eval
+: 1777878709:0;7zz a -tzip -mem=AES256 -paster1129 eval.zip rsync-v3.txt
+: 1777878752:0;mv eval.zip ~/Documents/misc/BudgetEvaluation-2026/Ref
+: 1777878932:0;diff -u rsync-v2.txt rsync-v3.txt
+: 1777879466:0;7zz a -tzip -mem=AES256 -paster1129 eval.zip rsync-v4.txt
+: 1777901015:0;rm eval.zip
+: 1777901018:0;7zz a -tzip -mem=AES256 -paster1129 eval.zip memo.txt
+: 1777904820:0;cd out
+: 1777904865:0;mv Collect-LatestEvaluation.txt Collect-LatestExcel.txt
+: 1777905889:0;mv Collect-LatestExcel.ps1 Collect-LatestExcel.txt
+: 1777905895:0;rm ps.zip
+: 1777905904:0;7zz a -tzip -mem=AES256 -paster1129 ps.zip Collect-LatestExcel.txt
+: 1777914338:0;more memo-2.txt
+: 1777914366:0;7zz a -tzip -mem=AES256 -paster1129 sample.zip memo-2.txt
+: 1777962792:0;openwebui.sh
+: 1777963124:0;more RFQ-std.txt 
+: 1778001902:0;cp ~/Downloads/emacs_keybindings_cheatsheet.pdf .
+: 1778026457:0;echo emacs-config-deepdive.md >> .gitignore
+: 1778027046:0;ls emacs-config-deepdive.md
+: 1778029959:0;g diff |grep Boot
+: 1778030002:0;g diff |grep Looder
+: 1778030011:0;g diff |grep Laoder
+: 1778030020:0;g diff |grep Module
+: 1778030133:0;g diff |grep Personal
+: 1778030894:0;g diff |grep -n 'è²¬åƒ«ƒ¹ã®èª¬æƒ¸ƒ®ã€‚'
+: 1778030924:0;g diff | head -456|tail -2
+: 1778030949:0;g diff | head -456|tail -5
+: 1778044137:0;g diff |grep -n 'Tangle '
+: 1778044174:0;g diff | head -518|tail -5
+: 1778044206:0;g diff | head -535|tail -5
+: 1778044354:0;g diff |grep -n 'emacs.d/ reload'
+: 1778044374:0;g diff |grep -n 'Emacs'
+: 1778044599:0;EMACS=/Applications/Emacs.app/Contents/MacOS/Emacs make -C ~/.emacs.d distclean
+: 1778044615:0;rm -fr tree-sitter personal lisp eln-cache .cache
+: 1778045687:0;mv ~/Downloads/emacs_keybindings_cheatsheet.svg .
+: 1778045816:0;rm emacs-config-deepdive.md
+: 1778045823:0;vi NOTE.txt
+: 1778048014:0;rm emacs_keybindings_cheatsheet.pdf
+: 1778048076:0;which mmdc
+: 1778048120:0;grep mmdc README.org
+: 1778048537:0;set
+: 1778048621:0;which mmdc 
+: 1778048671:0;brew install mermaid-cli
+: 1778048711:0;npm install -g @mermaid-js/mermaid-cli
+: 1778049753:0;ls tangle-flow.svg
+: 1778066166:0;EMACS=/Applications/Emacs.app/Contents/MacOS/Emacs make -C ~/.emacs.d check-cookies 
+: 1778066184:0;vi Makefile
+: 1778066607:0;mkdir svg
+: 1778066616:0;mv *.svg svg
+: 1778066862:0;rm NOTE.txt design_spec.org
+: 1778069953:0;mv ~/Downloads/design_spec.org .
+: 1778130334:0;exit
+: 1778160230:0;la ~/Downloads
+: 1778160415:0;mv ~/Downloads/Collect-LatestExcel.ps1 .
+: 1778161108:0;cd ..
+: 1778241164:0;la Downloads
+: 1778241193:0;open Downloads/è¦ƒ«ç©ƒ­ä¾ƒ½éƒ€¼æƒ»¸_è¦ä»¶å®ƒºç¾©æƒ»¸æƒ¼ƒ©çƒ¤ƒå·®çƒµ°-2.xlsx
+: 1778241563:0;mv Downloads/è¦ƒ«ç©ƒ­ä¾ƒ½éƒ€¼æƒ»¸_è¦ä»¶å®ƒºç¾©æƒ»¸æƒ¼ƒ©çƒ¤ƒå·®çƒµ°-2.xlsx ~/Documents/misc
+: 1778241599:0;open Downloads/TransferShitekiJikou-prompt.tx
+: 1778241607:0;open Downloads/TransferShitekiJikou-prompt.txt
+: 1778330034:0;â€ƒ¹cd Downloads
+: 1778330045:0;ls 
+: 1778330070:0;open TransferShitekiJikou-prompt.txt
+: 1778375125:0;7zz e out.zip
+: 1778375152:0;la out
+: 1778375176:0;rm -fr out
+: 1778375186:0;7zz l out.zip
+: 1778377726:0;la ..
+: 1778379052:0;rm -fr .cache .etc .mypy_cache .ropeproject .var eln-cache emms lisp personal
+: 1778379106:0;ls lisp
+: 1778379148:0;cp ~/Projects/Retranscribe/org_tangle.py .
+: 1778379177:0;python org_tangle.py README.org
+: 1778379184:0;EMACS=/Applications/Emacs.app/Contents/MacOS/Emacs make -C ~/.emacs.d tangle
+: 1778390736:0;rm -fr personal lisp
+: 1778394964:0;rm -fr personal lisp 
+: 1778395134:0;cp \ TransferShitekiJikou.bas TransferShitekiJikou.txt
+: 1778395159:0;brew install nkf
+: 1778395175:0;nkf 
+: 1778395195:0;nkf -o utf8 TransferShitekiJikou.txt
+: 1778395265:0;nkf TransferShitekiJikou.txt -O -w
+: 1778395318:0;nkf TransferShitekiJikou.txt -O --overwrite
+: 1778395365:0;nkf \ TransferShitekiJikou.bas TransferShitekiJikou.txt -w 
+: 1778395475:0;nkf -w \ TransferShitekiJikou.bas TransferShitekiJikou.txt 
+: 1778395502:0;nkf -w --overwrite TransferShitekiJikou.txt
+: 1778395507:0;vi TransferShitekiJikou.txt
+: 1778398646:0;cd
+: 1778398653:0;cd Downloads
+: 1778398694:0;nkf --help
+: 1778398714:0;nkf -s --overwrite TransferShitekiJikou_refactored.bas
+: 1778402592:0;nkf -s --overwrite TransferShitekiJikou_v4.bas
+: 1778426117:0;cd 
+: 1778426122:0;cd Documents/misc/BudgetEvaluation-2026/Ref/out
+: 1778426124:0;ls
+: 1778426137:0;open BudgetEvaluation.xlsm
+: 1778429751:0;...
+: 1778429765:0;7zz a -tzip -mem=AES256 -paster1129 sample.zip memo-1.txt
+: 1778429777:0;7zz l sample.zip
+: 1778509406:0;cd .emacs.d
+: 1778509494:0;g restore .
+: 1778510156:0;mv ~/Downloads/README.org .
+: 1778510167:0;g diff
+: 1778543285:0;echo abbrev_defs >> .gitignore
+: 1778543293:0;cat .gitignore
+: 1778543335:0;vi .gitignore
+: 1778543613:0;g del abbrev_defs
+: 1778543623:0;g rm abbrev_defs
+: 1778543630:0;g add . && g commit -avm "Update" && g push
+: 1778550460:0;open ~/Downloads/proposal_evaluation_dashboard.svg 
+: 1778600341:0;brew update && brew upgrade 
+: 1778600411:0;build-emacs.sh
+: 1778628736:0;ls .cache
+: 1778628742:0;ls .cache/emacs
+: 1778628760:0;ls .cache/emacs/eln-cache
+: 1778628767:0;ls .cache/emacs/eln-cache/31_0_50-5bc084d3
+: 1778628779:0;la -t
+: 1778628816:0;rm -fr .cache eln-cache lisp personal init.el early-init.el
+: 1778628820:0;EMACS=/Applications/Emacs.app/Contents/MacOS/Emacs make -C ~/.emacs.d reload
+: 1778628889:0;la .cache/emacs/eln-cache
+: 1778628893:0;la .cache/emacs/eln-cache/32_0_50-275eeb7a
+: 1778629098:0;la
+: 1778629118:0;la .cache
+: 1778629124:0;la .cache/emacs
+: 1778649508:0;ls ~/Downloads/*xlms
+: 1778752107:0;brew update && brew upgrade 
+: 1778752187:0;build-emacs.sh
+: 1778758665:0;cd .emacs.d
+: 1778758669:0;la
+: 1778758687:0;rm -fr .cache 
+: 1778766202:0;la .var/desktop/
+: 1778852052:0;g diff
+: 1778852070:0;pwd
+: 1778852077:0;mv ~/Downloads/README.org .
+: 1778852082:0;g diff
+: 1778852132:0;EMACS=/Applications/Emacs.app/Contents/MacOS/Emacs make -C ~/.emacs.d reload
+: 1778852212:0;g add . && g commit -avm "Update" && g push
+: 1778853949:0;mv ~/Downloads/README.org .
+: 1778853959:0;g diff
+: 1778854100:0;EMACS=/Applications/Emacs.app/Contents/MacOS/Emacs make -C ~/.emacs.d reload
+: 1778854590:0;g add . && g commit -avm "Update" && g push
+: 1778854602:0;mv ~/Downloads/README.org .
+: 1778854605:0;g diff
+: 1778854661:0;EMACS=/Applications/Emacs.app/Contents/MacOS/Emacs make -C ~/.emacs.d reload
+: 1778854763:0;env
+: 1778854786:0;vi ~/.authinfo
+: 1778854941:0;cd
+: 1778854946:0;cd Projects/dotfiles
+: 1778854949:0;ls
+: 1778854966:0;./reverse.sh

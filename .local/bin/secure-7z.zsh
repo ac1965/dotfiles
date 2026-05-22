@@ -80,7 +80,7 @@ encrypt() {
   "$SZ" a -t7z -p"$pass" -mhe=on -mx=5 "$arc" "${srcs[@]}"
 
   info "Base64 エンコード → $out"
-  base64 -i "$arc" -o "$out"
+  base64 <"$arc" >"$out"
   rm -f "$arc"
 
   local size
@@ -106,7 +106,7 @@ decrypt() {
   local ext="$outdir/${stem}_extracted"
 
   info "Base64 デコード → $arc"
-  base64 -d -i "$src" -o "$arc"
+  base64 -d <"$src" >"$arc"
 
   info "7z 復号 → $ext"
   mkdir -p "$ext"

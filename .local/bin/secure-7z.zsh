@@ -10,7 +10,9 @@
 #   -n <name>  アーカイブのベース名（暗号化時のみ有効。省略時は自動生成）
 #   -o <dir>   出力先ディレクトリ（省略時は第1入力パスの親ディレクトリ）
 #
-# 依存: brew install sevenzip
+# 依存: brew install sevenzip  （openssl は macOS/Linux 標準で存在）
+# NOTE: base64 コマンドは macOS(BSD)が -D、Linux(GNU)が -d とオプションが異なるため
+#       openssl base64 で統一している（両 OS で同一動作を保証）。
 #
 # 例:
 #   ./secure-archive.zsh e report.pdf memo.txt           # 複数ファイル
@@ -80,7 +82,8 @@ encrypt() {
   "$SZ" a -t7z -p"$pass" -mhe=on -mx=5 "$arc" "${srcs[@]}"
 
   info "Base64 エンコード → $out"
-  base64 <"$arc" >"$out"
+  # python3 で BOM なし・改行なし Base64 を確実に出力（macOS/Linux 両対応）
+  python3 -c "import base64,sys; open(sys.argv[2],'w').write(base64.b64encode(open(sys.argv[1],'rb').read()).decode())" "$arc" "$out"
   rm -f "$arc"
 
   local size
@@ -106,7 +109,16 @@ decrypt() {
   local ext="$outdir/${stem}_extracted"
 
   info "Base64 デコード → $arc"
-  base64 -d <"$src" >"$arc"
+  # BOM (EF BB BF) が付いている場合は python3 で除去してからデコード
+  # macOS BSD base64 が BOM 付き UTF-8 で出力するケースへの防御
+  python3 - "$src" "$arc" << 'PYEOF'
+import base64, sys
+src, dst = sys.argv[1], sys.argv[2]
+raw = open(src, 'rb').read()
+if raw[:3] == b'\xef\xbb\xbf':
+    raw = raw[3:]
+open(dst, 'wb').write(base64.b64decode(raw))
+PYEOF
 
   info "7z 復号 → $ext"
   mkdir -p "$ext"
@@ -184,6 +196,7 @@ main() {
         case "$1" in
           -p) pass="$2";   shift 2 ;;
           -o) outdir="$2"; shift 2 ;;
+          -n) shift 2 ;;   # 復号時は無視（暗号化専用オプション）
           *)  die "不明なオプション: $1" ;;
         esac
       done

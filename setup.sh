@@ -5,7 +5,6 @@ set -euo pipefail
 
 readonly DOTFILES=(
   .Brewfile
-  .bin
   .config
   .docs
   .docker-alias
@@ -13,7 +12,6 @@ readonly DOTFILES=(
   .gitignore_global
   .latexmkrc
   .local
-  .macos
   .vim
   .viminfo
   .vimperator

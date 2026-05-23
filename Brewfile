@@ -1,5 +1,6 @@
 tap "akicho8/shogi"
 tap "laishulu/homebrew"
+brew "age"
 brew "agg"
 brew "openssl@3"
 brew "aria2"
@@ -139,3 +140,6 @@ mas "Slack", id: 803453959
 mas "Spark", id: 1176895641
 mas "Xcode", id: 497799835
 uv "aider-chat", with: ["pip"]
+npm "@mermaid-js/mermaid-cli"
+npm "@openai/codex"
+npm "flow-bin"

@@ -1,0 +1,14 @@
+#!/bin/zsh
+
+count=0
+
+for f in *(.N); do
+    ((count++))
+    group=$(( (count - 1) / 20 + 1 ))
+    seq=$(( (count - 1) % 20 + 1 ))
+    dir=$(printf '%03d' $group)
+    ext="${f:e}"
+    newname=$(printf '%03d' $seq)${ext:+.$ext}
+    mkdir -p "$dir"
+    mv -- "$f" "$dir/$newname"
+done

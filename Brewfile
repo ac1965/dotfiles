@@ -163,6 +163,14 @@ brew "pyenv-virtualenv"
 # Python Language Server for the Language Server Protocol
 brew "python-lsp-server"
 # Python interface to Tcl/Tk
+brew "python-tk@3.10"
+# Interpreted, interactive, object-oriented programming language
+brew "python@3.11"
+# Python interface to Tcl/Tk
+brew "python-tk@3.11"
+# Tool Command Language
+brew "tcl-tk"
+# Python interface to Tcl/Tk
 brew "python-tk@3.14"
 # Cross-platform application and UI framework
 brew "qt"

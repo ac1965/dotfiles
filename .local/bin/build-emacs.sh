@@ -82,6 +82,7 @@ require_cmd git
 require_cmd pkg-config
 require_cmd xcrun
 require_cmd clang
+require_cmd ditto
 
 BREW_FORMULAS=(
 	autoconf texinfo pkg-config
@@ -216,7 +217,7 @@ install -m 755 lib-src/emacsclient "$HOME/.local/bin/emacsclient"
 
 APP_DST="/Applications/Emacs.app"
 rm -rf "$APP_DST"
-cp -R nextstep/Emacs.app "$APP_DST"
+ditto nextstep/Emacs.app "$APP_DST"
 
 # ============================================================
 # Summary

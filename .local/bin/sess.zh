@@ -1,14 +1,30 @@
 #!/bin/zsh
+#
+# sess.zh - ファイルを指定単位ごとにディレクトリへ振り分ける
+#
+# 元のファイル名は変更せず、count個ごとに 001, 002, ... という
+# 連番ディレクトリを作成して移動するのみ。
+#
+# Usage: ./sess.zh [group_size]
+#   group_size : 1ディレクトリあたりのファイル数（デフォルト: 20）
+
+setopt nullglob
+
+group_size=${1:-20}
+
+if (( group_size <= 0 )); then
+    echo "Error: group_size must be a positive integer" >&2
+    exit 1
+fi
 
 count=0
 
 for f in *(.N); do
     ((count++))
-    group=$(( (count - 1) / 20 + 1 ))
-    seq=$(( (count - 1) % 20 + 1 ))
+    group=$(( (count - 1) / group_size + 1 ))
     dir=$(printf '%03d' $group)
-    ext="${f:e}"
-    newname=$(printf '%03d' $seq)${ext:+.$ext}
     mkdir -p "$dir"
-    mv -- "$f" "$dir/$newname"
+    mv -- "$f" "$dir/$f"
 done
+
+echo "Done: ${count} files moved into $(( (count - 1) / group_size + 1 )) directories (group size: ${group_size})"

@@ -7,6 +7,7 @@ Personal dotfiles for macOS (Apple Silicon / Intel), managed with Homebrew and G
 - [クイックスタート](#クイックスタート)
 - [macOS のセットアップ](#macos-のセットアップ)
 - [Homebrew](#homebrew)
+- [Zsh 環境](#zsh-環境)
 - [ツール別セットアップ](#ツール別セットアップ)
   - [iTerm2](#iterm2)
   - [pyenv](#pyenv)
@@ -20,8 +21,10 @@ Personal dotfiles for macOS (Apple Silicon / Intel), managed with Homebrew and G
 
 ```bash
 git clone https://github.com/ac1965/dotfiles.git
-dotfiles/setup.sh
+dotfiles/setup.zsh deploy
 ```
+
+> **Note** `setup.zsh` は `deploy`(repo→HOME)/ `reverse`(HOME→repo)の2モードを取る。引数省略時は使用方法を表示して終了する。
 
 ---
 
@@ -53,6 +56,20 @@ brew bundle --global
 
 > **Note** `brew bundle --global` は `~/.Brewfile` を参照する。
 > リポジトリ内の `Brewfile` を使う場合は `brew bundle` をリポジトリルートで実行する。
+
+---
+
+## Zsh 環境
+
+`~/.zshenv` で `ZDOTDIR=$HOME/.config/zsh` を定義しているため、`.zshrc` をはじめとする Zsh 関連設定は **`$HOME` 直下ではなく `$ZDOTDIR`(`~/.config/zsh`)に配置される**。`.zshenv` のみ `ZDOTDIR` 定義前に読まれる必要があるため例外的に `$HOME` 直下に置く。
+
+| ファイル/ディレクトリ | 配置先 |
+|---|---|
+| `.zshenv` | `$HOME` |
+| `.zshrc` / `.zstyles` | `$ZDOTDIR`(`.config/zsh` 経由でデプロイ) |
+| `.antidote` / `.p10k.zsh` / `.zshrc.d/` | `$ZDOTDIR`(private アーカイブ経由でデプロイ) |
+
+プラグイン管理は [antidote](https://antidote.sh) を使用。`$ZDOTDIR/.zsh_plugins.txt` にプラグインと `.zshrc.d/*.zsh` の個別バンドル(`path:` アノテーション)を列挙し、`.zshrc` から `antidote load` で一括読み込みする。`.zshrc.d/` 自体は for ループでソースせず、antidote の `path:` バンドルに一本化している(`kind:zsh` はディレクトリ内の1ファイルしか拾わない仕様のため、ファイルごとに `path:` を明示する必要がある)。
 
 ---
 
@@ -94,6 +111,8 @@ brew install --cask iterm2
 ```bash
 brew install pyenv
 ```
+
+初期化は `$ZDOTDIR/.zshrc.d/pyenv.zsh`(antidote 経由で読み込み)で行う。
 
 参考: <https://qiita.com/santa_sukitoku/items/6cbb325a895653c81b36>
 
@@ -144,13 +163,16 @@ Emacs 設定の詳細: [Emacs-01.org](https://github.com/ac1965/dotfiles/blob/ma
 
 ## プライベートファイルの管理
 
-個人情報は AES-256-CBC で暗号化した `private.tar.xz.enc` として管理する。
+個人情報は AES-256-CBC(PBKDF2, 21万イテレーション)で暗号化した `private.tar.xz.enc` として管理する。
 
-**復号して展開**
+**復号して展開 → 配置**
 
 ```bash
 decrypt private.tar.xz.enc | tar -xvJ
+zsh private/setup.zsh
 ```
+
+> **Note** `tar -xvJ` は `private/` ディレクトリを展開するだけで、`$HOME`/`$ZDOTDIR` への配置は行わない。必ず `private/setup.zsh` を実行して反映すること。
 
 **アーカイブして暗号化**
 
@@ -159,17 +181,43 @@ tar -cJvf private.tar.xz private
 encrypt private.tar.xz
 ```
 
+`encrypt` は成功後、`shred`(macOS では `gshred`、無ければ `rm`)で平文の `private.tar.xz` を削除するため、手動での後始末は不要。
+
 **スクリプト定義** (`~/.local/bin/` などに配置)
 
 ```bash
-# decrypt
 #!/bin/bash
-openssl enc -d -aes-256-cbc -pbkdf2 -iter 99999 -in "${1}"
-
-# encrypt
-#!/bin/bash
-openssl enc -e -aes-256-cbc -pbkdf2 -iter 99999 -in "${1}" -out "${1}.enc"
+# encrypt — AES-256-CBC + PBKDF2(既定21万回、ITER環境変数で変更可)。
+# 出力パーミッションを umask 077 で絞り、平文はshred/gshredで安全削除。
+set -euo pipefail
+[ $# -eq 1 ] || { echo "Usage: $0 <file>"; exit 1; }
+in="$1"; out="$in.enc"; iter="${ITER:-210000}"
+umask 077
+openssl aes-256-cbc -e -pbkdf2 -iter "$iter" -salt -in "$in" -out "$out"
+if command -v gshred >/dev/null 2>&1; then gshred -u -- "$in"
+elif command -v shred >/dev/null 2>&1; then shred -u -- "$in"
+else rm -f -- "$in"; fi
+echo "✅ Encrypted: $out"
 ```
 
-> **Note** 元の `encrypt` スクリプトは `-d`（復号）フラグが誤って使われていた。
-> 上記では `-e`（暗号化）に修正済み。
+```bash
+#!/bin/bash
+# decrypt — 標準出力へ復号(パイプ前提: `decrypt file.enc | tar -xvJ`)。
+# パスフレーズは PASSPHRASE 環境変数 > /dev/tty プロンプトの優先順。
+# STDOUT が端末の場合はバイナリ書き込みを拒否する。
+set -euo pipefail
+[ $# -eq 1 ] || { echo "Usage: $0 <file.enc>" >&2; exit 1; }
+in="$1"; iter="${ITER:-210000}"
+[ -t 1 ] && { echo "Refusing to write binary to terminal. Pipe or redirect the output." >&2; exit 1; }
+cmd=(openssl aes-256-cbc -d -pbkdf2 -iter "$iter" -in "$in" -out -)
+if [ "${PASSPHRASE:-}" != "" ]; then
+  PASSPHRASE="$PASSPHRASE" "${cmd[@]}" -pass env:PASSPHRASE
+elif [ -r /dev/tty ]; then
+  read -s -p "Passphrase: " pass </dev/tty >&2; echo >&2
+  exec 3<<<"$pass"
+  "${cmd[@]}" -pass fd:3
+else
+  echo "No PASSPHRASE set and no /dev/tty available for prompt." >&2
+  exit 1
+fi
+```

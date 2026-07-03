@@ -28,3 +28,11 @@ fpath+=( "$HOME/Library/Caches/antidote/https-COLON--SLASH--SLASH-github.com-SLA
 source "$HOME/Library/Caches/antidote/https-COLON--SLASH--SLASH-github.com-SLASH-zsh-users-SLASH-zsh-autosuggestions/zsh-autosuggestions.plugin.zsh"
 fpath+=( "$HOME/Library/Caches/antidote/https-COLON--SLASH--SLASH-github.com-SLASH-zsh-users-SLASH-zsh-history-substring-search" )
 source "$HOME/Library/Caches/antidote/https-COLON--SLASH--SLASH-github.com-SLASH-zsh-users-SLASH-zsh-history-substring-search/zsh-history-substring-search.plugin.zsh"
+source "${ZDOTDIR:-/Users/ac1965}/.zshrc.d/brew.zsh"
+source "${ZDOTDIR:-/Users/ac1965}/.zshrc.d/clang.zsh"
+source "${ZDOTDIR:-/Users/ac1965}/.zshrc.d/hub.zsh"
+source "${ZDOTDIR:-/Users/ac1965}/.zshrc.d/pyenv.zsh"
+source "${ZDOTDIR:-/Users/ac1965}/.zshrc.d/zoxide.zsh"
+source "${ZDOTDIR:-/Users/ac1965}/.zshrc.d/aliases.zsh"
+source "${ZDOTDIR:-/Users/ac1965}/.zshrc.d/ocr.zsh"
+source "${ZDOTDIR:-/Users/ac1965}/.zshrc.d/history-substring-search.zsh"

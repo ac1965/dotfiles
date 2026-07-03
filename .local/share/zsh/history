@@ -119,7 +119,6 @@ brew install macism
 : 1757685375:0;brew install hadolint
 : 1757685560:0;diff ~/.zshrc .zshrc
 : 1757685612:0;cd .config/Brewfiles
-: 1757685727:0;cd .antidote
 : 1757685781:0;vi private/setup.sh
 : 1757708379:0;macism
 : 1757709956:0;brew install shred
@@ -152,7 +151,6 @@ brew install macism
 : 1757725081:0;g dit 
 : 1757725120:0;g diff '
 : 1757727134:0;cd dotfiles/.config/zsh/
-: 1757727145:0;cd .zshrc.d
 : 1757727392:0;vi aliases.zsh
 : 1757742914:0;wget https://raw.githubusercontent.com/ac1965/dotfiles/refs/heads/master/.config/zsh/.zshrc.d/aliases.zsh
 : 1757742923:0;mv aliases.zsh.1 aliases.zsh
@@ -161,7 +159,6 @@ brew install macism
 : 1757743194:0;git clone git@github.com:ac1965/dotfileskes
 : 1757743208:0;git clone git@github.com:ac1965/dotfiles.git
 : 1757743319:0;cp -a ../iterm2 .config
-: 1757754785:0;cd .config
 : 1757754806:0;rm nix
 : 1757764048:0;which pip3
 : 1757764052:0;pip3 install torch torchvision
@@ -181,7 +178,6 @@ eval "$(pyenv virtualenv-init -)"\
 
 : 1757765350:0;cd .config/zsh
 : 1757765380:0;grep pyenv .zshrc
-: 1757765398:0;vi .zshrc
 : 1757765452:0;cd .config/zsh/.zshrc.d
 : 1757765564:0;which pyenv-virtualenv
 : 1757765579:0;vi pyenv.zsh
@@ -226,7 +222,6 @@ pip install safetensors\
 
 : 1757771200:0;rm gpt-oss-20b-mxfp4.gguf
 : 1757771208:0;caffeinate -dimsu wget https://huggingface.co/ggml-org/gpt-oss-20b-GGUF/resolve/main/gpt-oss-20b-mxfp4.gguf
-: 1757773974:0;echo $ZDOTDIR
 : 1757775216:0;cat .zshrc|pbc
 : 1757806156:0;ls metal
 : 1757806177:0;file *
@@ -452,7 +447,6 @@ done
 : 1758349331:0;rm README*
 : 1758349351:0;ls -lt
 : 1758352704:0;vi lisp/README.el
-: 1758434107:0;cd Downloads/
 : 1758434156:0;pdft
 : 1758434175:0;pdflatex emacs-org-magit-productivity-full.tex
 : 1758434374:0;brew install lualatex
@@ -461,14 +455,11 @@ done
 : 1758434692:0;sudo tlmgr update --self
 : 1758434707:0;sudo tlmgr install luatexja collection-langjapanese
 : 1758450055:0;cd .local/docs
-: 1758450063:0;la .config
 : 1758450078:0;cd .local
 : 1758450093:0;mkdir docs
 : 1758450096:0;cd docs
-: 1758450139:0;ls .config
 : 1758450177:0;rm -fr .local/docs
 : 1758450189:0;mkdir .docs
-: 1758450207:0;vi setup.sh
 : 1758450241:0;mv ~/dD
 : 1758450265:0;mv ~/Documents/Org/Emacs-01.org .docs
 : 1758454186:0;vi ~/.emacs.d/README.org
@@ -1122,13 +1113,11 @@ done
 : 1761144416:0;cd .emacs.org/
 : 1761144701:0;mv init.el ~/.emacs.d-develop/
 : 1761144720:0;rm -fr .emacs.org
-: 1761144927:0;ls straight
 : 1761144935:0;ls straight/e
 : 1761144942:0;ls straight/repos
 : 1761145153:0;ls .cache/straight
 : 1761145160:0;ls .cache/straightr/
 : 1761145698:0;brew install meson
-: 1761145801:0;rm -fr .cache 
 : 1761146051:0;cp ~/.emacs.d-stable/init.el i
 : 1761146055:0;vi i
 : 1761146198:0;ls .cache/straight/build
@@ -1269,7 +1258,6 @@ J
 : 1762523238:0;tar xvf ~/Downloads/emacs.d-1.2.2.tar
 : 1762523265:0;mv .emacs.d-1.2.2/README.org .
 : 1762523877:0;/Applications/Emacs.app/Contents/MacOS/Emacs  --debug-init &
-: 1762526512:0;la .var/desktop/
 : 1762526521:0;la .var/desktop/desktop
 : 1762526541:0;vi .var/desktop/desktop
 : 1762527009:0;brew install emacs
@@ -3377,7 +3365,6 @@ LIMIT 5;"\
 : 1770591076:0;open README.pdf
 : 1770626476:0;cd novel/å°ƒ¯èª¬ãƒ£ƒ§ãƒ£¼ã‚¿/å°ƒ¯èª¬å®¶ã«ãªã‚ƒ­ãƒ¦
 : 1770626489:0;narou download N1624FI
-: 1771026979:0;env
 : 1771027189:0;ls /opt/homebrew/bin/gcc
 : 1771027212:0;/opt/homebrew/bin/gcc-15 -v
 : 1771027239:0;echo $PATH
@@ -3487,7 +3474,6 @@ find "$GCC13_PREFIX" -name 'libgccjit*.dylib'
 : 1771160350:0;cat parts/README.org.part.004.txt| pbc
 : 1771160360:0;ls parts
 : 1771160588:0;head parts/README.org.part.001.txt| pbc
-: 1771245430:0;rm -fr .emacs.d-develop
 : 1771245446:0;g clone git@github.com:ac1965/.emacs.d.git ~/.emacs.d-stable\ 
 : 1771245556:0;g clone git@github.com:ac1965/.emacs.d.git ~/.emacs.d-develop
 : 1771245629:0;la .emacs.d
@@ -3509,7 +3495,6 @@ find "$GCC13_PREFIX" -name 'libgccjit*.dylib'
 : 1772254358:0;sudo xcodebuild -license accept
 : 1772255343:0;cp early-init.el ~/Downloads
 : 1772255610:0;vi early-init.el 
-: 1772255907:0;./setup.sh
 : 1772256634:0;xcrun --show-sdk-path
 : 1772258548:0;cp -a ~/.local/bin/build-emacs.sh .local/bin
 : 1772258686:0;emacs -nw
@@ -3790,7 +3775,6 @@ grep "window-setup-hook" ~/.emacs.d/lisp/ui/ui-font.el
 : 1773452524:0;cd ~/Downloads/ && rm -f files.zip *.el
 : 1773452540:0;ls *el
 : 1773452551:0;rm org-agenda-files.el
-: 1773452577:0;cd ~/Downloads
 : 1773452625:0;vi core-editing-dirvish-patch.el
 : 1773453686:0;rm -f files.zip *el
 : 1773453787:0;echo Emacs\ config\ generation\ promp.md >> .gitignore
@@ -3925,8 +3909,6 @@ done
 : 1773708745:0;ls -lt |head
 : 1773708761:0;open image006.pdf
 : 1773733364:0;cd Documents/dotfiles/
-: 1773733379:0;decrypt private.tar.xz.enc | tar -xvJ
-: 1773733394:0;cd private
 : 1773733402:0;cd .docs
 : 1773733478:0;fu=
 : 1773733491:0;file memo.txt.gpg
@@ -4003,7 +3985,6 @@ Tangled 90 code blocks from README.org\
 : 1774000418:0;cd themes/blowfish && git log --oneline -5|pbc
 : 1774000488:0;hugo mod graph
 : 1774002176:0;cd Documents/devel/repos/mysite
-: 1774009734:0;a
 : 1774009742:0;gs
 : 1774009794:0;gls
 : 1774009901:0;gl
@@ -4076,7 +4057,6 @@ Tangled 90 code blocks from README.org\
 : 1774091646:0;vi +2564 all-posts.org
 : 1774091680:0;vi all-posts.org
 : 1774095699:0;ã§ï¿¥
-: 1774100769:0;dev
 : 1774100799:0;cp ~/Downloads/combined.org README.org
 : 1774100822:0;cp ~/.emacs.d-stable/Makefile .
 : 1774100900:0;rm -fr personal lisp init.el early-init.el
@@ -4091,7 +4071,6 @@ Tangled 90 code blocks from README.org\
 : 1774101725:0;rm straight
 : 1774101919:0;rm -fr straight
 : 1774102013:0;rm -fr straight *~
-: 1774102654:0;prd
 : 1774147936:0;ã€€npm install -g @mermaid-js/mermaid-cli
 : 1774147963:0;brew install npm
 : 1774148053:0;npm fund
@@ -4630,7 +4609,6 @@ d
 : 1776507825:0;echo .env* >> .gitignore
 : 1776507963:0;echo org_tangle.py >> .gitignore
 : 1776508007:0;g add . && g commit -avm "Initiatl"
-: 1776508026:0;pwd
 : 1776508099:0;git remote add origin git@github.com:ac1965/BudgetEvaluatio.git
 : 1776508109:0;git push -u origin main
 : 1776508546:0;docker compose restart ollama backend
@@ -4778,7 +4756,6 @@ EOF
 : 1777161628:0;ls org/messages
 : 1777163893:0;cd misc/BudgetEvaluation-2026
 : 1777163912:0;mv -v ~/Downloads/files.zip .
-: 1777165043:0;7zz e files.zip
 : 1777165281:0;7zz a -tzip -mem=AES256 -paster1129 out.zip files.zip budget_evaluation.txt estimate-evaluation.xlsx point.txt RFQ-std.txt
 : 1777165620:0;mkdir Ref
 : 1777166488:0;ls *pdf
@@ -5019,7 +4996,6 @@ curl -LO https://github.com/tesseract-ocr/tessdata_best/raw/main/jpn_vert.traine
 : 1777709259:0;tesseract processed/20260502_170543.png tsv/1  -l jpn 
 : 1777709282:0;vi tsv/1.txt 
 : 1777709356:0;cat 20260502_170543.txt
-: 1777709391:0;..
 : 1777709398:0;rm -fr processed tsv
 : 1777709419:0;ls processed
 : 1777709424:0;ls tsv
@@ -5041,7 +5017,6 @@ curl -LO https://github.com/tesseract-ocr/tessdata_best/raw/main/jpn_vert.traine
 : 1777711568:0;cat session_20260502_174420/tsv/0001_20260502_174431.tsv
 : 1777711630:0;cat session_20260502_174420/csv/0001_20260502_174431.csv
 : 1777711645:0;la session_20260502_174420/csv
-: 1777712007:0;cd Projects/dotfiles
 : 1777712059:0;cat setup.sh
 : 1777712102:0;cp setup.sh reverse.sh
 : 1777712353:0;la .local/bin/
@@ -5056,13 +5031,10 @@ curl -LO https://github.com/tesseract-ocr/tessdata_best/raw/main/jpn_vert.traine
 : 1777712821:0;echo ".local/share/claude/" >> .gitignore\
 echo ".local/.local/" >> .gitignore
 : 1777712912:0;mv dotfiles d
-: 1777712930:0;g clone git@github.com:ac1965/dotfiles.git
-: 1777713060:0;cd dotfiles
 : 1777713073:0;cp ../d/reverse.sh .
 : 1777713089:0;cp ../d/.gitignore .
 : 1777713094:0;la .local
 : 1777713122:0;vi reverse.sh
-: 1777713174:0;./reverse.sh
 : 1777713198:0;g status
 : 1777713329:0;cp budget_review_qa.xlsx ~/Documents/misc/BudgetEvaluation-2026/Ref
 : 1777792551:0;cd Documents/misc
@@ -5104,7 +5076,6 @@ echo ".local/.local/" >> .gitignore
 : 1777879466:0;7zz a -tzip -mem=AES256 -paster1129 eval.zip rsync-v4.txt
 : 1777901015:0;rm eval.zip
 : 1777901018:0;7zz a -tzip -mem=AES256 -paster1129 eval.zip memo.txt
-: 1777904820:0;cd out
 : 1777904865:0;mv Collect-LatestEvaluation.txt Collect-LatestExcel.txt
 : 1777905889:0;mv Collect-LatestExcel.ps1 Collect-LatestExcel.txt
 : 1777905895:0;rm ps.zip
@@ -5149,9 +5120,7 @@ echo ".local/.local/" >> .gitignore
 : 1778066862:0;rm NOTE.txt design_spec.org
 : 1778069953:0;mv ~/Downloads/design_spec.org .
 : 1778130334:0;exit
-: 1778160230:0;la ~/Downloads
 : 1778160415:0;mv ~/Downloads/Collect-LatestExcel.ps1 .
-: 1778161108:0;cd ..
 : 1778241164:0;la Downloads
 : 1778241193:0;open Downloads/è¦ƒ«ç©ƒ­ä¾ƒ½éƒ€¼æƒ»¸_è¦ä»¶å®ƒºç¾©æƒ»¸æƒ¼ƒ©çƒ¤ƒå·®çƒµ°-2.xlsx
 : 1778241563:0;mv Downloads/è¦ƒ«ç©ƒ­ä¾ƒ½éƒ€¼æƒ»¸_è¦ä»¶å®ƒºç¾©æƒ»¸æƒ¼ƒ©çƒ¤ƒå·®çƒµ°-2.xlsx ~/Documents/misc
@@ -5182,66 +5151,250 @@ echo ".local/.local/" >> .gitignore
 : 1778395475:0;nkf -w \ TransferShitekiJikou.bas TransferShitekiJikou.txt 
 : 1778395502:0;nkf -w --overwrite TransferShitekiJikou.txt
 : 1778395507:0;vi TransferShitekiJikou.txt
-: 1778398646:0;cd
-: 1778398653:0;cd Downloads
 : 1778398694:0;nkf --help
 : 1778398714:0;nkf -s --overwrite TransferShitekiJikou_refactored.bas
 : 1778402592:0;nkf -s --overwrite TransferShitekiJikou_v4.bas
-: 1778426117:0;cd 
 : 1778426122:0;cd Documents/misc/BudgetEvaluation-2026/Ref/out
-: 1778426124:0;ls
 : 1778426137:0;open BudgetEvaluation.xlsm
-: 1778429751:0;...
 : 1778429765:0;7zz a -tzip -mem=AES256 -paster1129 sample.zip memo-1.txt
 : 1778429777:0;7zz l sample.zip
-: 1778509406:0;cd .emacs.d
 : 1778509494:0;g restore .
-: 1778510156:0;mv ~/Downloads/README.org .
-: 1778510167:0;g diff
 : 1778543285:0;echo abbrev_defs >> .gitignore
 : 1778543293:0;cat .gitignore
 : 1778543335:0;vi .gitignore
 : 1778543613:0;g del abbrev_defs
 : 1778543623:0;g rm abbrev_defs
-: 1778543630:0;g add . && g commit -avm "Update" && g push
 : 1778550460:0;open ~/Downloads/proposal_evaluation_dashboard.svg 
-: 1778600341:0;brew update && brew upgrade 
-: 1778600411:0;build-emacs.sh
 : 1778628736:0;ls .cache
 : 1778628742:0;ls .cache/emacs
 : 1778628760:0;ls .cache/emacs/eln-cache
 : 1778628767:0;ls .cache/emacs/eln-cache/31_0_50-5bc084d3
 : 1778628779:0;la -t
 : 1778628816:0;rm -fr .cache eln-cache lisp personal init.el early-init.el
-: 1778628820:0;EMACS=/Applications/Emacs.app/Contents/MacOS/Emacs make -C ~/.emacs.d reload
 : 1778628889:0;la .cache/emacs/eln-cache
 : 1778628893:0;la .cache/emacs/eln-cache/32_0_50-275eeb7a
-: 1778629098:0;la
 : 1778629118:0;la .cache
 : 1778629124:0;la .cache/emacs
 : 1778649508:0;ls ~/Downloads/*xlms
-: 1778752107:0;brew update && brew upgrade 
-: 1778752187:0;build-emacs.sh
-: 1778758665:0;cd .emacs.d
-: 1778758669:0;la
 : 1778758687:0;rm -fr .cache 
 : 1778766202:0;la .var/desktop/
-: 1778852052:0;g diff
 : 1778852070:0;pwd
-: 1778852077:0;mv ~/Downloads/README.org .
-: 1778852082:0;g diff
-: 1778852132:0;EMACS=/Applications/Emacs.app/Contents/MacOS/Emacs make -C ~/.emacs.d reload
-: 1778852212:0;g add . && g commit -avm "Update" && g push
-: 1778853949:0;mv ~/Downloads/README.org .
-: 1778853959:0;g diff
-: 1778854100:0;EMACS=/Applications/Emacs.app/Contents/MacOS/Emacs make -C ~/.emacs.d reload
 : 1778854590:0;g add . && g commit -avm "Update" && g push
 : 1778854602:0;mv ~/Downloads/README.org .
 : 1778854605:0;g diff
 : 1778854661:0;EMACS=/Applications/Emacs.app/Contents/MacOS/Emacs make -C ~/.emacs.d reload
 : 1778854763:0;env
 : 1778854786:0;vi ~/.authinfo
-: 1778854941:0;cd
 : 1778854946:0;cd Projects/dotfiles
-: 1778854949:0;ls
 : 1778854966:0;./reverse.sh
+: 1782694002:0;cd session_20260629_092002/capture
+: 1782694033:0;ls 013
+: 1782707848:0;mv session_20260629_092002 ACI-baseline
+: 1782707895:0;mkdir /Volumes/Works/Misc
+: 1782707913:0;mv ACI-baseline /Volumes/Works/Misc
+: 1782707928:0;cd Downloads
+: 1782708032:0;rm -fr /Volumes/Works/Misc/ACI-baseline/*
+: 1782708052:0;mv ACI_baseline_merged.docx /Volumes/Works/Misc/ACI-baseline
+: 1782708272:0;cp ACI_Guide_Beginner.docx /Volumes/Works/Misc/ACI-baseline
+: 1782708318:0;rm -f ACI_baseline_part* ???_management.xlsx 
+: 1782708423:0;ls work/Ref/scripts/
+: 1782708435:0;secure-archive.zsh
+: 1782708475:0;secure-archive.zsh e ACI_Guide_Beginner.docx -p aster1129
+: 1782708523:0;cp work/Ref/scripts/capsuledB64.xlsm .
+: 1782708617:0;open sample-doc.xlsx
+: 1782708652:0;mv sample-doc.xlsx ~/Documents/out
+: 1782708806:0;cd work
+: 1782712039:0;cd session_20260629_143535/capture
+: 1782712042:0;sess.zh
+: 1782712132:0;cd Downloads/work/re
+: 1782712166:0;cp ~/Documents/out/s
+: 1782712178:0;cp ~/Documents/out/test-0629-1..xlsx data
+: 1782712304:0;secure-archive.zsh d data/ot
+: 1782712320:0;secure-archive.zsh d data/
+: 1782712343:0;secure-archive.zsh d data/output.hex -password aster1129
+: 1782712363:0;secure-archive.zsh 
+: 1782712372:0;secure-archive.zsh d data/output.hex -pass aster1129
+: 1782712403:0;secure-7z.zsh 
+: 1782712433:0;secure-7z.zsh d data/output.hex -p aster1129
+: 1782712498:0;ls data/output_extracted
+: 1782712595:0;cp data/output_extracted/0629-1.xlsx ~/Downloads/work
+: 1782717949:0;open management/140_management.xlsx
+: 1782719514:0;mv session_20260629_1* trash
+: 1782720040:0;cd Downloads/work
+: 1782720045:0;open 0629-1.xlsx
+: 1782726501:0;mv ../../140_management.xlsx .
+: 1782731255:0;la ~/dlw]
+: 1782731261:0;la ~/Downloads
+: 1782731276:0;ls ~/Documents/out
+: 1782731292:0;la 21
+: 1782731296:0;la 140_management.xlsx
+: 1782731358:0;7zz a -tzip -mem=AES256 -paster1129 ~/Documents/out/sample-140.zip 140_management.xlsx
+: 1782735333:0;cp 153_management.xlsx ../management
+: 1782735343:0;python batch_transfer.py 0629-1.xlsx --update
+: 1782735392:0;la management
+: 1782739175:0;7zz a -tzip -mem=AES256 -paster1129 ~/Documents/out/sample-153.zip 153_management.xlsx
+: 1782828432:0;brew update && brew upgrade 
+: 1782828662:0;build-emacs.sh
+: 1782829896:0;a
+: 1782829913:0;a|more
+: 1782829922:0;dev
+: 1782829952:0;rm -fr .emacs.d-develop
+: 1782830024:0;g clone https://github.com/KaitoMuraoka/.emacs.d .emacs.d-develop
+: 1782830031:0;cd .emacs.d
+: 1782830989:0;ls straight
+: 1782830997:0;ls straight/build
+: 1782831006:0;ls straight/build/straight
+: 1782831449:0;a |moree
+: 1782831456:0;a |more
+: 1782831469:0;prd
+: 1782870979:0;la capture_session
+: 1782870986:0;cd capture_session
+: 1782873323:0;ls sample_follow-review.docx
+: 1782873384:0;7zz a -tzip -mem=AES256 -paster1129 ~/Documents/out/sample_follow-review.zip sample_follow-review.docx
+: 1782875443:0;7zz a -tzip -mem=AES256 -paster1129 ~/Documents/out/sample_follow-review2.zip sample_follow-review-2.docx
+: 1782897809:0;cd ~/Documents/out
+: 1782897823:0;rm -f *
+: 1782898178:0;cd Downloads/work/Ref/scripts
+: 1782898197:0;mv ~/Documents/out/data..xlsx data
+: 1782898207:0;open capsuledB64.xlsm
+: 1782898259:0;secure-archive.zsh d data/output.hex -p aster1129
+: 1782898286:0;cp data/output_extracted/0701-1.xlsx   ~/Downloads/work
+: 1782898345:0;cp out/*xlsx management
+: 1782898365:0;mv 062* trash
+: 1782898373:0;python batch_transfer.py 0701-1.xlsx --update
+: 1782898802:0;mv management/046_management.xlsx .
+: 1782898820:0;python batch_transfer.py
+: 1782898865:0;python batch_transfer.py è©ƒµä¾ƒä¸€è¦§.xlsx 0701-1.xlsx 000_management.xlsx --eval-no 046
+: 1782903864:0;ãƒª
+: 1782903953:0;open 0701-1.xlsx
+: 1782907746:0;open management/046_management.xlsx
+: 1782950445:0;la out/04*
+: 1782950472:0;la -t out|more
+: 1782950499:0;cp out/046_management.xlsx management
+: 1782950512:0;mv *.xlsx trash
+: 1782950536:0;mv 0701-1.xlsx trash
+: 1782950771:0;mv ~/Documents/out/sample_0702-1..xlsx Ref/scripts/data
+: 1782950786:0;open Ref/scripts/capsuledB64.xlsm
+: 1782950825:0;cd Ref/scripts
+: 1782950840:0;...
+: 1782950855:0;secure-archive.zsh d Ref/scripts/data/output.hex -p aster1129
+: 1782951067:0;cp Ref/scripts/data/output_extracted/0701-2.xlsx 0702-1.xlsx
+: 1782951096:0;python batch_transfer.py 0702-1.xlsx --update
+: 1782953091:0;mv management/081_management.xlsx .
+: 1782953132:0;python batch_transfer.py è©ƒµä¾ƒä¸€è¦§.xlsx 0702-1.xlsx 000_management.xlsx --eval-no 081
+: 1782953195:0;open 081_management.xlsx
+: 1782953283:0;mv 081_management.xlsx 081-management.xlsx
+: 1782953295:0;open 081-management.xlsx
+: 1782957815:0;7zz a -tzip -mem=AES256 -paster1129 ~/Documents/out/sample_081.zip 081_management.xlsx
+: 1782967667:0;..
+: 1782967675:0;la management/138_management.xlsx
+: 1782974110:0;7zz a -tzip -mem=AES256 -paster1129 ~/Documents/out/sample_138.zip 138_management.xlsx
+: 1782980485:0;rm 046_management.xlsx 081-management.xlsx
+: 1782980500:0;cp management/144_management.xlsx .
+: 1782980504:0;open 144_management.xlsx
+: 1782980548:0;mv 144_management.xlsx a.xlsx
+: 1782980555:0;ls *xlsx
+: 1782981523:0;python batch_transfer.py è©ƒµä¾ƒä¸€è¦§.xlsx 0702-1.xlsx 000_management.xlsx --eval-no 144
+: 1782981536:0;open management/144_management.xlsx
+: 1782981550:0;open a.xlsx
+: 1782983247:0;open 0702-1.xlsx
+: 1782988068:0;cd out
+: 1782988095:0;7zz a -tzip -mem=AES256 -paster1129 ~/Documents/out/sample_144.zip 144_management.xlsx
+: 1782988179:0;rm -f ~/Documents/out/sample_*
+: 1783033803:0;cd .zshrc.d
+: 1783035245:0;la .zshrc.d
+: 1783035270:0;cat .zshrc.d/ocr.zsh|pbt
+: 1783035278:0;cat .zshrc.d/ocr.zsh|pbc
+: 1783035689:0;la .local/
+: 1783035697:0;la .local/state
+: 1783035704:0;la .local/share
+: 1783035785:0;echo $ZTOTDIR
+: 1783035845:0;la .zshrc
+: 1783035852:0;vi .zshrc
+: 1783035909:0;la |pbc
+: 1783036040:0;cd Downloads/
+: 1783036047:0;g clone git@github.com:ac1965/dotfiles.git
+: 1783036130:0;exec zsh\
+ls -la ~/.antidote 2>&1\
+cat ~/.zsh_plugins.txt 2>&1
+: 1783036205:0;ls -la ~/.antidote 2>&1\
+cat ~/.zsh_plugins.txt
+: 1783036404:0;cd dotfiles
+: 1783036436:0;ls .config
+: 1783036445:0;ls .config/zsh
+: 1783036460:0;cat .config/zsh
+: 1783036472:0;ls ~/.config
+: 1783036476:0;ls ~/.config/zsh
+: 1783036525:0;decrypt private.tar.xz.enc | tar -xvJ
+: 1783036577:0;cat .antidote
+: 1783036652:0;ls private.tar.xz.enc
+: 1783036739:0;la private
+: 1783036846:0;cat private/setup.sh
+: 1783037091:0;mv ~/Downloads/private_setup.sh setup.sh
+: 1783037116:0;chmod +x setup.sh
+: 1783037151:0;grep tar README.md
+: 1783037174:0;tar -cJvf private.tar.xz private && encrypt private.tar.xz
+: 1783037280:0;ls -la ~/.antidote 2>&1
+: 1783037291:0;cat ~/.zsh_plugins.txt 2>&1
+: 1783037687:0;la .config
+: 1783037842:0;mv ~/.zshrc.d/ocr.zsh ~/.zsh_local/ocr/ocr.plugin.zsh
+: 1783037862:0;rmdir ~/.zshrc.d
+: 1783037934:0;cp -a ~/.zsh_local .
+: 1783037956:0;rm -fr .zshrc.d
+: 1783038019:0;./setup.sh
+: 1783038095:0;cat ~/.zshenv 
+: 1783038228:0;ls -la $ZDOTDIR 2>&1
+: 1783038273:0;rm -fr .antidote
+: 1783038288:0;cd Downloads/dotfiles
+: 1783038296:0;cd private
+: 1783038299:0;vi setup.sh
+: 1783038380:0;cat $ZDOTDIR/.zshrc\
+cat $ZDOTDIR/.zsh_plugins.txt\
+ls -la $ZDOTDIR/.zshrc.d
+: 1783038401:0;(cat $ZDOTDIR/.zshrc\
+cat $ZDOTDIR/.zsh_plugins.txt\
+ls -la $ZDOTDIR/.zshrc.d)|pbc
+: 1783038526:0;cd 
+: 1783038586:0;cd $ZDOTDIR/.zshrc.d
+: 1783038629:0;(for f in do; echo -- $f; cat $; done )|pbc
+: 1783038640:0;(for f in do echo -- $f; cat $; done )|pbc
+: 1783038673:0;(for f in $(ls);do echo -- $f; cat $; done )|pbc
+: 1783038722:0;for f in *\
+do\
+echo -- $f\
+cat $f\
+done
+: 1783038748:0;(for f in *\
+do\
+echo -- $f\
+cat $f\
+done) |pbc
+: 1783039660:0;7zz e files.zip
+: 1783039665:0;cd
+: 1783039676:0;cd Downloads/dotfiles/private
+: 1783039694:0;cd .antidote
+: 1783039830:0;echo $ZDOTDIR
+: 1783039858:0;cd ..
+: 1783039864:0;cd .config
+: 1783039865:0;la
+: 1783039914:0;cd $ZDOTDIR
+: 1783039920:0;ls -a
+: 1783039944:0;cd ~/Downloads
+: 1783039955:0;cp zdotdir_zshrc $ZDOTDIR/.zshrc
+: 1783045349:0;ls
+: 1783048271:0;rm -f $ZDOTDIR/.zsh_plugins.zsh 
+: 1783048314:0;which ocr gacp mkcd
+: 1783048332:0;type history-substring-search-up
+: 1783048344:0;echo $PATH | tr ':' '\n' | grep -i llvm 
+: 1783048459:0;p10k configure
+: 1783048554:0;grep zshrc.d $ZDOTDIR/.zsh_plugins.txt
+: 1783048628:0;ls zdotdir_zsh_plugins.txt
+: 1783048773:0;cat zdotdir_zsh_plugins.txt
+: 1783048914:0;cp zdotdir_zsh_plugins.txt $ZDOTDIR/.zsh_plugins.txt
+: 1783048916:0;grep 'zshrc.d path:' $ZDOTDIR/.zsh_plugins.txt
+: 1783048938:0;rm -f $ZDOTDIR/.zsh_plugins.zsh
+: 1783048943:0;exec zsh
+: 1783048962:0;cd Downloads/dotfiles
+: 1783048969:0;vi setup.sh
+: 1783048990:0;./setup.sh
+: 1783049001:0;./setup.sh r

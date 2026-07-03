@@ -30,3 +30,15 @@ ohmyzsh/ohmyzsh path:plugins/extract
 zdharma-continuum/fast-syntax-highlighting  # Syntax highlighting
 zsh-users/zsh-autosuggestions               # Auto-suggestions
 zsh-users/zsh-history-substring-search      # Up/Down to search history
+
+# Local tools (formerly .zshrc.d for-loop) — each file bundled individually,
+# since antidote's default kind:zsh sources only ONE matching file per bundle.
+${ZDOTDIR:-$HOME}/.zshrc.d path:brew.zsh
+${ZDOTDIR:-$HOME}/.zshrc.d path:clang.zsh
+${ZDOTDIR:-$HOME}/.zshrc.d path:hub.zsh
+${ZDOTDIR:-$HOME}/.zshrc.d path:pyenv.zsh
+${ZDOTDIR:-$HOME}/.zshrc.d path:zoxide.zsh
+${ZDOTDIR:-$HOME}/.zshrc.d path:aliases.zsh
+${ZDOTDIR:-$HOME}/.zshrc.d path:ocr.zsh
+# Must stay after the zsh-history-substring-search plugin above (overrides its bindkeys).
+${ZDOTDIR:-$HOME}/.zshrc.d path:history-substring-search.zsh

@@ -20,18 +20,74 @@ set -Eeuo pipefail
 NATIVE_COMP="--with-native-compilation=aot"
 DEBUG=false
 
-for arg in "$@"; do
-	case "$arg" in
-	--debug) DEBUG=true ;;
+# デフォルト値（従来の挙動と同じ）
+BUILD_DIR="$HOME/.local"
+REPO_DIR="$HOME/Projects/github.com/emacs-mirror/emacs"
+
+usage() {
+	cat <<EOF
+Usage: $(basename "$0") [OPTIONS]
+
+Options:
+  -b, --build-dir DIR         インストール先 (--prefix) を指定 (default: $HOME/.local)
+  -r, --repository-dir DIR    git clone 先ディレクトリを指定 (default: $HOME/Projects/github.com/emacs-mirror/emacs)
+      --no-native, --no-native-compilation
+                               native-comp を無効化
+      --debug                  デバッグ出力 (set -x) を有効化
+  -h, --help                   このヘルプを表示
+EOF
+}
+
+# 値を取る長短オプションの両対応 ( --opt VALUE / --opt=VALUE / -o VALUE )
+while [[ $# -gt 0 ]]; do
+	case "$1" in
+	-b | --build-dir)
+		[[ $# -ge 2 ]] || {
+			echo "❌ $1 requires an argument" >&2
+			exit 1
+		}
+		BUILD_DIR="$2"
+		shift 2
+		;;
+	--build-dir=*)
+		BUILD_DIR="${1#*=}"
+		shift
+		;;
+	-r | --repository-dir)
+		[[ $# -ge 2 ]] || {
+			echo "❌ $1 requires an argument" >&2
+			exit 1
+		}
+		REPO_DIR="$2"
+		shift 2
+		;;
+	--repository-dir=*)
+		REPO_DIR="${1#*=}"
+		shift
+		;;
+	--debug)
+		DEBUG=true
+		shift
+		;;
 	--no-native | --no-native-compilation)
 		NATIVE_COMP="--without-native-compilation"
+		shift
+		;;
+	-h | --help)
+		usage
+		exit 0
 		;;
 	*)
-		echo "Unknown option: $arg" >&2
+		echo "Unknown option: $1" >&2
+		usage
 		exit 1
 		;;
 	esac
 done
+
+# 相対パス・"~" を含む可能性があるので絶対パスに正規化
+BUILD_DIR="$(mkdir -p "$BUILD_DIR" && cd "$BUILD_DIR" && pwd)"
+mkdir -p "$(dirname "$REPO_DIR")"
 
 $DEBUG && set -x
 
@@ -72,6 +128,8 @@ esac
 
 echo "Architecture: $ARCH"
 echo "Homebrew prefix: $BREW_PREFIX"
+echo "Build dir (--prefix): $BUILD_DIR"
+echo "Repository dir: $REPO_DIR"
 
 # ============================================================
 # Requirements
@@ -146,7 +204,7 @@ export LDFLAGS="-L$LIBGCCJIT_PREFIX/lib $LDFLAGS"
 heading "Preparing source"
 
 SRC_REPO="https://github.com/emacs-mirror/emacs.git"
-SRC_DIR="$HOME/Projects/github.com/emacs-mirror/emacs"
+SRC_DIR="$REPO_DIR"
 
 if [[ -d "$SRC_DIR/.git" ]]; then
 	cd "$SRC_DIR"
@@ -192,7 +250,7 @@ heading "Configuring Emacs"
 	--with-gnutls \
 	--with-imagemagick \
 	--with-modules \
-	--prefix="$HOME/.local"
+	--prefix="$BUILD_DIR"
 
 # ============================================================
 # Build
@@ -211,9 +269,9 @@ heading "Installing"
 
 make install
 
-mkdir -p "$HOME/.local/bin"
-install -m 755 src/emacs "$HOME/.local/bin/emacs"
-install -m 755 lib-src/emacsclient "$HOME/.local/bin/emacsclient"
+mkdir -p "$BUILD_DIR/bin"
+install -m 755 src/emacs "$BUILD_DIR/bin/emacs"
+install -m 755 lib-src/emacsclient "$BUILD_DIR/bin/emacsclient"
 
 APP_DST="/Applications/Emacs.app"
 rm -rf "$APP_DST"
@@ -226,7 +284,8 @@ ditto nextstep/Emacs.app "$APP_DST"
 echo
 echo "======================================="
 echo "Build complete"
-echo "Arch:   $ARCH"
-echo "CC:     $CC"
-echo "Prefix: $HOME/.local"
+echo "Arch:       $ARCH"
+echo "CC:         $CC"
+echo "Repository: $REPO_DIR"
+echo "Prefix:     $BUILD_DIR"
 echo "======================================="

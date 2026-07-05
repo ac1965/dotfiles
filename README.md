@@ -165,6 +165,9 @@ Emacs 設定の詳細: [Emacs-01.org](https://github.com/ac1965/dotfiles/blob/ma
 
 個人情報は AES-256-CBC(PBKDF2, 21万イテレーション)で暗号化した `private.tar.xz.enc` として管理する。
 
+> **Note — アーカイブは git 管理外**
+> `private.tar.xz.enc` は暗号化済みとはいえ86MB超のバイナリで、更新のたびに差分圧縮がほぼ効かず履歴が肥大化するため、**リポジトリには含めない**(`.gitignore` で除外済み)。実体は iCloud Drive / NAS など別チャネルで同期し、`dotfiles` リポジトリと同じ作業ディレクトリ直下に配置してから下記コマンドを実行する運用とする。
+
 グローバルの `setup.zsh` と対称的に、private 側にも `deploy`(archive→HOME)/ `reverse`(HOME→archive)の両モードを持つ **`private/dotfiles.zsh`** を用意している。従来の `private/setup.sh`(deployのみの片方向スクリプト)は廃止した。
 
 > **Note — `.gnupg` のランタイムファイル除外について**

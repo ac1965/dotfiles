@@ -21,10 +21,10 @@ Personal dotfiles for macOS (Apple Silicon / Intel), managed with Homebrew and G
 
 ```bash
 git clone https://github.com/ac1965/dotfiles.git
-dotfiles/setup.zsh deploy
+dotfiles/dotfiles.zsh deploy
 ```
 
-> **Note** `setup.zsh` は `deploy`(repo→HOME)/ `reverse`(HOME→repo)の2モードを取る。引数省略時は使用方法を表示して終了する。
+> **Note** `dotfiles.zsh` は `deploy`(repo→HOME)/ `reverse`(HOME→repo)の2モードを取る。引数省略時は使用方法を表示して終了する。
 
 ---
 
@@ -168,7 +168,7 @@ Emacs 設定の詳細: [Emacs-01.org](https://github.com/ac1965/dotfiles/blob/ma
 > **Note — アーカイブは git 管理外**
 > `private.tar.xz.enc` は暗号化済みとはいえ86MB超のバイナリで、更新のたびに差分圧縮がほぼ効かず履歴が肥大化するため、**リポジトリには含めない**(`.gitignore` で除外済み)。実体は iCloud Drive / NAS など別チャネルで同期し、`dotfiles` リポジトリと同じ作業ディレクトリ直下に配置してから下記コマンドを実行する運用とする。
 
-グローバルの `setup.zsh` と対称的に、private 側にも `deploy`(archive→HOME)/ `reverse`(HOME→archive)の両モードを持つ **`private/dotfiles.zsh`** を用意している。従来の `private/setup.sh`(deployのみの片方向スクリプト)は廃止した。
+グローバルの `dotfiles.zsh` と対称的に、private 側にも `deploy`(archive→HOME)/ `reverse`(HOME→archive)の両モードを持つ **`private/dotfiles.zsh`** を用意している。従来の `private/setup.sh`(deployのみの片方向スクリプト)は廃止した。
 
 > **Note — `.gnupg` のランタイムファイル除外について**
 > `.gnupg` ディレクトリは、鍵本体や信頼データベースなどの永続設定と、DBロックファイル(`.#lk*`)・エージェントソケット(`S.gpg-agent*`)・エントロピーシード(`random_seed`)といったプロセス生存期間限定のランタイム成果物が混在している。後者をアーカイブに含めたまま `deploy` すると、既に終了したプロセスのPIDを指す stale ロックが実行環境に復元され、`gpg` コマンド全般がロック待ちでタイムアウトする障害を引き起こす(2026-07-05 に実際に発生・特定済み)。`private/dotfiles.zsh` はこれを防ぐため、`.gnupg` に対する `rsync` にのみ以下の除外パターンを **deploy/reverse 両方向に** 適用する。

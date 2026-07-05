@@ -1,5 +1,5 @@
 tap "akicho8/shogi"
-tap "laishulu/homebrew"
+tap "laishulu/homebrew", trusted: true
 # Simple, modern, secure file encryption
 brew "age"
 # Asciicast to GIF converter
@@ -70,6 +70,8 @@ brew "ghidra", link: false
 brew "tesseract"
 # Distributed revision control system
 brew "git"
+# Quickly rewrite git repository history
+brew "git-filter-repo"
 # Git extension for versioning large files
 brew "git-lfs"
 # GNU Transport Layer Security (TLS) Library
@@ -156,6 +158,8 @@ brew "pipenv"
 brew "pipx"
 # PDF rendering library (based on the xpdf-3.0 code base)
 brew "poppler"
+# Monitor data's progress through a pipe
+brew "pv"
 # Python version management
 brew "pyenv"
 # Pyenv plugin to manage virtualenv
@@ -208,6 +212,8 @@ brew "wget"
 brew "yapf"
 # General-purpose lossless data-compression library
 brew "zlib"
+# macOS Input Source Manager
+brew "laishulu/homebrew/macism", trusted: true
 # Utility that prevents the system from going to sleep
 cask "caffeine"
 cask "font-cascadia-code-nf"
@@ -250,15 +256,17 @@ mas "Just Press Record", id: 1033342465
 mas "Keynote", id: 409183694
 mas "Kindle", id: 302584613
 mas "LINE", id: 539883307
-mas "Numbers", id: 361304891
 mas "Numbers", id: 409203825
+mas "Numbers", id: 361304891
 mas "Pages", id: 409201541
 mas "Perplexity", id: 6714467650
 mas "Prime Video", id: 545519333
 mas "Slack", id: 803453959
 mas "Spark", id: 1176895641
+mas "Userscripts", id: 1463298887
 mas "Xcode", id: 497799835
 uv "aider-chat", with: ["pip"]
 npm "@mermaid-js/mermaid-cli"
 npm "@openai/codex"
+npm "@zed-industries/claude-agent-acp"
 npm "flow-bin"

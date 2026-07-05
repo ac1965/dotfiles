@@ -3,3 +3,4 @@
 private
 .local/share/claude/
 .gnupg/
+private.tar.xz.enc

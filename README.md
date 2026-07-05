@@ -165,14 +165,38 @@ Emacs 設定の詳細: [Emacs-01.org](https://github.com/ac1965/dotfiles/blob/ma
 
 個人情報は AES-256-CBC(PBKDF2, 21万イテレーション)で暗号化した `private.tar.xz.enc` として管理する。
 
+グローバルの `setup.zsh` と対称的に、private 側にも `deploy`(archive→HOME)/ `reverse`(HOME→archive)の両モードを持つ **`private/dotfiles.zsh`** を用意している。従来の `private/setup.sh`(deployのみの片方向スクリプト)は廃止した。
+
+> **Note — `.gnupg` のランタイムファイル除外について**
+> `.gnupg` ディレクトリは、鍵本体や信頼データベースなどの永続設定と、DBロックファイル(`.#lk*`)・エージェントソケット(`S.gpg-agent*`)・エントロピーシード(`random_seed`)といったプロセス生存期間限定のランタイム成果物が混在している。後者をアーカイブに含めたまま `deploy` すると、既に終了したプロセスのPIDを指す stale ロックが実行環境に復元され、`gpg` コマンド全般がロック待ちでタイムアウトする障害を引き起こす(2026-07-05 に実際に発生・特定済み)。`private/dotfiles.zsh` はこれを防ぐため、`.gnupg` に対する `rsync` にのみ以下の除外パターンを **deploy/reverse 両方向に** 適用する。
+>
+> ```
+> --exclude='.#lk*'
+> --exclude='*.lock'
+> --exclude='S.gpg-agent*'
+> --exclude='S.dirmngr*'
+> --exclude='random_seed'
+> ```
+>
+> 万一 `gpg --list-keys` 等が原因不明のタイムアウトを起こした場合は、まず `~/.gnupg/public-keys.d/` 配下に `.#lk*` や `*.lock` が残っていないか確認すること。
+
 **復号して展開 → 配置**
 
 ```bash
 decrypt private.tar.xz.enc | tar -xvJ
-zsh private/setup.zsh
+zsh private/dotfiles.zsh deploy
 ```
 
-> **Note** `tar -xvJ` は `private/` ディレクトリを展開するだけで、`$HOME`/`$ZDOTDIR` への配置は行わない。必ず `private/setup.zsh` を実行して反映すること。
+> **Note** `tar -xvJ` は `private/` ディレクトリを展開するだけで、`$HOME`/`$ZDOTDIR` への配置は行わない。必ず `private/dotfiles.zsh deploy` を実行して反映すること。
+
+**現在の `$HOME`/`$ZDOTDIR` の状態をアーカイブへ取り込む(reverse)**
+
+```bash
+cd private
+zsh dotfiles.zsh reverse
+```
+
+> **Note** `reverse` はランタイムファイル除外込みで `$HOME`/`$ZDOTDIR` → `private/` へ同期する。手動で `cp`/`rsync` を直接実行して `private/.gnupg` を作り直すと、稼働中の `gpg-agent`/`gpg` プロセスのロックファイルごとコピーしてしまう恐れがあるため、スナップショット取得は必ずこのコマンド経由で行うこと。
 
 **アーカイブして暗号化**
 

@@ -30,7 +30,7 @@ dotfiles/dotfiles.zsh deploy
 
 ## macOS のセットアップ
 
-新しい Mac または再インストール時は、アクティベーション解除を先に済ませる。
+クリーンインストールの場合は、アクティベーション解除を先に済ませる。
 
 **対象機種**
 
@@ -151,10 +151,8 @@ EOF
 
 ### Emacs
 
-ネイティブコンパイル付きビルド:
-
 ```bash
-build-emacs.sh --native
+build-emacs.sh
 ```
 
 Emacs 設定の詳細: [Emacs-01.org](https://github.com/ac1965/dotfiles/blob/master/.docs/Emacs-01.org)

@@ -204,9 +204,20 @@ zsh dotfiles.zsh reverse
 **アーカイブして暗号化**
 
 ```bash
-tar -cJvf private.tar.xz private
+COPYFILE_DISABLE=1 tar --exclude='private/.ssh/agent' -cf - private \
+  | pv -s $(gdu -sb private | awk '{print $1}') \
+  | xz -9 > private.tar.xz
 encrypt private.tar.xz
 ```
+
+> **Note — プログレスバー表示について**
+> macOS 標準の `tar` にはプログレスバー機能がないため、[`pv`](https://linux.die.net/man/1/pv)(`brew install pv`)をパイプに挟んで進捗表示している。`pv -s` に渡すサイズ計算には GNU coreutils 版の `du`(`brew install coreutils` で `gdu` として導入)が必要。macOS 標準の BSD `du` には `-b`(バイト単位出力)オプションが存在しないため `gdu -sb` を使用する。なお `tar` はヘッダー・パディングのオーバーヘッドを持つため、ファイル数が多い構成では進捗が100%を超えて表示されることがあるが、実害はない。
+>
+> **Note — `.ssh/agent` の除外について**
+> `private/.ssh/agent/` 配下には稼働中の `ssh-agent` が生成する Unix ドメインソケットが含まれる場合があり、`tar` は `pax format cannot archive sockets` エラーで停止する。ソケットは `ssh-agent` 再起動時に再生成される一時ファイルでバックアップ対象外のため `--exclude` で除外する。
+>
+> **Note — 拡張属性(xattr)警告について**
+> `Could not pack extended attributes: Operation not supported` という警告が出ることがあるが、`com.apple.quarantine` 等の xattr を pax 形式でパックできない旨の警告に留まり、アーカイブ自体は正常に生成される。`COPYFILE_DISABLE=1` を指定することで AppleDouble 形式のリソースフォーク/xattr 処理自体をスキップさせ、警告の発生を抑制できる。
 
 `encrypt` は成功後、`shred`(macOS では `gshred`、無ければ `rm`)で平文の `private.tar.xz` を削除するため、手動での後始末は不要。
 

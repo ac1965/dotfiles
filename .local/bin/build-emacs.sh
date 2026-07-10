@@ -258,8 +258,25 @@ heading "Configuring Emacs"
 
 heading "Building Emacs"
 
-CORES="$(sysctl -n hw.logicalcpu)"
-make -j"$CORES"
+# hw.logicalcpu だとApple Siliconの効率/性能コア混在や
+# ハイパースレッディング相当の過剰な並列度により、
+# gnulib/lisp生成物の依存順序でごく稀にレース由来の
+# ビルド失敗(Error 2)を誘発することがあるため物理コア数を使う。
+CORES="$(sysctl -n hw.physicalcpu)"
+
+# 失敗時にエラー内容を追跡できるよう、必ずログをファイルに残す。
+# tee を pipefail 下で使うため、make の終了コードは
+# PIPESTATUS[0] で明示的に拾い、失敗時はログの場所を案内して即終了する。
+LOGFILE="$REPO_DIR/build-$(date +%Y%m%d-%H%M%S).log"
+echo "Build log: $LOGFILE"
+
+make -j"$CORES" 2>&1 | tee "$LOGFILE"
+BUILD_STATUS="${PIPESTATUS[0]}"
+
+if [[ "$BUILD_STATUS" -ne 0 ]]; then
+	echo "❌ make failed (exit $BUILD_STATUS). See log: $LOGFILE" >&2
+	exit "$BUILD_STATUS"
+fi
 
 # ============================================================
 # Install
@@ -267,15 +284,33 @@ make -j"$CORES"
 
 heading "Installing"
 
-make install
+# nextstep/Emacs.app への Resources/lisp・MacOS/libexec の配置は
+# 「make install」内(install-arch-dep / install-arch-indep)で行われる。
+# 「make」(all)だけではバイナリとplist骨格しか作られないため、
+# この install ステップは省略できない。
+make install 2>&1 | tee -a "$LOGFILE"
+INSTALL_STATUS="${PIPESTATUS[0]}"
 
-mkdir -p "$BUILD_DIR/bin"
-install -m 755 src/emacs "$BUILD_DIR/bin/emacs"
-install -m 755 lib-src/emacsclient "$BUILD_DIR/bin/emacsclient"
+if [[ "$INSTALL_STATUS" -ne 0 ]]; then
+	echo "❌ make install failed (exit $INSTALL_STATUS). See log: $LOGFILE" >&2
+	exit "$INSTALL_STATUS"
+fi
+
+# 注意: "make install" は既に $BUILD_DIR/bin に
+# emacs / emacsclient (バージョン付き実体 + シンボリックリンク) を
+# インストール済みのため、ここで未strip・バージョン管理外の
+# 生バイナリで上書きするとインストールの整合性が崩れる。
+# 意図的に上書きしたい場合のみ以下のコメントを外すこと。
+#
+# mkdir -p "$BUILD_DIR/bin"
+# install -m 755 src/emacs "$BUILD_DIR/bin/emacs"
+# install -m 755 lib-src/emacsclient "$BUILD_DIR/bin/emacsclient"
 
 APP_DST="/Applications/Emacs.app"
 rm -rf "$APP_DST"
-ditto nextstep/Emacs.app "$APP_DST"
+# -L: nextstep/Emacs.app 内にシンボリックリンクが含まれていても
+# 実体としてコピーし、リンク切れを防ぐ。
+ditto -L nextstep/Emacs.app "$APP_DST"
 
 # ============================================================
 # Summary
@@ -288,4 +323,5 @@ echo "Arch:       $ARCH"
 echo "CC:         $CC"
 echo "Repository: $REPO_DIR"
 echo "Prefix:     $BUILD_DIR"
+echo "Build log:  $LOGFILE"
 echo "======================================="

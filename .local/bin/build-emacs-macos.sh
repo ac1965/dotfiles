@@ -9,6 +9,7 @@
 # - Homebrew libgccjit による native-comp
 # - fingerprint 安定
 # - forward-safe (Emacs 30/31)
+# - out-of-tree ビルド (ソースツリーは常に git clean な状態を保つ)
 #
 
 set -Eeuo pipefail
@@ -23,6 +24,9 @@ DEBUG=false
 # デフォルト値（従来の挙動と同じ）
 BUILD_DIR="$HOME/.local"
 REPO_DIR="$HOME/Projects/github.com/emacs-mirror/emacs"
+# OBJ_DIR は未指定なら REPO_DIR 正規化後に "${REPO_DIR}-build" を既定値にする。
+# (usage 表示の都合上ここでは空のままにしておく)
+OBJ_DIR=""
 
 usage() {
 	cat <<EOF
@@ -31,10 +35,21 @@ Usage: $(basename "$0") [OPTIONS]
 Options:
   -b, --build-dir DIR         インストール先 (--prefix) を指定 (default: $HOME/.local)
   -r, --repository-dir DIR    git clone 先ディレクトリを指定 (default: $HOME/Projects/github.com/emacs-mirror/emacs)
+  -o, --obj-dir DIR           configure/make の実行先(out-of-tree ビルドディレクトリ)を指定
+                               (default: "<repository-dir>-build")
+                               このディレクトリは毎回 rm -rf されるため、
+                               他の用途と共有しないこと。
       --no-native, --no-native-compilation
                                native-comp を無効化
       --debug                  デバッグ出力 (set -x) を有効化
   -h, --help                   このヘルプを表示
+
+Note:
+  ソースツリー ($REPO_DIR 相当) は git clone / git pull --rebase /
+  autogen.sh (configure スクリプト生成) 以外では一切変更しない。
+  configure・make・make install はすべて --obj-dir で指定した
+  別ディレクトリ内で実行されるため、ソースツリーは常に
+  "git status" がクリーンな状態を保つ。
 EOF
 }
 
@@ -65,6 +80,18 @@ while [[ $# -gt 0 ]]; do
 		REPO_DIR="${1#*=}"
 		shift
 		;;
+	-o | --obj-dir)
+		[[ $# -ge 2 ]] || {
+			echo "❌ $1 requires an argument" >&2
+			exit 1
+		}
+		OBJ_DIR="$2"
+		shift 2
+		;;
+	--obj-dir=*)
+		OBJ_DIR="${1#*=}"
+		shift
+		;;
 	--debug)
 		DEBUG=true
 		shift
@@ -87,7 +114,32 @@ done
 
 # 相対パス・"~" を含む可能性があるので絶対パスに正規化
 BUILD_DIR="$(mkdir -p "$BUILD_DIR" && cd "$BUILD_DIR" && pwd)"
+
+# REPO_DIR も同様に絶対パス化する。
+# ただし REPO_DIR 自体はまだ存在しない場合がある(初回 git clone 前)ため、
+# 親ディレクトリを絶対パス化してからファイル名部分を連結する。
+# これを怠ると、相対パスで -r/--repository-dir を渡した際に
+# 後段の `cd "$SRC_DIR"` でカレントディレクトリが変わった後も
+# $REPO_DIR が相対パスのままになり、パス組み立てが
+# 意図しない場所を指してしまう(過去に実際に踏んだ不具合)。
 mkdir -p "$(dirname "$REPO_DIR")"
+REPO_PARENT="$(cd "$(dirname "$REPO_DIR")" && pwd)"
+REPO_DIR="$REPO_PARENT/$(basename "$REPO_DIR")"
+
+# OBJ_DIR 未指定なら、REPO_DIR の兄弟ディレクトリ "<repo>-build" を既定値にする。
+# ソースツリーの外に置くことで、ソース側を "git clean" に保ったまま
+# ビルド生成物(Makefile, .o, .elc, .texi, info/, ダンプファイル等)を
+# 完全に分離する(out-of-tree build)。
+[[ -n "$OBJ_DIR" ]] || OBJ_DIR="${REPO_DIR}-build"
+mkdir -p "$(dirname "$OBJ_DIR")"
+OBJ_PARENT="$(cd "$(dirname "$OBJ_DIR")" && pwd)"
+OBJ_DIR="$OBJ_PARENT/$(basename "$OBJ_DIR")"
+
+# ビルドログは OBJ_DIR とは独立した永続ディレクトリに保存する。
+# OBJ_DIR は毎回 rm -rf して作り直すため、OBJ_DIR 配下に置くと
+# 失敗時のログが次回実行時に失われてしまうことを避けるため。
+LOG_DIR="$HOME/.cache/build-emacs-macos"
+mkdir -p "$LOG_DIR"
 
 $DEBUG && set -x
 
@@ -129,7 +181,9 @@ esac
 echo "Architecture: $ARCH"
 echo "Homebrew prefix: $BREW_PREFIX"
 echo "Build dir (--prefix): $BUILD_DIR"
-echo "Repository dir: $REPO_DIR"
+echo "Repository dir (source, always kept clean): $REPO_DIR"
+echo "Obj dir (configure/make, rebuilt every run): $OBJ_DIR"
+echo "Log dir (persistent): $LOG_DIR"
 
 # ============================================================
 # Requirements
@@ -198,7 +252,8 @@ export CPPFLAGS="-I$LIBGCCJIT_PREFIX/include $CPPFLAGS"
 export LDFLAGS="-L$LIBGCCJIT_PREFIX/lib $LDFLAGS"
 
 # ============================================================
-# Source
+# Source (ソースツリーは常にクリーンに保つ: clone/pull と
+# autogen.sh による configure スクリプト生成のみ行う)
 # ============================================================
 
 heading "Preparing source"
@@ -215,16 +270,9 @@ else
 fi
 
 # ============================================================
-# Clean
-# ============================================================
-
-heading "Cleaning previous build"
-
-make distclean >/dev/null 2>&1 || true
-git clean -xdf >/dev/null 2>&1 || true
-
-# ============================================================
-# Autogen
+# Autogen (./configure スクリプトの生成には必須。
+# 生成物は通常 .gitignore 対象の autotools 生成ファイルのみで、
+# ビルド成果物(.o/.elc/.texi等)はここでは一切生成されない)
 # ============================================================
 
 heading "Running autogen"
@@ -232,12 +280,24 @@ heading "Running autogen"
 ./autogen.sh
 
 # ============================================================
-# Configure
+# Clean (out-of-tree ビルドディレクトリを作り直すだけで良い。
+# ソースツリー側の distclean/git clean は不要になった)
 # ============================================================
 
-heading "Configuring Emacs"
+heading "Cleaning previous build (obj dir)"
 
-./configure \
+rm -rf "$OBJ_DIR"
+mkdir -p "$OBJ_DIR"
+
+# ============================================================
+# Configure (obj dir 側で実行し、ソースツリーの configure を参照する)
+# ============================================================
+
+heading "Configuring Emacs (out-of-tree)"
+
+cd "$OBJ_DIR"
+
+"$SRC_DIR/configure" \
 	CC="$CC" \
 	CXX="$CXX" \
 	AR="$AR" \
@@ -265,9 +325,11 @@ heading "Building Emacs"
 CORES="$(sysctl -n hw.physicalcpu)"
 
 # 失敗時にエラー内容を追跡できるよう、必ずログをファイルに残す。
+# OBJ_DIR は次回実行時に rm -rf されるため、ログは独立した
+# 永続ディレクトリ(LOG_DIR)に保存する。
 # tee を pipefail 下で使うため、make の終了コードは
 # PIPESTATUS[0] で明示的に拾い、失敗時はログの場所を案内して即終了する。
-LOGFILE="$REPO_DIR/build-$(date +%Y%m%d-%H%M%S).log"
+LOGFILE="$LOG_DIR/build-$(date +%Y%m%d-%H%M%S).log"
 echo "Build log: $LOGFILE"
 
 make -j"$CORES" 2>&1 | tee "$LOGFILE"
@@ -303,14 +365,14 @@ fi
 # 意図的に上書きしたい場合のみ以下のコメントを外すこと。
 #
 # mkdir -p "$BUILD_DIR/bin"
-# install -m 755 src/emacs "$BUILD_DIR/bin/emacs"
-# install -m 755 lib-src/emacsclient "$BUILD_DIR/bin/emacsclient"
+# install -m 755 "$OBJ_DIR/src/emacs" "$BUILD_DIR/bin/emacs"
+# install -m 755 "$OBJ_DIR/lib-src/emacsclient" "$BUILD_DIR/bin/emacsclient"
 
 APP_DST="/Applications/Emacs.app"
 rm -rf "$APP_DST"
 # -L: nextstep/Emacs.app 内にシンボリックリンクが含まれていても
 # 実体としてコピーし、リンク切れを防ぐ。
-ditto -L nextstep/Emacs.app "$APP_DST"
+ditto -L "$OBJ_DIR/nextstep/Emacs.app" "$APP_DST"
 
 # ============================================================
 # Summary
@@ -321,7 +383,8 @@ echo "======================================="
 echo "Build complete"
 echo "Arch:       $ARCH"
 echo "CC:         $CC"
-echo "Repository: $REPO_DIR"
+echo "Repository: $REPO_DIR   (source, unmodified by build)"
+echo "Obj dir:    $OBJ_DIR   (rebuilt from scratch every run)"
 echo "Prefix:     $BUILD_DIR"
 echo "Build log:  $LOGFILE"
 echo "======================================="

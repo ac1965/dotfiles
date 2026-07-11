@@ -332,7 +332,36 @@ CORES="$(sysctl -n hw.physicalcpu)"
 LOGFILE="$LOG_DIR/build-$(date +%Y%m%d-%H%M%S).log"
 echo "Build log: $LOGFILE"
 
-make -j"$CORES" 2>&1 | tee "$LOGFILE"
+# doc/misc の .org -> .texi -> .info 変換 (org-texinfo-export-to-texinfo-batch)
+# は $(abs_top_builddir)/src/emacs (ビルド済みバイナリ) を要求する。
+# 一方、トップレベルの "info/dir" 集約ルールは doc/misc/*.texi を
+# 「既に存在するファイル」として前提条件チェックするだけで、
+# 自身では生成方法を知らない。
+# -j 並列ビルドで src のコンパイルと doc/misc の処理タイミングが
+# 保証されないため、src/emacs が未完成のまま doc/misc 側の処理が
+# 走るとレースで "No rule to make target ...texi" が発生しうる
+# (2026-07-11 実機で再現・確認済み)。
+# lib -> lib-src -> src -> doc/misc の順に直列で完成させ、
+# modus-themes.texi 等の生成物を先に確定させてから
+# 残りを並列ビルドすることでレースを回避する。
+heading "Building lib / lib-src / src / doc-misc serially (race avoidance)"
+
+{
+	make -C lib
+	make -C lib-src
+	make -C src
+	make -C doc/misc info
+} 2>&1 | tee "$LOGFILE"
+PRELIM_STATUS="${PIPESTATUS[0]}"
+
+if [[ "$PRELIM_STATUS" -ne 0 ]]; then
+	echo "❌ preliminary serial build failed (exit $PRELIM_STATUS). See log: $LOGFILE" >&2
+	exit "$PRELIM_STATUS"
+fi
+
+heading "Building the rest in parallel"
+
+make -j"$CORES" 2>&1 | tee -a "$LOGFILE"
 BUILD_STATUS="${PIPESTATUS[0]}"
 
 if [[ "$BUILD_STATUS" -ne 0 ]]; then

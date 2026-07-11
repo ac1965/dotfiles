@@ -194,7 +194,6 @@ require_cmd git
 require_cmd pkg-config
 require_cmd xcrun
 require_cmd clang
-require_cmd ditto
 
 BREW_FORMULAS=(
 	autoconf texinfo pkg-config
@@ -399,9 +398,27 @@ fi
 
 APP_DST="/Applications/Emacs.app"
 rm -rf "$APP_DST"
+# ditto の -L (シンボリックリンク実体化)相当オプションは
+# macOSのバージョンによって存在しないことがあるため、
+# 同じ目的で標準的に使える `cp -R -L` を使う。
 # -L: nextstep/Emacs.app 内にシンボリックリンクが含まれていても
 # 実体としてコピーし、リンク切れを防ぐ。
-ditto -L "$OBJ_DIR/nextstep/Emacs.app" "$APP_DST"
+cp -R -L "$OBJ_DIR/nextstep/Emacs.app" "$APP_DST"
+
+# native-comp(--with-native-compilation=aot)有効時、実行ファイルは
+# 実行時に Contents/MacOS/../native-lisp (= Contents/native-lisp) を
+# 相対パスで探すが、.eln の実体は Contents/Frameworks/native-lisp に
+# 配置される。本来は Contents/native-lisp -> Frameworks/native-lisp の
+# シンボリックリンクで橋渡しされる想定だが、out-of-tree ビルドの
+# nextstep/Emacs.app にはこのリンクが作られないことを実機で確認済み
+# (2026-07-11)。無いと `dlopen` が .eln を見つけられず起動時に失敗するため、
+# 欠けている場合のみここで明示的に作成する。
+if [[ "$NATIVE_COMP" == "--with-native-compilation=aot" ]] \
+	&& [[ -d "$APP_DST/Contents/Frameworks/native-lisp" ]] \
+	&& [[ ! -e "$APP_DST/Contents/native-lisp" ]]; then
+	heading "Linking Contents/native-lisp -> Contents/Frameworks/native-lisp"
+	ln -s Frameworks/native-lisp "$APP_DST/Contents/native-lisp"
+fi
 
 # ============================================================
 # Summary

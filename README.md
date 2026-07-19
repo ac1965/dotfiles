@@ -128,24 +128,56 @@ sudo tlmgr update --self --all
 sudo tlmgr paper a4
 ```
 
-`~/.latexmkrc` の推奨設定:
+**日本語組版はデフォルトを LuaLaTeX-ja とする。** `mactex-no-gui` は TeX Live full scheme のため、LuaTeX-ja・原ノ味フォント等は追加インストール不要。
+
+**動作確認**
+
+```bash
+which lualatex
+kpsewhich haranoaji-mincho.otf
+```
+
+`~/.latexmkrc`(グローバルデフォルト、LuaLaTeX-ja):
 
 ```bash
 cat <<'EOF' > ~/.latexmkrc
 # 最大タイプセット回数
 $max_repeat = 5;
-# DVI 経由で PDF をビルド
-$pdf_mode = 3;
-# pLaTeX（最初のエラーで停止）
-$latex = 'platex %O %S -halt-on-error';
-# pBibTeX（参考文献）
-$bibtex = 'pbibtex %O %S';
-# Mendex（索引）
-$makeindex = 'mendex %O -o %D %S';
-# DVI → PDF 変換
-$dvipdf = 'dvipdfmx %O -o %D %S';
+# PDF を LuaLaTeX で直接生成(DVI 経由を廃止)
+$pdf_mode = 4;
+# LuaLaTeX 本体(SyncTeX 有効、初回エラーで停止)
+$lualatex = 'lualatex %O -synctex=1 -halt-on-error %S';
+# 索引(和文対応: upmendex)
+$makeindex = 'upmendex %O -o %D %S';
+# 参考文献(和文スタイル対応: upbibtex)
+$bibtex = 'upbibtex %O %S';
+$biber  = 'biber %O %S';
+# クリーンアップ対象拡張子
+$clean_ext = 'synctex.gz synctex.gz(busy) run.xml bbl bcf fdb_latexmk';
 EOF
 ```
+
+**最小構成テンプレート**
+
+```tex
+\documentclass[ja=standard]{ltjsarticle}
+\begin{document}
+日本語組版のテスト。
+\end{document}
+```
+
+```bash
+latexmk foo.tex
+```
+
+> **Note — 旧 pLaTeX(dvipdfmx)構成について**
+> グローバルデフォルトは LuaLaTeX-ja に統一した。既存資産等で pLaTeX が必要な文書は、`.tex` ファイル先頭に以下の magic comment を入れることで latexmk がエンジンを切り替える。
+>
+> ```tex
+> % !TEX program = platex
+> ```
+>
+> この場合の変換コマンド(`platex %O %S -halt-on-error` → `dvipdfmx %O -o %D %S`)はグローバル `~/.latexmkrc` には含めていないため、文書側の個別 `.latexmkrc` または `latexmk -pdfdvi -e '$latex=...'` 等で都度指定すること。
 
 ---
 

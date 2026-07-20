@@ -15,6 +15,15 @@
 #   SNS_USERNAME   - 引数省略時に使うユーザー名
 #   REPO_TYPE      - all | owner | member (デフォルト: owner)
 #                    private repo も含めたい場合の絞り込み条件
+#
+# hub-repos.sh としての配置（clone_or_pull_repo.sh 連携用）:
+#   本スクリプトは「第1引数=owner、標準出力にリポジトリ名を1行1件出力」
+#   という契約を満たすため、そのまま hub-repos.sh として使える。
+#     mkdir -p ~/.bin
+#     cp list_github_repos.sh ~/.bin/hub-repos.sh
+#     chmod +x ~/.bin/hub-repos.sh
+#   clone_or_pull_repo.sh は GITHUB_TOKEN が設定されている場合のみ
+#   ~/.bin/hub-repos.sh（または $HUB_REPOS_SCRIPT）を自動的に呼び出す。
 
 set -o errexit
 set -o nounset

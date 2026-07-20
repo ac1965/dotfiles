@@ -8,6 +8,7 @@
 # 使い方:
 #   GITHUB_REPOS=~/repos ./clone_or_pull_repo.sh https://github.com/org/repo.git
 #   T=~/repos            ./clone_or_pull_repo.sh git@github.com:org/repo.git
+#   (T は GITHUB_REPOS が未設定の場合のみフォールバックとして使われる)
 #
 # 必須環境変数（いずれか。GITHUB_REPOS を正式名称として推奨）:
 #   GITHUB_REPOS  - リポジトリ保存先ルート（正式名称）
@@ -66,9 +67,10 @@ check_dependencies() {
 }
 
 resolve_repo_root() {
-    local root="${T:-${GITHUB_REPOS:-}}"
+    # GITHUB_REPOS を正式名称とし、T は後方互換の短縮エイリアスとして扱う
+    local root="${GITHUB_REPOS:-${T:-}}"
     if [[ -z "$root" ]]; then
-        log_error "環境変数 T または GITHUB_REPOS を設定してください。"
+        log_error "環境変数 GITHUB_REPOS（または T）を設定してください。"
         exit 1
     fi
     print -r -- "$root"
@@ -122,14 +124,30 @@ parse_git_url() {
 }
 
 # ---------------------------------------------------------------------------
-# オーナーのリポジトリ一覧を保存（hub-repos.sh が存在する場合のみ）
+# オーナーのリポジトリ一覧を保存（付随的な処理のため失敗しても本処理は継続する）
+#
+# hub-repos.sh の契約: 第1引数=owner、標準出力にリポジトリ名を1行1件出力。
+# list_github_repos.sh はこの契約を満たすため、
+#   cp list_github_repos.sh ~/.bin/hub-repos.sh && chmod +x ~/.bin/hub-repos.sh
+# のように配置すればそのまま利用できる。
 # ---------------------------------------------------------------------------
 save_owner_repo_list() {
     local owner="$1"
     local dest_dir="$2"
+    local out_file="${dest_dir}/repos-${owner}.txt"
 
-    if [[ -x "$HUB_REPOS_SCRIPT" ]]; then
-        "$HUB_REPOS_SCRIPT" "$owner" > "${dest_dir}/repos-${owner}.txt"
+    if [[ ! -x "$HUB_REPOS_SCRIPT" ]]; then
+        return 0
+    fi
+
+    if [[ -z "${GITHUB_TOKEN:-}" ]]; then
+        log_info "GITHUB_TOKEN 未設定のため、リポジトリ一覧の取得をスキップします。"
+        return 0
+    fi
+
+    if ! "$HUB_REPOS_SCRIPT" "$owner" > "$out_file"; then
+        log_error "hub-repos.sh の実行に失敗しました（一覧取得のみスキップして続行します）: ${owner}"
+        rm -f "$out_file"
     fi
 }
 

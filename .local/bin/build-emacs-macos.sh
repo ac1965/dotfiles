@@ -207,7 +207,7 @@ require_cmd clang
 BREW_FORMULAS=(
 	autoconf texinfo pkg-config
 	libgccjit gnutls jansson libxml2
-	imagemagick tree-sitter gmp
+	tree-sitter gmp
 )
 
 heading "Installing required Homebrew packages"
@@ -316,6 +316,15 @@ cd "$OBJ_DIR"
 # ここでは自己完結性を優先し、CLI 側は後段でラッパーを生成して解決する
 # (--disable-ns-self-contained を選ぶと逆に .app が $prefix に依存し、
 #  $prefix を消すと GUI まで壊れるため、こちらは採用しない)。
+# --without-imagemagick: image-dired のサムネイル生成程度にしか使っておらず、
+# 画像表示自体は Emacs 組み込みの create-image (libpng/librsvg 等) で足りる。
+# --with-imagemagick は Emacs バイナリに ABI バージョン付きの dylib パス
+# (libMagickWand-7.Q16HDRI.<N>.dylib) を直接埋め込むため、`brew upgrade` で
+# imagemagick の ABI バージョンが上がり旧 Cellar が削除されると、
+# 再ビルドするまで dyld レベルで起動不能になる(2026-07 に実際に発生)。
+# ImageMagick を使う個別コマンド(convert 等)はこのビルドオプションと無関係に
+# 引き続き PATH 経由で呼び出せるため、Emacs 側で --with-imagemagick を
+# 要求する必要はない。
 "$SRC_DIR/configure" \
 	CC="$CC" \
 	CXX="$CXX" \
@@ -327,7 +336,7 @@ cd "$OBJ_DIR"
 	--with-tree-sitter \
 	--with-json \
 	--with-gnutls \
-	--with-imagemagick \
+	--without-imagemagick \
 	--with-modules \
 	--prefix="$BUILD_DIR"
 

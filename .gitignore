@@ -53,6 +53,8 @@
 
 # ===== .local/bin 配下(スクリプト類のみ)=====
 !.local/bin/
+!.local/bin/encrypt
+!.local/bin/decrypt
 !.local/bin/*.sh
 !.local/bin/*.zsh
 !.local/bin/*.py
@@ -98,3 +100,7 @@
 .viminfo
 .markdown-preview.html
 .vimperator/.vimperator*
+.config/cagent/user-uuid
+.config/uv/uv-receipt.json
+.config/zsh/.zcompdump
+.config/zsh/.zcompcache/

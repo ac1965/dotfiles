@@ -1,7 +1,100 @@
-*~
-\#*
-private
-.local/share/claude/
-.gnupg/
-private.tar.xz.enc
-.cache
+# ===== まず全て無視 =====
+*
+
+# ディレクトリ探索を許可
+!*/
+
+# ===== トップレベルの設定ファイルを許可 =====
+!.zshrc
+!.zshenv
+!.zstyles
+!.gitconfig
+!.gitconfig_global
+!.gitignore
+!.gitignore_global
+!.gitmodules
+!.latexmkrc
+!.vimrc
+!.vimperatorrc
+!.vimperatorrc.js
+!.docker-alias
+!.user_rc
+!.Brewfile
+!Brewfile
+!README.md
+!dotfiles.zsh
+!favorite-repos.txt
+
+# ===== .config 配下 =====
+!.config/Brewfiles/
+!.config/Brewfiles/*.Brewfiles
+!.config/fish/
+!.config/fish/conf.d/
+!.config/fish/conf.d/*.fish
+!.config/nix/
+!.config/nix/nix.conf
+!.config/zsh/
+!.config/zsh/.zshenv
+!.config/zsh/.zshrc
+!.config/zsh/.zprofile
+!.config/zsh/.zstyles
+!.config/zsh/.p10k.zsh
+!.config/zsh/.zsh_plugins.txt
+!.config/zsh/.zfunctions/
+!.config/zsh/.zfunctions/*
+!.config/zsh/.zshrc.d/
+!.config/zsh/.zshrc.d/*.zsh
+!.config/kew/
+!.config/kew/kewrc
+
+# doom / emacs はサブモジュールまたは別管理の場合あり(必要に応じて調整)
+!.config/doom
+!.config/emacs
+
+# ===== .local/bin 配下(スクリプト類のみ)=====
+!.local/bin/
+!.local/bin/*.sh
+!.local/bin/*.zsh
+!.local/bin/*.py
+!.local/bin/*.zh
+
+# ===== .docs =====
+!.docs/
+!.docs/*.org
+
+# ===== iterm2-colors =====
+!iterm2-colors/
+!iterm2-colors/*.itermcolors
+
+# ===== .vim =====
+!.vim/
+!.vim/dein.toml
+
+# ===== .vimperator (設定ファイルのみ、動的生成物は除外) =====
+!.vimperator/
+!.vimperator/colors/
+!.vimperator/colors/*.vimp
+
+# ============================================
+# 明示的に除外(allow-list内でも念のため二重ブロック)
+# ============================================
+.config/zsh/.zsh_history
+.config/zsh/.zcompdump
+.config/zsh/.zcompcache/
+.config/zsh/.zsh_sessions/
+.config/cmus/
+.local/share/
+.local/state/
+.local/bin/keychain_passwords.org
+.local/bin/rvcmd
+.local/bin/emacs
+.local/bin/emacsclient
+.local/bin/poetry
+.local/bin/python3.1*
+.local/bin/narou
+.local/bin/cuetag
+.local/bin/aider
+.local/bin/bagoup
+.viminfo
+.markdown-preview.html
+.vimperator/.vimperator*

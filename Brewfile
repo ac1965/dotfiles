@@ -1,4 +1,5 @@
 tap "akicho8/shogi"
+tap "jorgelbg/tap"
 tap "laishulu/homebrew", trusted: true
 # Simple, modern, secure file encryption
 brew "age"
@@ -37,17 +38,21 @@ brew "cmake"
 # GNU File, Shell, and Text utilities
 brew "coreutils"
 # Reimplementation of ctags(1)
-brew "ctags"
+brew "ctags", link: false
 # Utilities for .cue and .toc files
 brew "cuetools"
 # Get a file from an HTTP, HTTPS or FTP server
 brew "curl"
 # Message bus system, providing inter-application communication
 brew "dbus"
+# Library and utilities for processing GIFs
+brew "giflib"
 # Color management engine supporting ICC profiles
 brew "little-cms2"
 # Convert text between DOS, UNIX, and Mac formats
 brew "dos2unix"
+# Generate documentation for several programming languages
+brew "doxygen"
 # XML 1.0 parser
 brew "expat"
 # Simple, fast and user-friendly alternative to find
@@ -60,8 +65,6 @@ brew "flac"
 brew "fzf"
 # GNU awk utility
 brew "gawk"
-# Library and utilities for processing GIFs
-brew "giflib"
 # GitHub command-line tool
 brew "gh"
 # Multi-platform software reverse engineering framework
@@ -158,6 +161,8 @@ brew "pipenv"
 brew "pipx"
 # PDF rendering library (based on the xpdf-3.0 code base)
 brew "poppler"
+# Cross-platform library for audio I/O
+brew "portaudio"
 # Monitor data's progress through a pipe
 brew "pv"
 # Python version management
@@ -182,6 +187,8 @@ brew "qt"
 brew "rbenv"
 # Search tool like grep and The Silver Searcher
 brew "ripgrep"
+# Extremely fast Python linter, written in Rust
+brew "ruff"
 # Safe, concurrent, practical language
 brew "rust"
 # Rust toolchain installer
@@ -194,6 +201,8 @@ brew "shfmt"
 brew "shntool"
 # SOund eXchange: universal sound sample translator
 brew "sox"
+# Tool to create intelligent and beautiful documentation
+brew "sphinx-doc"
 # Enables extra languages support for Tesseract
 brew "tesseract-lang"
 # Official documentation format of the GNU project
@@ -202,6 +211,8 @@ brew "texinfo"
 brew "tree-sitter-cli"
 # Language Server Protocol implementation for TypeScript wrapping tsserver
 brew "typescript-language-server"
+# Maintained ctags implementation
+brew "universal-ctags"
 # Extremely fast Python package installer and resolver, written in Rust
 brew "uv"
 # Execute commands when watched files change
@@ -212,6 +223,9 @@ brew "wget"
 brew "yapf"
 # General-purpose lossless data-compression library
 brew "zlib"
+# Custom GPG pinentry program for macOS that allows using Touch ID for fetching the password from
+# the macOS keychain.
+brew "jorgelbg/tap/pinentry-touchid", trusted: true
 # macOS Input Source Manager
 brew "laishulu/homebrew/macism", trusted: true
 # Utility that prevents the system from going to sleep
@@ -228,7 +242,6 @@ cask "font-noto-sans-jp"
 cask "font-noto-sans-symbols-2"
 cask "font-roboto-mono-nerd-font"
 cask "font-source-code-pro"
-# Software reverse engineering (SRE) suite of tools
 cask "ghidra"
 # Terminal emulator as alternative to Apple's Terminal app
 cask "iterm2"
@@ -236,8 +249,7 @@ cask "iterm2"
 cask "mactex-no-gui"
 # Limitless clipboard
 cask "paste"
-# ShogiHome は Windows・macOS・Linux で動作する次世代のGUI将棋アプリです。
-cask "akicho8/shogi/shogi-home"
+cask "shogi-home"
 # Quicklook extension for source files
 cask "syntax-highlight"
 # Virtual pet MMO
@@ -256,8 +268,8 @@ mas "Just Press Record", id: 1033342465
 mas "Keynote", id: 409183694
 mas "Kindle", id: 302584613
 mas "LINE", id: 539883307
-mas "Numbers", id: 409203825
 mas "Numbers", id: 361304891
+mas "Numbers", id: 409203825
 mas "Pages", id: 409201541
 mas "Perplexity", id: 6714467650
 mas "Prime Video", id: 545519333

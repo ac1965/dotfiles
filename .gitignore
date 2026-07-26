@@ -104,3 +104,4 @@
 .config/uv/uv-receipt.json
 .config/zsh/.zcompdump
 .config/zsh/.zcompcache/
+private/

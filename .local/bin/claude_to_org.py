@@ -1,4 +1,4 @@
-i#!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 Claude Chat History JSON → Org-mode Converter
 Usage: python claude_to_org.py <input.json> [output.org]

@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+i#!/usr/bin/env python3
 """
 Claude Chat History JSON → Org-mode Converter
 Usage: python claude_to_org.py <input.json> [output.org]
@@ -236,11 +236,34 @@ def json_to_org(input_path: Path, output_path: Path):
 
 
 def main():
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        prog='claude_to_org.py',
+        description='Claude Chat History JSON → Org-mode Converter',
+        epilog='例: python claude_to_org.py chat.json\n'
+               '    python claude_to_org.py *.json',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument(
+        'input_files',
+        nargs='*',
+        metavar='input.json',
+        help='変換対象のJSONファイル（複数指定・ワイルドカード可）',
+    )
+
+    # 引数なし → usage を表示して終了
     if len(sys.argv) < 2:
-        print(__doc__)
+        parser.print_help()
         sys.exit(1)
 
-    input_paths = [Path(p) for p in sys.argv[1:]]
+    args = parser.parse_args()
+
+    if not args.input_files:
+        parser.print_help()
+        sys.exit(1)
+
+    input_paths = [Path(p) for p in args.input_files]
 
     for input_path in input_paths:
         if not input_path.exists():
@@ -248,13 +271,13 @@ def main():
             continue
 
         # 出力ファイル名: 同ディレクトリに .org で保存
-        output_path = input_path.with_suffix('.org')o
+        output_path = input_path.with_suffix('.org')
         print(f'\n変換中: {input_path.name}')
         try:
             json_to_org(input_path, output_path)
         except json.JSONDecodeError as e:
             print(f'  [ERROR] JSON パースエラー: {e}')
-        except Exception as e:y
+        except Exception as e:
             print(f'  [ERROR] 変換エラー: {e}')
             raise
 

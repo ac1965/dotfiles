@@ -59,6 +59,10 @@
 !.local/bin/*.zsh
 !.local/bin/*.py
 !.local/bin/*.zh
+!.local/share/
+!.local/share/*
+
+# ===== .local/share 配下(スクリプト類のみ)=====
 
 # ===== .docs =====
 !.docs/

@@ -24,6 +24,8 @@
 !README.md
 !dotfiles.zsh
 !favorite-repos.txt
+!diffs.jsonl
+!messages.json
 
 # ===== .config 配下 =====
 !.config/Brewfiles/

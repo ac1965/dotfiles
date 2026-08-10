@@ -19,7 +19,7 @@
 #
 set -euo pipefail
 
-MODEL="qwen2.5-coder:14b"
+MODEL="qwen3-coder:latest"
 HOST="http://localhost:11434"
 DO_COMMIT=0
 DO_EDIT=0

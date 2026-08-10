@@ -65,3 +65,8 @@ postfiledumphere() {
 docker-find-child() {
     for img in $(docker images -q); do docker history $img | grep -q "$@" && echo $img; done | sort -u
 }
+
+# Docker Desktop restart helper
+dstart() {
+    open -a Docker && echo "Waiting for Docker daemon..." && until docker system info >/dev/null 2>&1; do sleep 1; done && echo "Docker is ready."
+} 

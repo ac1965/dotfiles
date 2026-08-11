@@ -5,27 +5,30 @@
 !*/
 
 # ===== トップレベルの設定ファイルを許可 =====
-!.zshrc
-!.zshenv
-!.zstyles
-!.gitconfig
-!.gitconfig_global
-!.gitignore
-!.gitignore_global
-!.gitmodules
-!.latexmkrc
-!.vimrc
-!.vimperatorrc
-!.vimperatorrc.js
-!.docker-alias
-!.user_rc
-!.Brewfile
-!Brewfile
-!README.md
-!dotfiles.zsh
-!favorite-repos.txt
-!diffs.jsonl
-!messages.json
+# 先頭の "/" はリポジトリルート直下限定を意味する。これが無いと
+# 例えば "!README.md" は .config/emacs/README.md のような、同期
+# 対象ディレクトリの奥深くにある同名ファイルにもマッチしてしまう。
+!/.zshrc
+!/.zshenv
+!/.zstyles
+!/.gitconfig
+!/.gitconfig_global
+!/.gitignore
+!/.gitignore_global
+!/.gitmodules
+!/.latexmkrc
+!/.vimrc
+!/.vimperatorrc
+!/.vimperatorrc.js
+!/.docker-alias
+!/.user_rc
+!/.Brewfile
+!/Brewfile
+!/README.md
+!/dotfiles.zsh
+!/favorite-repos.txt
+!/diffs.jsonl
+!/messages.json
 
 # ===== .config 配下 =====
 !.config/Brewfiles/

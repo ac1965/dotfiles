@@ -11,6 +11,11 @@ export XDG_DATA_HOME=${XDG_DATA_HOME:-$HOME/.local/share}
 export XDG_CACHE_HOME=${XDG_CACHE_HOME:-$HOME/.cache}
 export ZDOTDIR=${ZDOTDIR:-$XDG_CONFIG_HOME/zsh}
 
+# $ZDOTDIR/.zshenv is never picked up by zsh's own startup sequence
+# (ZDOTDIR isn't known until this file has already been chosen), so
+# chain into it explicitly now that ZDOTDIR is set.
+[[ -f "$ZDOTDIR/.zshenv" ]] && source "$ZDOTDIR/.zshenv"
+
 export DARWIN_USER=$(whoami)
 export DARWIN_HOST=$(hostname -s)
 

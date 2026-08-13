@@ -26,12 +26,22 @@ readonly DOTFILES=(
   Brewfile
 )
 readonly REPO_ROOT="$(git rev-parse --show-toplevel)"
-readonly MODE=${1:?usage: ${0:t} [d|deploy|r|reverse]}
+readonly USAGE="usage: ${0:t} [d|deploy|r|reverse] [-n|--dry-run]"
+readonly MODE=${1:?${USAGE}}
+local -i _dryrun=0
+local _a=""
+for _a in "$@"; do
+  case $_a in
+    -n|--dry-run) _dryrun=1 ;;
+  esac
+done
+readonly -i DRYRUN=$_dryrun
 case $MODE in
   d|deploy)  src_base="${REPO_ROOT}" dst_base="${HOME}"     ;;
   r|reverse) src_base="${HOME}"      dst_base="${REPO_ROOT}" ;;
-  *) print -u2 "usage: ${0:t} [d|deploy|r|reverse]"; exit 1 ;;
+  *) print -u2 "${USAGE}"; exit 1 ;;
 esac
+(( DRYRUN )) && print -- "-- DRY RUN: no files will be written (${src_base} -> ${dst_base}) --"
 
 # Batch-classify relative paths against this repo's .gitignore in a single
 # git process (a naive one-`check-ignore`-call-per-file loop takes minutes
@@ -46,6 +56,10 @@ ignored_rels() {
 copy_rel() {
   local rel=$1
   local dst="${dst_base}/${rel}"
+  if (( DRYRUN )); then
+    print -- "  would copy  ${rel}"
+    return 0
+  fi
   mkdir -p -- "${dst:h}"
   rsync -ah --no-perms -- "${src_base}/${rel}" "${dst}"
 }
@@ -111,5 +125,9 @@ for f in "${DOTFILES[@]}"; do
     (( ignored += entry_ignored )) || true
   fi
 done
-print -- "\ndone: ${ok} ok, ${skip} skipped, ${fail} failed, ${ignored} file(s) skipped via .gitignore"
+if (( DRYRUN )); then
+  print -- "\ndry run: ${ok} would-copy, ${skip} skipped, ${fail} failed, ${ignored} file(s) skipped via .gitignore (nothing written)"
+else
+  print -- "\ndone: ${ok} ok, ${skip} skipped, ${fail} failed, ${ignored} file(s) skipped via .gitignore"
+fi
 (( fail == 0 ))

@@ -270,8 +270,8 @@ mas "Just Press Record", id: 1033342465
 mas "Keynote", id: 409183694
 mas "Kindle", id: 302584613
 mas "LINE", id: 539883307
-mas "Numbers", id: 361304891
 mas "Numbers", id: 409203825
+mas "Numbers", id: 361304891
 mas "Pages", id: 409201541
 mas "Perplexity", id: 6714467650
 mas "Prime Video", id: 545519333

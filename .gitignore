@@ -49,6 +49,8 @@
 !.config/zsh/.zfunctions/*
 !.config/zsh/.zshrc.d/
 !.config/zsh/.zshrc.d/*.zsh
+!.config/zsh/.antidote/
+!.config/zsh/.antidote/**
 !.config/kew/
 !.config/kew/kewrc
 

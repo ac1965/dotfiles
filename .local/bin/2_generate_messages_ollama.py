@@ -37,7 +37,10 @@ import time
 try:
     import requests
 except ImportError:
-    print("[ERROR] pip install requests --break-system-packages を先に実行してください", file=sys.stderr)
+    print(
+        "[ERROR] pip install requests --break-system-packages を先に実行してください",
+        file=sys.stderr,
+    )
     sys.exit(1)
 
 
@@ -59,13 +62,13 @@ SYSTEM_PROMPT = """あなたはgitコミット履歴の整理を行うアシス�
 
 def build_user_prompt(entry):
     return f"""変更ファイル:
-{entry['files_changed']}
+{entry["files_changed"]}
 
 diff:
-{entry['diff']}
-{'(diffは長いため途中で切り詰めています)' if entry.get('diff_truncated') else ''}
+{entry["diff"]}
+{"(diffは長いため途中で切り詰めています)" if entry.get("diff_truncated") else ""}
 
-元のメッセージ(参考、意味がないものが多い): {entry['old_message']!r}
+元のメッセージ(参考、意味がないものが多い): {entry["old_message"]!r}
 """
 
 
@@ -104,14 +107,31 @@ def generate_one(entry, host, model, timeout):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--in", dest="infile", required=True)
-    ap.add_argument("--out", dest="outfile", required=True, help="hash -> new message の JSON")
-    ap.add_argument("--dry-run", action="store_true", help="ファイルに保存せず、標準出力に表示するのみ")
-    ap.add_argument("--limit", type=int, default=None, help="処理件数を制限(ドライラン確認用)")
-    ap.add_argument("--model", default="qwen2.5-coder:14b", help="Ollamaのモデル名(事前にpull済みであること)")
-    ap.add_argument("--host", default="http://localhost:11434", help="OllamaサーバーのURL")
-    ap.add_argument("--timeout", type=int, default=120, help="1リクエストあたりのタイムアウト秒数")
     ap.add_argument(
-        "--fresh", action="store_true",
+        "--out", dest="outfile", required=True, help="hash -> new message の JSON"
+    )
+    ap.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="ファイルに保存せず、標準出力に表示するのみ",
+    )
+    ap.add_argument(
+        "--limit", type=int, default=None, help="処理件数を制限(ドライラン確認用)"
+    )
+    ap.add_argument(
+        "--model",
+        default="qwen3-coder:latest",
+        help="Ollamaのモデル名(事前にpull済みであること)",
+    )
+    ap.add_argument(
+        "--host", default="http://localhost:11434", help="OllamaサーバーのURL"
+    )
+    ap.add_argument(
+        "--timeout", type=int, default=120, help="1リクエストあたりのタイムアウト秒数"
+    )
+    ap.add_argument(
+        "--fresh",
+        action="store_true",
         help="既存の --out ファイルを無視して全件を最初から生成し直す(デフォルトは未処理分のみのレジューム)",
     )
     args = ap.parse_args()
@@ -152,7 +172,10 @@ def main():
         print("[INFO] 未処理のコミットはありません。すべて処理済みです。")
         return
 
-    print(f"[INFO] model={args.model} host={args.host} 対象={len(entries)}件", file=sys.stderr)
+    print(
+        f"[INFO] model={args.model} host={args.host} 対象={len(entries)}件",
+        file=sys.stderr,
+    )
 
     failed = []
     t_start = time.time()
@@ -164,7 +187,10 @@ def main():
             if not new_msg:
                 raise ValueError("空の応答が返されました")
         except Exception as e:
-            print(f"[WARN] {h[:8]} failed: {e} -- skip (元のメッセージを維持)", file=sys.stderr)
+            print(
+                f"[WARN] {h[:8]} failed: {e} -- skip (元のメッセージを維持)",
+                file=sys.stderr,
+            )
             failed.append(h)
             continue
 
@@ -182,7 +208,7 @@ def main():
             remain = avg * (len(entries) - i)
             print(
                 f"[INFO] {i}/{len(entries)} generated"
-                f" (avg {avg:.1f}s/commit, 残り約{remain/60:.1f}分)",
+                f" (avg {avg:.1f}s/commit, 残り約{remain / 60:.1f}分)",
                 file=sys.stderr,
             )
             if not args.dry_run:
@@ -195,9 +221,14 @@ def main():
             json.dump(results, f, ensure_ascii=False, indent=2)
         print(f"[DONE] wrote {args.outfile} ({len(results)} messages total)")
         if failed:
-            print(f"[INFO] {len(failed)} 件が今回も失敗しました。同じコマンドを再実行すれば再試行されます。", file=sys.stderr)
+            print(
+                f"[INFO] {len(failed)} 件が今回も失敗しました。同じコマンドを再実行すれば再試行されます。",
+                file=sys.stderr,
+            )
     else:
-        print(f"\n[DONE] dry-run complete ({len(entries)} entries). ファイルには保存していません。")
+        print(
+            f"\n[DONE] dry-run complete ({len(entries)} entries). ファイルには保存していません。"
+        )
 
 
 if __name__ == "__main__":

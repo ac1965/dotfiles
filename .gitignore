@@ -45,6 +45,7 @@
 !.config/zsh/.zstyles
 !.config/zsh/.p10k.zsh
 !.config/zsh/.zsh_plugins.txt
+!.config/zsh/.zsh_plugins.zsh
 !.config/zsh/.zfunctions/
 !.config/zsh/.zfunctions/*
 !.config/zsh/.zshrc.d/
@@ -57,6 +58,11 @@
 # doom / emacs はサブモジュールまたは別管理の場合あり(必要に応じて調整)
 !.config/doom
 !.config/emacs
+
+# ===== iterm2 (状態エクスポートのみ。AppSupport はマシン固有パスへの
+# シンボリックリンクなので下部の除外リストで明示的にブロックする) =====
+!.config/iterm2/
+!.config/iterm2/*.itermexport
 
 # ===== .local/bin 配下(スクリプト類のみ)=====
 !.local/bin/
@@ -109,15 +115,18 @@
 .local/bin/emacs
 .local/bin/emacsclient
 .local/bin/poetry
-.local/bin/python3.1*
+.local/bin/python3.*
 .local/bin/narou
 .local/bin/cuetag
 .local/bin/aider
 .local/bin/bagoup
+.local/bin/claude
 .viminfo
 .markdown-preview.html
 .vimperator/.vimperator*
 .config/cagent/user-uuid
+.config/cagent/.cagent_first_run
+.config/iterm2/AppSupport
 .config/uv/uv-receipt.json
 .config/zsh/.zcompdump
 .config/zsh/.zcompcache/

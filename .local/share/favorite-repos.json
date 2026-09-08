@@ -1,0 +1,289 @@
+{
+  "repos": [
+    {
+      "category": "security-pentest",
+      "repos": [
+        {
+          "owner": "ArchStrike",
+          "repo": "archstrike-docker",
+          "url": "https://github.com/ArchStrike/archstrike-docker.git"
+        },
+        {
+          "owner": "d0nkeys",
+          "repo": "redteam",
+          "url": "https://github.com/d0nkeys/redteam.git"
+        },
+        {
+          "owner": "g0tmi1k",
+          "repo": "msfpc",
+          "url": "https://github.com/g0tmi1k/msfpc.git"
+        },
+        {
+          "owner": "giper45",
+          "repo": "DockerSecurityPlayground",
+          "url": "https://github.com/giper45/DockerSecurityPlayground.git"
+        },
+        {
+          "owner": "giper45",
+          "repo": "dsp-docker-image",
+          "url": "https://github.com/giper45/dsp-docker-image.git"
+        },
+        {
+          "owner": "madhuakula",
+          "repo": "hacker-container",
+          "url": "https://github.com/madhuakula/hacker-container.git"
+        },
+        {
+          "owner": "mantvydasb",
+          "repo": "DetectionLab",
+          "url": "https://github.com/mantvydasb/DetectionLab.git"
+        },
+        {
+          "owner": "mantvydasb",
+          "repo": "Red-Team-Infrastructure-Automation",
+          "url": "https://github.com/mantvydasb/Red-Team-Infrastructure-Automation.git"
+        },
+        {
+          "owner": "mantvydasb",
+          "repo": "RedTeam-Tactics-and-Techniques",
+          "url": "https://github.com/mantvydasb/RedTeam-Tactics-and-Techniques.git"
+        },
+        {
+          "owner": "noelmartinon",
+          "repo": "vmtools",
+          "url": "https://github.com/noelmartinon/vmtools.git"
+        },
+        {
+          "owner": "offensive-security",
+          "repo": "kali-linux-docker-rolling",
+          "url": "https://github.com/offensive-security/kali-linux-docker-rolling.git"
+        },
+        {
+          "owner": "raesene",
+          "repo": "kube_security_lab",
+          "url": "https://github.com/raesene/kube_security_lab.git"
+        },
+        {
+          "owner": "ropnop",
+          "repo": "dockerfiles",
+          "url": "https://github.com/ropnop/dockerfiles.git"
+        },
+        {
+          "owner": "ropnop",
+          "repo": "virtual-environments",
+          "url": "https://github.com/ropnop/virtual-environments.git"
+        },
+        {
+          "owner": "tamalerhino",
+          "repo": "pen-test-lab",
+          "url": "https://github.com/tamalerhino/pen-test-lab.git"
+        },
+        {
+          "owner": "trustedsec",
+          "repo": "ptf",
+          "url": "https://github.com/trustedsec/ptf.git"
+        }
+      ]
+    },
+    {
+      "category": "reverse-engineering",
+      "repos": [
+        {
+          "owner": "ITAYC0HEN",
+          "repo": "A-journey-into-Radare2",
+          "url": "https://github.com/ITAYC0HEN/A-journey-into-Radare2.git"
+        },
+        {
+          "owner": "LiveOverflow",
+          "repo": "PwnAdventure3",
+          "url": "https://github.com/LiveOverflow/PwnAdventure3.git"
+        },
+        {
+          "owner": "NationalSecurityAgency",
+          "repo": "ghidra",
+          "url": "https://github.com/NationalSecurityAgency/ghidra.git"
+        },
+        {
+          "owner": "SwissKid",
+          "repo": "PwnTools-Learning",
+          "url": "https://github.com/SwissKid/PwnTools-Learning.git"
+        },
+        {
+          "owner": "radareorg",
+          "repo": "awesome-radare2",
+          "url": "https://github.com/radareorg/awesome-radare2.git"
+        },
+        {
+          "owner": "radareorg",
+          "repo": "r2con2019",
+          "url": "https://github.com/radareorg/r2con2019.git"
+        },
+        {
+          "owner": "radareorg",
+          "repo": "radare2",
+          "url": "https://github.com/radareorg/radare2.git"
+        }
+      ]
+    },
+    {
+      "category": "forensics",
+      "repos": [
+        {
+          "owner": "dsouzarc",
+          "repo": "iMessageAnalyzer",
+          "url": "https://github.com/dsouzarc/iMessageAnalyzer.git"
+        },
+        {
+          "owner": "log2timeline",
+          "repo": "dfvfs",
+          "url": "https://github.com/log2timeline/dfvfs.git"
+        },
+        {
+          "owner": "niftycode",
+          "repo": "imessage_reader",
+          "url": "https://github.com/niftycode/imessage_reader.git"
+        }
+      ]
+    },
+    {
+      "category": "emacs",
+      "repos": [
+        {
+          "owner": "abo-abo",
+          "repo": "oremacs",
+          "url": "https://github.com/abo-abo/oremacs.git"
+        },
+        {
+          "owner": "arkhan",
+          "repo": "emacs.d",
+          "url": "https://github.com/arkhan/emacs.d.git"
+        },
+        {
+          "owner": "conao3",
+          "repo": "emacs-jp.github.com",
+          "url": "https://github.com/conao3/emacs-jp.github.com.git"
+        },
+        {
+          "owner": "derui",
+          "repo": "dot.emacs.d",
+          "url": "https://github.com/derui/dot.emacs.d.git"
+        },
+        {
+          "owner": "emacs-mirror",
+          "repo": "emacs",
+          "url": "https://github.com/emacs-mirror/emacs.git"
+        },
+        {
+          "owner": "mahito1594",
+          "repo": "dotemacs",
+          "url": "https://github.com/mahito1594/dotemacs.git"
+        },
+        {
+          "owner": "takaxp",
+          "repo": "emacs.d",
+          "url": "https://github.com/takaxp/emacs.d.git"
+        },
+        {
+          "owner": "xenodium",
+          "repo": "dotsies",
+          "url": "https://github.com/xenodium/dotsies.git"
+        }
+      ]
+    },
+    {
+      "category": "dotfiles",
+      "repos": [
+        {
+          "owner": "grugrut",
+          "repo": "dotfiles",
+          "url": "https://github.com/grugrut/dotfiles.git"
+        },
+        {
+          "owner": "seagle0128",
+          "repo": "dotfiles",
+          "url": "https://github.com/seagle0128/dotfiles.git"
+        }
+      ]
+    },
+    {
+      "category": "devops-infra",
+      "repos": [
+        {
+          "owner": "43books",
+          "repo": "mesos-marathon-demo",
+          "url": "https://github.com/43books/mesos-marathon-demo.git"
+        },
+        {
+          "owner": "nordic-institute",
+          "repo": "X-Road",
+          "url": "https://github.com/nordic-institute/X-Road.git"
+        },
+        {
+          "owner": "wsargent",
+          "repo": "docker-cheat-sheet",
+          "url": "https://github.com/wsargent/docker-cheat-sheet.git"
+        }
+      ]
+    },
+    {
+      "category": "publishing",
+      "repos": [
+        {
+          "owner": "gohugoio",
+          "repo": "hugoBasicExample",
+          "url": "https://github.com/gohugoio/hugoBasicExample.git"
+        },
+        {
+          "owner": "jgm",
+          "repo": "pandoc",
+          "url": "https://github.com/jgm/pandoc.git"
+        },
+        {
+          "owner": "kaushalmodi",
+          "repo": "ox-hugo",
+          "url": "https://github.com/kaushalmodi/ox-hugo.git"
+        },
+        {
+          "owner": "tompurl",
+          "repo": "kata-blog",
+          "url": "https://github.com/tompurl/kata-blog.git"
+        }
+      ]
+    },
+    {
+      "category": "misc",
+      "repos": [
+        {
+          "owner": "bitgapp",
+          "repo": "eqMac",
+          "url": "https://github.com/bitgapp/eqMac.git"
+        },
+        {
+          "owner": "jaredestroud",
+          "repo": "mquery",
+          "url": "https://github.com/jaredestroud/mquery.git"
+        },
+        {
+          "owner": "msky026",
+          "repo": "30nichideosjisaku",
+          "url": "https://github.com/msky026/30nichideosjisaku.git"
+        },
+        {
+          "owner": "tokyo-metropolitan-gov",
+          "repo": "covid19",
+          "url": "https://github.com/tokyo-metropolitan-gov/covid19.git"
+        },
+        {
+          "owner": "yaneurao",
+          "repo": "YaneuraOu",
+          "url": "https://github.com/yaneurao/YaneuraOu.git"
+        },
+        {
+          "owner": "zplug",
+          "repo": "zplug",
+          "url": "https://github.com/zplug/zplug.git"
+        }
+      ]
+    }
+  ]
+}

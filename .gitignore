@@ -26,7 +26,6 @@
 !/Brewfile
 !/README.md
 !/dotfiles.zsh
-!/favorite-repos.txt
 !/diffs.jsonl
 !/messages.json
 
@@ -72,10 +71,9 @@
 !.local/bin/*.zsh
 !.local/bin/*.py
 !.local/bin/*.zh
-!.local/share/
-!.local/share/*
-
-# ===== .local/share 配下(スクリプト類のみ)=====
+# ===== .local/share (favorite-repos.json のみ) =====
+.local/share/*
+!.local/share/favorite-repos.json
 
 # ===== .docs =====
 !.docs/
@@ -108,7 +106,6 @@
 .config/zsh/.antidote/.editorconfig
 .config/zsh/.antidote/makefile
 .config/cmus/
-.local/share/
 .local/state/
 .local/bin/keychain_passwords.org
 .local/bin/rvcmd

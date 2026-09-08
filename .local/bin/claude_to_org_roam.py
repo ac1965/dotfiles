@@ -345,7 +345,12 @@ def build_org_roam_file(conv: dict, conv_id: str, node_id: str, taxonomy: dict, 
 # --- ファイル名 / 重複判定 ----------------------------------------------------
 
 def slugify(text: str) -> str:
+    # NFKDでラテン文字のアクセント記号を分離してから除去するが、そのままだと
+    # 日本語の濁点/半濁点も分離されて \w にマッチせず消えてしまう(表示崩れの原因)。
+    # NFCで再合成してから除去することでカナの濁点/半濁点を保持する。
     text = unicodedata.normalize('NFKD', text)
+    text = re.sub(r'[̀-ͯ]', '', text)
+    text = unicodedata.normalize('NFC', text)
     text = re.sub(r'[^\w\s-]', '', text, flags=re.UNICODE).strip().lower()
     text = re.sub(r'[-\s]+', '-', text)
     return text[:60].strip('-') or 'untitled'

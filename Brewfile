@@ -13,10 +13,20 @@ brew "aria2"
 brew "asciinema"
 # Spell checker with better logic than ispell
 brew "aspell"
-# Tool for generating GNU Standards-compliant Makefiles
-brew "automake"
+# Message bus system, providing inter-application communication
+brew "dbus"
 # Core application library for C
 brew "glib"
+# X.Org: Core X11 protocol client library
+brew "libx11"
+# X.Org: Library for common extensions to the X11 protocol
+brew "libxext"
+# Tool for generating GNU Standards-compliant Makefiles
+brew "automake"
+# Generate compilation database for clang tooling
+brew "bear"
+# X.Org: Library for the Render Extension to the X11 protocol
+brew "libxrender"
 # GNU multiple precision arithmetic library
 brew "gmp"
 # C library for multiple-precision floating-point computations
@@ -27,24 +37,26 @@ brew "libmpc"
 brew "gcc"
 # Package compiler and linker metadata toolkit
 brew "pkgconf"
-# Interpreted, interactive, object-oriented programming language
-brew "python@3.14"
 # Next-gen compiler infrastructure
 brew "llvm"
+# Interpreted, interactive, object-oriented programming language
+brew "python@3.14"
 # Run a SQL like language to perform queries on C/C++ files
 brew "clangql"
 # Cross-platform make
 brew "cmake"
 # GNU File, Shell, and Text utilities
 brew "coreutils"
+# Static analysis of C and C++ code
+brew "cppcheck"
+# Tool for browsing source code
+brew "cscope"
 # Reimplementation of ctags(1)
 brew "ctags", link: false
 # Utilities for .cue and .toc files
 brew "cuetools"
 # Get a file from an HTTP, HTTPS or FTP server
 brew "curl"
-# Message bus system, providing inter-application communication
-brew "dbus"
 # Library and utilities for processing GIFs
 brew "giflib"
 # Color management engine supporting ICC profiles
@@ -89,6 +101,8 @@ brew "gopls"
 brew "librsvg"
 # Graph visualization software from AT&T and Bell Labs
 brew "graphviz"
+# Toolkit for creating graphical user interfaces
+brew "gtk+3"
 # Smarter Dockerfile linter to validate best practices
 brew "hadolint"
 # Configurable static site generator
@@ -111,6 +125,8 @@ brew "libiconv"
 brew "libsndfile"
 # GNOME XML library
 brew "libxml2"
+# X.Org: X Toolkit Intrinsics library
+brew "libxt"
 # Music engraving system
 brew "lilypond"
 # Access large language models from the command-line
@@ -122,7 +138,7 @@ brew "mas"
 # Open-source, cross-platform JavaScript runtime environment
 brew "node"
 # CLI for Mermaid library
-brew "mermaid-cli", link: false
+brew "mermaid-cli"
 # Small build system for use with gyp or CMake
 brew "ninja"
 # Fast and user friendly build system
@@ -187,6 +203,8 @@ brew "qt"
 brew "rbenv"
 # Search tool like grep and The Silver Searcher
 brew "ripgrep"
+# Utility that provides fast incremental file transfer
+brew "rsync"
 # Extremely fast Python linter, written in Rust
 brew "ruff"
 # Safe, concurrent, practical language
@@ -280,6 +298,7 @@ mas "Spark", id: 1176895641
 mas "Userscripts", id: 1463298887
 mas "Xcode", id: 497799835
 uv "aider-chat", with: ["pip"]
+npm "@magnitudedev/cli"
 npm "@mermaid-js/mermaid-cli"
 npm "@openai/codex"
 npm "@zed-industries/claude-agent-acp"

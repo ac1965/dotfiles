@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env zsh
 # biometric_auth.sh — LocalAuthentication経由で生体認証し、
 #                     成功時にKeychainからパスフレーズを取得してfd:3に渡す
 # 依存: swift (Xcode CLT), security コマンド

@@ -1,20 +1,14 @@
-#!/usr/bin/env bash
+#!/usr/bin/env zsh
 #
 # capture-ocr-pipeline.sh
 #
 # HDMI capture card → screenshot (manual trigger) → OCR → CSV
 # - Enter key triggers each capture (synchronized with manual page-flipping)
 # - Batch OCR after capture session ends
-# - macOS / Linux 対応（Bash 3.2+ 互換）
+# - macOS / Linux 対応
 #
 
 set -euo pipefail
-
-# Bash 3.2+ compatibility check (macOS default is 3.2)
-if [[ -z "${BASH_VERSION:-}" ]]; then
-	echo "ERROR: This script requires bash" >&2
-	exit 1
-fi
 
 readonly SCRIPT_NAME="${0##*/}"
 readonly LOCK_FILE="/tmp/${SCRIPT_NAME%.sh}.lock"
@@ -227,7 +221,9 @@ capture_loop() {
 		fi
 
 		local input
-		read -rp "$prompt" input || {
+		# zsh の `read -p` は bash と異なりコプロセスからの読み込みを意味するため、
+		# プロンプト表示には `read name?prompt` 構文を使う。
+		read -r "input?$prompt" || {
 			echo
 			break
 		}
@@ -248,7 +244,7 @@ capture_loop() {
 				if [[ "$EXPECTED_COUNT" -gt 0 ]] && [[ "$count" -ge "$EXPECTED_COUNT" ]]; then
 					echo
 					local yn
-					read -rp "Reached expected count ($EXPECTED_COUNT). Continue? (y/N) > " yn
+					read -r "yn?Reached expected count ($EXPECTED_COUNT). Continue? (y/N) > "
 					case "$yn" in
 					[yY]*) ;;
 					*) break ;;
@@ -300,7 +296,7 @@ capture_loop() {
 # ================================================================
 
 batch_ocr() {
-	# Bash 3.2 compatible: avoid `mapfile` (Bash 4+)
+	# mapfile/readarray はzshに存在しないため使わない
 	local images=()
 	local f
 	while IFS= read -r f; do
@@ -356,7 +352,7 @@ batch_ocr() {
 		ok=$((ok + 1))
 	done
 
-	# Combined CSV (Bash 3.2 compatible: use find instead of brace glob with cat)
+	# Combined CSV (ファイル数が多くても壊れないよう find + sort で列挙)
 	local combined="$CSV_DIR/_combined.csv"
 	: >"$combined"
 	local c

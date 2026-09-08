@@ -1,3 +1,4 @@
+#!/usr/bin/env zsh
 # ① 英数字+記号 94種、20文字（最高エントロピー）
 LC_ALL=C tr -dc 'A-Za-z0-9!@#$%^&*()-_=+[]{}|;:,.<>?' </dev/urandom | head -c 20; echo
 

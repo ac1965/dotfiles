@@ -75,7 +75,6 @@ fetch_all_repo_names() {
     local username="$1"
     local page=1
     local http_status
-    local body
     local tmp_response
     local tmp_buffer
     local endpoint
@@ -109,18 +108,20 @@ fetch_all_repo_names() {
                 exit 2
             fi
 
-            body="$(cat "$tmp_response")"
+            # jq には $tmp_response を直接読ませる（echo/変数経由だと、zsh の
+            # 組み込み echo がデフォルトで \n 等をバックスラッシュ解釈してしまい、
+            # レスポンス中の JSON エスケープを破壊して jq のパースが壊れるため）。
 
             # 配列が空になったらページング終了
-            if [[ "$(echo "$body" | jq 'length')" -eq 0 ]]; then
+            if [[ "$(jq 'length' "$tmp_response")" -eq 0 ]]; then
                 break
             fi
 
             # 必要なフィールドだけに絞り込み、ページごとに NDJSON として貯める
-            echo "$body" | jq -c '.[] | {name, full_name, html_url, private, fork}' >> "$tmp_buffer"
+            jq -c '.[] | {name, full_name, html_url, private, fork}' "$tmp_response" >> "$tmp_buffer"
 
             # per_page 未満の件数しか返らなければ最終ページ
-            if [[ "$(echo "$body" | jq 'length')" -lt "$PER_PAGE" ]]; then
+            if [[ "$(jq 'length' "$tmp_response")" -lt "$PER_PAGE" ]]; then
                 break
             fi
 

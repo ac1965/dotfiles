@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env zsh
 #
 # build-emacs-macos.sh
 #
@@ -14,6 +14,11 @@
 #
 
 set -Eeuo pipefail
+
+# zsh は関数に入ると $0 を関数名に差し替える(FUNCTION_ARGZERO 既定 on)ため、
+# usage() 内で "$0" を直接参照するとスクリプト名ではなく "usage" になる。
+# トップレベルのうちに退避しておく。
+typeset -r SCRIPT_NAME="${0:t}"
 
 # ============================================================
 # Options
@@ -31,7 +36,7 @@ OBJ_DIR=""
 
 usage() {
 	cat <<EOF
-Usage: $(basename "$0") [OPTIONS]
+Usage: ${SCRIPT_NAME} [OPTIONS]
 
 Options:
   -b, --build-dir DIR         インストール先 (--prefix) を指定 (default: $HOME/.local)
@@ -356,7 +361,8 @@ CORES="$(sysctl -n hw.physicalcpu)"
 # OBJ_DIR は次回実行時に rm -rf されるため、ログは独立した
 # 永続ディレクトリ(LOG_DIR)に保存する。
 # tee を pipefail 下で使うため、make の終了コードは
-# PIPESTATUS[0] で明示的に拾い、失敗時はログの場所を案内して即終了する。
+# pipestatus[1] で明示的に拾い、失敗時はログの場所を案内して即終了する。
+# (zsh の pipestatus は 1-indexed。bash の PIPESTATUS[0] 相当)
 LOGFILE="$LOG_DIR/build-$(date +%Y%m%d-%H%M%S).log"
 echo "Build log: $LOGFILE"
 
@@ -380,7 +386,7 @@ heading "Building lib / lib-src / src / doc-misc serially (race avoidance)"
 	make -C src
 	make -C doc/misc info
 } 2>&1 | tee "$LOGFILE"
-PRELIM_STATUS="${PIPESTATUS[0]}"
+PRELIM_STATUS="${pipestatus[1]}"
 
 if [[ "$PRELIM_STATUS" -ne 0 ]]; then
 	echo "❌ preliminary serial build failed (exit $PRELIM_STATUS). See log: $LOGFILE" >&2
@@ -390,7 +396,7 @@ fi
 heading "Building the rest in parallel"
 
 make -j"$CORES" 2>&1 | tee -a "$LOGFILE"
-BUILD_STATUS="${PIPESTATUS[0]}"
+BUILD_STATUS="${pipestatus[1]}"
 
 if [[ "$BUILD_STATUS" -ne 0 ]]; then
 	echo "❌ make failed (exit $BUILD_STATUS). See log: $LOGFILE" >&2
@@ -408,7 +414,7 @@ heading "Installing"
 # 「make」(all)だけではバイナリとplist骨格しか作られないため、
 # この install ステップは省略できない。
 make install 2>&1 | tee -a "$LOGFILE"
-INSTALL_STATUS="${PIPESTATUS[0]}"
+INSTALL_STATUS="${pipestatus[1]}"
 
 if [[ "$INSTALL_STATUS" -ne 0 ]]; then
 	echo "❌ make install failed (exit $INSTALL_STATUS). See log: $LOGFILE" >&2

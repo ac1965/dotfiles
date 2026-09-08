@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env zsh
 # keychain_store.sh — パスフレーズをmacOS Keychainに登録
 # 初回セットアップ時のみ実行する
 set -euo pipefail
@@ -7,11 +7,13 @@ SERVICE="com.encrypt.aes256gcm"
 ACCOUNT="${1:-default}"          # 複数ファイル管理する場合のラベル
 
 # パスフレーズ入力（非表示）
-read -r -s -p "Passphrase to store (≥20 chars): " pp; echo >&2
+# zsh の `read -p` は bash と異なりコプロセスからの読み込みを意味するため、
+# プロンプト表示には `read name?prompt` 構文を使う。
+read -r -s "pp?Passphrase to store (≥20 chars): "; echo >&2
 if [ ${#pp} -lt 20 ]; then
   echo "❌ Too short" >&2; exit 1
 fi
-read -r -s -p "Confirm: " pp2; echo >&2
+read -r -s "pp2?Confirm: "; echo >&2
 if [ "$pp" != "$pp2" ]; then
   echo "❌ Mismatch" >&2; exit 1
 fi

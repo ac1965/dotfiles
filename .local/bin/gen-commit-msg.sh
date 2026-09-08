@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env zsh
 #
 # gen-commit-msg.sh
 #
@@ -111,7 +111,7 @@ echo "[INFO] model=$MODEL host=$HOST でメッセージを生成中..." >&2
 RESPONSE="$(curl -s -X POST "$HOST/api/generate" -d "$REQUEST_JSON")"
 
 COMMIT_MSG="$(
-  echo "$RESPONSE" | python3 -c '
+  printf '%s\n' "$RESPONSE" | python3 -c '
 import json, sys
 data = json.load(sys.stdin)
 text = data.get("response", "").strip()
@@ -129,12 +129,12 @@ print(text)
 
 if [[ -z "$COMMIT_MSG" ]]; then
   echo "[ERROR] メッセージの生成に失敗しました。Ollamaの応答:" >&2
-  echo "$RESPONSE" >&2
+  printf '%s\n' "$RESPONSE" >&2
   exit 1
 fi
 
 echo "----------------------------------------"
-echo "$COMMIT_MSG"
+printf '%s\n' "$COMMIT_MSG"
 echo "----------------------------------------"
 
 # --- コミット実行(任意) -------------------------------------------------

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env zsh
 
 if [ $# = 0 ]; then
     echo $0 theme

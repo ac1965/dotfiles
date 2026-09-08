@@ -36,7 +36,8 @@ macOS 用の個人 dotfiles。`dotfiles.zsh` が **リポジトリ → `$HOME`**
 
 既存スクリプト（`hub-clone.sh`, `hub-repos.sh`, `clone-favorite-repos.sh` など）の作法に合わせる:
 
-- shebang は `#!/usr/bin/env zsh`（一部 bash 製もあるが zsh が基本）。
+- shebang は `#!/usr/bin/env zsh`。zsh は関数内で `$0` が関数名に化ける（`FUNCTION_ARGZERO`）、`read -p` はプロンプト表示ではなくコプロセス読み込みを意味する、bash の `PIPESTATUS` 配列が無く `pipestatus`（小文字・1-indexed）を使う、といった bash との違いがあるので、bash から移植する際は要注意。
+- **`echo "$var"` は使わない。** zsh の組み込み `echo` はデフォルトで `\n` 等のバックスラッシュエスケープを解釈してしまう（bash の `echo` は解釈しない）。JSON レスポンスや LLM の出力など、変数の中身に `\n`/`\"`/`\\` が含まれ得る場合、`echo "$var" | jq ...` や `echo "$var" | python3 -c 'json.load(...)'` のようにパーサへ渡すと、パース対象の文字列そのものが壊れて `Invalid control character` 等のエラーになる（実際に踏んだ不具合）。`printf '%s\n' "$var"` を使うか、可能なら変数を経由せずファイル/`jq`の引数に直接読ませる。
 - `set -o errexit / -o nounset / -o pipefail`。
 - ファイル先頭に日本語コメントで用途・使い方・必須/任意環境変数を書く。
 - `log_info()` / `log_error()` / `usage()` / `require_command()` のような小さなヘルパーを定義し、標準エラーへのログは `❌ [${SCRIPT_NAME}] ...` の形式。

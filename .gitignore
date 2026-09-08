@@ -25,6 +25,7 @@
 !/.Brewfile
 !/Brewfile
 !/README.md
+!/AGENTS.md
 !/dotfiles.zsh
 !/diffs.jsonl
 !/messages.json

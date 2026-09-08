@@ -1,11 +1,15 @@
 #!/usr/bin/env zsh
 #
-# list_github_repos.sh
-# 指定した GitHub ユーザーのリポジトリ名一覧を取得する
+# hub-repos.sh
+# 指定した GitHub ユーザーのリポジトリ一覧を JSON 配列で取得する
 #
 # 使い方:
-#   GITHUB_TOKEN=xxxx ./list_github_repos.sh [username]
+#   GITHUB_TOKEN=xxxx ./hub-repos.sh [username]
 #   環境変数 SNS_USERNAME でユーザー名を指定することも可能
+#
+# 出力:
+#   標準出力に JSON 配列を1つ出力する。各要素は
+#   {name, full_name, html_url, private, fork} を持つオブジェクト。
 #
 # 必須環境変数:
 #   GITHUB_TOKEN   - GitHub Personal Access Token
@@ -73,48 +77,61 @@ fetch_all_repo_names() {
     local http_status
     local body
     local tmp_response
+    local tmp_buffer
     local endpoint
 
     tmp_response="$(mktemp)"
-    trap 'rm -f "$tmp_response"' EXIT
+    tmp_buffer="$(mktemp)"
 
-    while true; do
-        endpoint="${GITHUB_APIURL}/users/${username}/repos?per_page=${PER_PAGE}&page=${page}&type=${REPO_TYPE}"
+    # `trap ... EXIT` はスクリプト全体の終了時に発火するため、この関数の
+    # local 変数（tmp_response/tmp_buffer）はその時点で既にスコープ外になり
+    # nounset エラーで落ちる（＝成功時も呼び出し元に失敗と誤認される）。
+    # 同じ関数スコープ内で確実にクリーンアップするため always ブロックを使う。
+    {
+        while true; do
+            endpoint="${GITHUB_APIURL}/users/${username}/repos?per_page=${PER_PAGE}&page=${page}&type=${REPO_TYPE}"
 
-        http_status="$(
-            curl -sS \
-                -u ":${GITHUB_TOKEN}" \
-                -H "Accept: application/vnd.github+json" \
-                -o "$tmp_response" \
-                -w '%{http_code}' \
-                "$endpoint"
-        )" || {
-            log_error "API 呼び出し自体に失敗しました（ネットワーク/TLS等）: ${endpoint}"
-            exit 2
-        }
+            http_status="$(
+                curl -sS \
+                    -u ":${GITHUB_TOKEN}" \
+                    -H "Accept: application/vnd.github+json" \
+                    -o "$tmp_response" \
+                    -w '%{http_code}' \
+                    "$endpoint"
+            )" || {
+                log_error "API 呼び出し自体に失敗しました（ネットワーク/TLS等）: ${endpoint}"
+                exit 2
+            }
 
-        if [[ "$http_status" != "200" ]]; then
-            log_error "API 呼び出しに失敗しました（HTTP ${http_status}）。ユーザー名またはトークンを確認してください。"
-            log_error "レスポンス: $(cat "$tmp_response")"
-            exit 2
-        fi
+            if [[ "$http_status" != "200" ]]; then
+                log_error "API 呼び出しに失敗しました（HTTP ${http_status}）。ユーザー名またはトークンを確認してください。"
+                log_error "レスポンス: $(cat "$tmp_response")"
+                exit 2
+            fi
 
-        body="$(cat "$tmp_response")"
+            body="$(cat "$tmp_response")"
 
-        # 配列が空になったらページング終了
-        if [[ "$(echo "$body" | jq 'length')" -eq 0 ]]; then
-            break
-        fi
+            # 配列が空になったらページング終了
+            if [[ "$(echo "$body" | jq 'length')" -eq 0 ]]; then
+                break
+            fi
 
-        echo "$body" | jq -r '.[].name'
+            # 必要なフィールドだけに絞り込み、ページごとに NDJSON として貯める
+            echo "$body" | jq -c '.[] | {name, full_name, html_url, private, fork}' >> "$tmp_buffer"
 
-        # per_page 未満の件数しか返らなければ最終ページ
-        if [[ "$(echo "$body" | jq 'length')" -lt "$PER_PAGE" ]]; then
-            break
-        fi
+            # per_page 未満の件数しか返らなければ最終ページ
+            if [[ "$(echo "$body" | jq 'length')" -lt "$PER_PAGE" ]]; then
+                break
+            fi
 
-        (( page++ ))
-    done
+            (( page++ ))
+        done
+
+        # 貯めた NDJSON を1つの JSON 配列にまとめて標準出力へ
+        jq -s '.' "$tmp_buffer"
+    } always {
+        rm -f "$tmp_response" "$tmp_buffer"
+    }
 }
 
 # ---------------------------------------------------------------------------

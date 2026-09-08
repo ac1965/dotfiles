@@ -1,27 +1,29 @@
 #!/usr/bin/env zsh
 #
-# clone_or_pull_repo.sh
+# hub-clone.sh
 # 指定した Git リポジトリ URL を解析し、
 #   ${GITHUB_REPOS}/<host>/<owner>/<repo>
 # 配下に clone（未取得時）または pull（既取得時）する。
 #
 # 使い方:
-#   GITHUB_REPOS=~/repos ./clone_or_pull_repo.sh https://github.com/org/repo.git
-#   T=~/repos            ./clone_or_pull_repo.sh git@github.com:org/repo.git
+#   GITHUB_REPOS=~/repos ./hub-clone.sh https://github.com/org/repo.git
+#   T=~/repos            ./hub-clone.sh git@github.com:org/repo.git
+#   (T は GITHUB_REPOS が未設定の場合のみフォールバックとして使われる)
 #
 # 必須環境変数（いずれか。GITHUB_REPOS を正式名称として推奨）:
 #   GITHUB_REPOS  - リポジトリ保存先ルート（正式名称）
 #   T             - 後方互換のための短縮エイリアス（GITHUB_REPOS 未設定時のみ参照）
 #
 # 任意環境変数:
-#   HUB_REPOS_SCRIPT - オーナーのリポジトリ名一覧を取得するスクリプトのパス
-#                       （デフォルト: ${HOME}/.bin/hub-repos.sh）
+#   HUB_REPOS_SCRIPT - オーナーのリポジトリ一覧を取得するスクリプトのパス
+#                       （デフォルト: ${HOME}/.local/bin/hub-repos.sh）
 #   GITHUB_TOKEN      - hub-repos.sh 呼び出しに使う GitHub トークン
 #                       （未設定の場合、一覧取得ステップは警告を出してスキップ）
 #
-# hub-repos.sh との連携契約（list_github_repos.sh がこの契約を満たす）:
+# hub-repos.sh との連携契約:
 #   入力: 第1引数にオーナー名（GitHub ユーザー名 / Organization 名）
-#   出力: 標準出力にリポジトリ名を1行1件、ヘッダーなしで出力
+#   出力: 標準出力に JSON 配列を1つ出力
+#         （各要素: name, full_name, html_url, private, fork）
 #   失敗時: 非ゼロ終了コード（本スクリプト側では致命扱いにせず警告のみで継続）
 #
 # 対応 URL 形式:
@@ -38,7 +40,7 @@ set -o pipefail
 # 定数
 # ---------------------------------------------------------------------------
 typeset -r SCRIPT_NAME="${0:t}"
-typeset -r HUB_REPOS_SCRIPT="${HUB_REPOS_SCRIPT:-${HOME}/.bin/hub-repos.sh}"
+typeset -r HUB_REPOS_SCRIPT="${HUB_REPOS_SCRIPT:-${HOME}/.local/bin/hub-repos.sh}"
 
 # ---------------------------------------------------------------------------
 # ユーティリティ
@@ -66,9 +68,10 @@ check_dependencies() {
 }
 
 resolve_repo_root() {
-    local root="${T:-${GITHUB_REPOS:-}}"
+    # GITHUB_REPOS を正式名称とし、T は後方互換の短縮エイリアスとして扱う
+    local root="${GITHUB_REPOS:-${T:-}}"
     if [[ -z "$root" ]]; then
-        log_error "環境変数 T または GITHUB_REPOS を設定してください。"
+        log_error "環境変数 GITHUB_REPOS（または T）を設定してください。"
         exit 1
     fi
     print -r -- "$root"
@@ -122,14 +125,26 @@ parse_git_url() {
 }
 
 # ---------------------------------------------------------------------------
-# オーナーのリポジトリ一覧を保存（hub-repos.sh が存在する場合のみ）
+# オーナーのリポジトリ一覧を JSON で保存
+# （付随的な処理のため、hub-repos.sh が無い/失敗しても本処理は継続する）
 # ---------------------------------------------------------------------------
 save_owner_repo_list() {
     local owner="$1"
     local dest_dir="$2"
+    local out_file="${dest_dir}/repos-${owner}.json"
 
-    if [[ -x "$HUB_REPOS_SCRIPT" ]]; then
-        "$HUB_REPOS_SCRIPT" "$owner" > "${dest_dir}/repos-${owner}.txt"
+    if [[ ! -x "$HUB_REPOS_SCRIPT" ]]; then
+        return 0
+    fi
+
+    if [[ -z "${GITHUB_TOKEN:-}" ]]; then
+        log_info "GITHUB_TOKEN 未設定のため、リポジトリ一覧の取得をスキップします。"
+        return 0
+    fi
+
+    if ! "$HUB_REPOS_SCRIPT" "$owner" > "$out_file"; then
+        log_error "hub-repos.sh の実行に失敗しました（一覧取得のみスキップして続行します）: ${owner}"
+        rm -f "$out_file"
     fi
 }
 

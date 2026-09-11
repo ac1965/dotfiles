@@ -1,0 +1,209 @@
+#!/usr/bin/env bash
+#
+# localllm — ローカル Ollama モデルへのルーター
+#
+# Emacs (my/llm-run) など、あらゆる呼び出し元から共通で使う入口。
+# 判定ロジック:
+#   1. --task が指定されていればそれを最優先
+#   2. 画像の手がかり（--image 指定 or プロンプト中の画像パス）があれば vision
+#   3. coding / agent キーワードのルールベース判定
+#   4. どれにも該当しなければ general にフォールバック
+#
+# 仕様の詳細は AGENTS.md（llm-router プロジェクト）を参照。
+
+set -euo pipefail
+
+# --- タスク種別 → Ollama モデル名 -------------------------------------------
+MODEL_GENERAL="${LLM_MODEL_GENERAL:-qwen3:14b}"
+MODEL_CODING="${LLM_MODEL_CODING:-qwen3-coder}"
+MODEL_AGENT="${LLM_MODEL_AGENT:-hf.co/LiquidAI/LFM2.5-8B-A1B-GGUF:Q4_K_M}"
+MODEL_VISION="${LLM_MODEL_VISION:-qwen2.5vl}"
+
+# GUI 経由で起動された Emacs は PATH が貧弱なことがあるため、見つからなければ
+# Homebrew の既定パスにフォールバックする。
+OLLAMA_BIN="${OLLAMA_BIN:-$(command -v ollama 2>/dev/null || echo /usr/local/bin/ollama)}"
+
+usage() {
+  cat <<'EOF'
+使い方: localllm [OPTIONS] [PROMPT...]
+
+OPTIONS:
+  --task {general,coding,agent,vision}  ルーティング先を明示指定する
+  --image PATH                          画像ファイルを添付する（vision 判定のヒントにもなる）
+  --model NAME                          決定したモデル名を上書きする（デバッグ用）
+  --dry-run                             実行せず判定結果（task/model）だけを表示する
+  --show-route                          判定結果（task/model/reason）を stderr に表示してから実行する
+  -v, --verbose                         判定過程を stderr に出す
+  -h, --help                            このヘルプを表示する
+
+PROMPT は引数として渡すか、省略時は標準入力から読み込む。
+EOF
+}
+
+TASK=""
+IMAGE=""
+MODEL_OVERRIDE=""
+DRY_RUN=0
+SHOW_ROUTE=0
+VERBOSE=0
+PROMPT_ARGS=()
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --task)
+      TASK="$2"; shift 2 ;;
+    --task=*)
+      TASK="${1#*=}"; shift ;;
+    --image)
+      IMAGE="$2"; shift 2 ;;
+    --image=*)
+      IMAGE="${1#*=}"; shift ;;
+    --model)
+      MODEL_OVERRIDE="$2"; shift 2 ;;
+    --model=*)
+      MODEL_OVERRIDE="${1#*=}"; shift ;;
+    --dry-run)
+      DRY_RUN=1; shift ;;
+    --show-route)
+      SHOW_ROUTE=1; shift ;;
+    -v|--verbose)
+      VERBOSE=1; shift ;;
+    -h|--help)
+      usage; exit 0 ;;
+    --)
+      shift; PROMPT_ARGS+=("$@"); break ;;
+    -*)
+      echo "localllm: エラー: 不明なオプションです: $1" >&2
+      usage >&2
+      exit 1 ;;
+    *)
+      PROMPT_ARGS+=("$1"); shift ;;
+  esac
+done
+
+log() {
+  if [[ "$VERBOSE" -eq 1 ]]; then
+    printf 'localllm: %s\n' "$*" >&2
+  fi
+}
+
+# --- プロンプトの取得 --------------------------------------------------------
+if [[ ${#PROMPT_ARGS[@]} -gt 0 ]]; then
+  PROMPT="${PROMPT_ARGS[*]}"
+elif [[ ! -t 0 ]]; then
+  PROMPT="$(cat)"
+else
+  echo "localllm: エラー: プロンプトが指定されていません（引数または標準入力で渡してください）" >&2
+  exit 1
+fi
+
+if [[ -z "${PROMPT//[[:space:]]/}" ]]; then
+  echo "localllm: エラー: プロンプトが空です" >&2
+  exit 1
+fi
+
+# --- 画像の手がかり検出 ------------------------------------------------------
+IMAGE_EXT_RE='\.(png|jpe?g|gif|webp|bmp|tiff?)([[:space:]]|$)'
+
+has_image_hint() {
+  [[ -n "$IMAGE" ]] && return 0
+  grep -Eqi "$IMAGE_EXT_RE" <<<"$PROMPT"
+}
+
+# --- coding / agent のルールベース判定 --------------------------------------
+CODING_RE='```|diff --git a/|^\+\+\+ |^--- |\.(py|el|js|ts|tsx|jsx|rb|go|rs|sh|c|cpp|hpp|java|kt|swift)\b'
+CODING_RE="${CODING_RE}|実装して|リファクタ|バグ|関数|デバッグ|コンパイル|コードレビュー|エラー"
+CODING_RE="${CODING_RE}|コード|修正して|直して|プログラム"
+CODING_RE="${CODING_RE}|refactor|implement|stack ?trace|compile error|fix (the|this) code"
+
+AGENT_RE='ツールを呼|ツール呼び出し|実行して|コマンドを実行|検索して|ファイルを開いて'
+AGENT_RE="${AGENT_RE}|function[_ ]call|tool[_ ]call|\"tool\"[[:space:]]*:|\"function\"[[:space:]]*:"
+AGENT_RE="${AGENT_RE}|call the .* tool|run the command"
+
+looks_like_coding() {
+  grep -Eqi "$CODING_RE" <<<"$PROMPT"
+}
+
+looks_like_agent() {
+  grep -Eqi "$AGENT_RE" <<<"$PROMPT"
+}
+
+# --- ルーティング決定 --------------------------------------------------------
+if [[ -n "$TASK" ]]; then
+  REASON="explicit --task"
+  log "task explicitly set via --task: $TASK"
+elif has_image_hint; then
+  TASK="vision"
+  REASON="image detected"
+  log "image hint detected -> vision"
+elif looks_like_coding; then
+  TASK="coding"
+  REASON="code-related prompt"
+  log "coding keyword matched -> coding"
+elif looks_like_agent; then
+  TASK="agent"
+  REASON="tool/agent-style request"
+  log "agent keyword matched -> agent"
+else
+  TASK="general"
+  REASON="no rule matched (fallback)"
+  log "no rule matched -> general (fallback)"
+fi
+
+case "$TASK" in
+  general|coding|agent|vision) ;;
+  *)
+    echo "localllm: エラー: 不明な --task 値です: $TASK (general|coding|agent|vision のいずれか)" >&2
+    exit 1
+    ;;
+esac
+
+case "$TASK" in
+  general) MODEL="$MODEL_GENERAL" ;;
+  coding)  MODEL="$MODEL_CODING" ;;
+  agent)   MODEL="$MODEL_AGENT" ;;
+  vision)  MODEL="$MODEL_VISION" ;;
+esac
+
+if [[ -n "$MODEL_OVERRIDE" ]]; then
+  log "model overridden: $MODEL -> $MODEL_OVERRIDE"
+  MODEL="$MODEL_OVERRIDE"
+fi
+
+# vision タスクで --image が指定された場合、Ollama CLI はプロンプト文字列中の
+# 画像パスを自動検出するため、パスをプロンプト末尾に追記して渡す。
+if [[ "$TASK" == "vision" && -n "$IMAGE" ]]; then
+  PROMPT="${PROMPT}"$'\n'"${IMAGE}"
+fi
+
+if [[ "$SHOW_ROUTE" -eq 1 ]]; then
+  {
+    printf 'task     : %s\n' "$TASK"
+    printf 'model    : %s\n' "$MODEL"
+    printf 'reason   : %s\n' "$REASON"
+  } >&2
+fi
+
+if [[ "$DRY_RUN" -eq 1 ]]; then
+  printf 'task=%s model=%s\n' "$TASK" "$MODEL"
+  exit 0
+fi
+
+log "routing to model: $MODEL (task: $TASK)"
+
+# `ollama run` の対話用レンダラーは、stdout が非 TTY でも進捗スピナーや
+# カーソル制御用の ANSI エスケープシーケンスを stderr 経由で出し続ける。
+# --nowordwrap で応答本文への re-wrap 用エスケープ混入を止めた上で、
+# stderr は別途キャプチャし、失敗時のみ呼び出し元の stderr へ転送する
+# （成功時に捨てるのは、その大半が上記の進捗表示だから）。
+errfile="$(mktemp "${TMPDIR:-/tmp}/llm-router-err.XXXXXX")"
+trap 'rm -f "$errfile"' EXIT
+
+status=0
+"$OLLAMA_BIN" run "$MODEL" --nowordwrap <<<"$PROMPT" 2>"$errfile" || status=$?
+
+if [[ "$status" -ne 0 ]]; then
+  cat "$errfile" >&2
+fi
+
+exit "$status"

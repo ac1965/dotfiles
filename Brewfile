@@ -1,4 +1,4 @@
-tap "akicho8/shogi"
+tap "akicho8/shogi", trusted: { formulae: ["suisho", "yaneuraou"] }
 tap "jorgelbg/tap"
 tap "laishulu/homebrew", trusted: true
 # Simple, modern, secure file encryption
@@ -37,12 +37,6 @@ brew "libmpc"
 brew "gcc"
 # Package compiler and linker metadata toolkit
 brew "pkgconf"
-# Next-gen compiler infrastructure
-brew "llvm"
-# Interpreted, interactive, object-oriented programming language
-brew "python@3.14"
-# Run a SQL like language to perform queries on C/C++ files
-brew "clangql"
 # Cross-platform make
 brew "cmake"
 # GNU File, Shell, and Text utilities
@@ -51,8 +45,6 @@ brew "coreutils"
 brew "cppcheck"
 # Tool for browsing source code
 brew "cscope"
-# Reimplementation of ctags(1)
-brew "ctags", link: false
 # Utilities for .cue and .toc files
 brew "cuetools"
 # Get a file from an HTTP, HTTPS or FTP server
@@ -79,8 +71,6 @@ brew "fzf"
 brew "gawk"
 # GitHub command-line tool
 brew "gh"
-# Multi-platform software reverse engineering framework
-brew "ghidra", link: false
 # OCR (Optical Character Recognition) engine
 brew "tesseract"
 # Distributed revision control system
@@ -89,12 +79,12 @@ brew "git"
 brew "git-filter-repo"
 # Git extension for versioning large files
 brew "git-lfs"
+# GNU implementation of the famous stream editor
+brew "gnu-sed"
 # GNU Transport Layer Security (TLS) Library
 brew "gnutls"
 # GNU Privacy Guard (OpenPGP)
 brew "gnupg"
-# GNU implementation of the famous stream editor
-brew "gnu-sed"
 # Language server for the Go language
 brew "gopls"
 # Library to render SVG files using Cairo
@@ -109,8 +99,8 @@ brew "hadolint"
 brew "hugo"
 # Tools and libraries to manipulate images in select formats
 brew "imagemagick"
-# Synchronize a maildir with an IMAP server
-brew "isync"
+# Interpreted, interactive, object-oriented programming language
+brew "python@3.14"
 # C library for encoding, decoding, and manipulating JSON
 brew "jansson"
 # LaTeX to XML/HTML/MathML Converter
@@ -131,6 +121,8 @@ brew "libxt"
 brew "lilypond"
 # Access large language models from the command-line
 brew "llm"
+# Next-gen compiler infrastructure
+brew "llvm"
 # Swiss Army knife of email handling
 brew "mailutils"
 # Mac App Store command-line interface
@@ -147,8 +139,6 @@ brew "meson"
 brew "yt-dlp"
 # Media player based on MPlayer and mplayer2
 brew "mpv"
-# SMTP client that can be used as an SMTP plugin for Mutt
-brew "msmtp"
 # Lightweight PDF and XPS viewer
 brew "mupdf"
 # Text-based UI library
@@ -159,8 +149,6 @@ brew "tree-sitter"
 brew "neovim"
 # Network Kanji code conversion Filter (NKF)
 brew "nkf"
-# Thread-based email index, search, and tagging
-brew "notmuch"
 # Adds an OCR text layer to scanned PDF files
 brew "ocrmypdf"
 # Open source computer vision library
@@ -215,8 +203,6 @@ brew "rustup"
 brew "sevenzip"
 # Autoformat shell script source code
 brew "shfmt"
-# Multi-purpose tool for manipulating and analyzing WAV files
-brew "shntool"
 # SOund eXchange: universal sound sample translator
 brew "sox"
 # Tool to create intelligent and beautiful documentation
@@ -237,8 +223,6 @@ brew "uv"
 brew "watchexec"
 # Internet file retriever
 brew "wget"
-# Formatter for python code
-brew "yapf"
 # General-purpose lossless data-compression library
 brew "zlib"
 # Custom GPG pinentry program for macOS that allows using Touch ID for fetching the password from
@@ -269,7 +253,8 @@ cask "libreoffice"
 cask "mactex-no-gui"
 # Limitless clipboard
 cask "paste"
-cask "shogi-home"
+# ShogiHome は Windows・macOS・Linux で動作する次世代のGUI将棋アプリです。
+cask "akicho8/shogi/shogi-home", trusted: true
 # Quicklook extension for source files
 cask "syntax-highlight"
 # Virtual pet MMO

@@ -55,6 +55,8 @@
 !.config/zsh/.antidote/**
 !.config/kew/
 !.config/kew/kewrc
+!.config/macos-defaults/
+!.config/macos-defaults/domains.txt
 
 # doom / emacs はサブモジュールまたは別管理の場合あり(必要に応じて調整)
 !.config/doom

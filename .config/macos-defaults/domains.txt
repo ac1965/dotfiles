@@ -1,0 +1,26 @@
+# macOS defaults.zsh の backup-all / restore-all が対象にするドメイン一覧。
+# '#' 始まりの行と空行は無視される。1行1ドメイン。
+# ここに書くのはドメイン名だけで、実データ(plist)は含まない。実データは
+# private archive 側(.local/state/mac-defaults-backup)で暗号化して管理する。
+# 追加/削除は自由に行ってよい。
+
+# Dock(位置・自動非表示・アイコンサイズ・Mission Control)
+com.apple.dock
+
+# Finder(表示形式・隠しファイル表示・サイドバー)
+com.apple.finder
+
+# トラックパッド(タップ・ジェスチャー)
+com.apple.AppleMultitouchTrackpad
+
+# 入力ソース切り替え(英数/かな 等のショートカット)
+com.apple.HIToolbox
+
+# スクリーンショットの保存先・形式
+com.apple.screencapture
+
+# キーボードショートカットのカスタマイズ
+com.apple.symbolichotkeys
+
+# キーリピート速度・外観(ダーク/ライト)等のグローバル設定
+NSGlobalDomain

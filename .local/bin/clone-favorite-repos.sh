@@ -120,7 +120,12 @@ list_categories() {
 
 # ---------------------------------------------------------------------------
 # hub-repos.sh の出力（{owner,repo,url} の配列）を favorite-repos.json の
-# 指定カテゴリにマージする（url が一致するものは重複排除）
+# 指定カテゴリに反映する。
+#
+# 単純な url 和集合ではなく、「インポート対象に含まれる owner 分だけ」を
+# 最新状態に置き換える（＝その owner が GitHub 上で削除/リネームしたリポジトリは
+# favorite-repos.json 側からも削除される）。同じカテゴリ内に他 owner の
+# エントリが混在していても、それらは一切変更しない。
 # ---------------------------------------------------------------------------
 import_repos() {
     local owner="$1" json_path="$2" category="$3" favorite_json="$4" dryrun="$5"
@@ -147,27 +152,71 @@ import_repos() {
         category="$(jq -r '.[0].owner' <<< "$import_data")"
     fi
 
+    # 追加/削除される予定のエントリを算出する（dry-run 表示・通常ログ共通）
+    # add:      新規取得データのうち、既存カテゴリにまだ無い url
+    # remove:   既存カテゴリのうち、インポート対象 owner に属していて、
+    #           今回の取得結果に url が見当たらなくなったもの（＝ owner が
+    #           GitHub 上で削除/リネームしたリポジトリ）
+    # existing: 既存カテゴリの現在件数（ログ表示用）
+    local diff
+    diff="$(jq --argjson new "$import_data" --arg cat "$category" '
+        ((.repos[] | select(.category == $cat) | .repos) // []) as $existing
+        | ($new | map(.owner) | unique) as $owners
+        | ($new | map(.url)) as $newUrls
+        | ($existing | map(.url)) as $existingUrls
+        | {
+            existing: ($existing | length),
+            add: ($new | map(select(
+                . as $item | ($existingUrls | index($item.url) | not)
+            ))),
+            remove: ($existing | map(select(
+                . as $item
+                | ($owners | index($item.owner))
+                  and ($newUrls | index($item.url) | not)
+            )))
+          }
+    ' "$favorite_json")"
+
+    local existing_count add_count remove_count
+    existing_count="$(jq '.existing' <<< "$diff")"
+    add_count="$(jq '.add | length' <<< "$diff")"
+    remove_count="$(jq '.remove | length' <<< "$diff")"
+
     if (( dryrun )); then
-        log_info "[dry-run] カテゴリ「${category}」に ${count} 件を取り込み予定:"
-        jq -r '.[] | "  - \(.owner)/\(.repo) (\(.url))"' <<< "$import_data"
+        log_info "[dry-run] カテゴリ「${category}」（現在 ${existing_count} 件）"
+        log_info "[dry-run] 追加予定: ${add_count} 件"
+        jq -r '.add[] | "  + \(.owner)/\(.repo) (\(.url))"' <<< "$diff"
+        log_info "[dry-run] 削除予定: ${remove_count} 件（GitHub 側で見当たらなくなったもの）"
+        jq -r '.remove[] | "  - \(.owner)/\(.repo) (\(.url))"' <<< "$diff"
         return
     fi
 
-    log_info "カテゴリ「${category}」に ${count} 件をマージします → ${favorite_json}"
+    log_info "カテゴリ「${category}」: 追加 ${add_count} 件 / 削除 ${remove_count} 件 → ${favorite_json}"
 
     local tmp
     tmp="$(mktemp)"
     {
         jq --argjson new "$import_data" --arg cat "$category" '
-            if (.repos | any(.category == $cat)) then
+            ($new | map(.owner) | unique) as $owners
+            | ($new | map(.url)) as $newUrls
+            | if (.repos | any(.category == $cat)) then
                 .repos |= map(
                     if .category == $cat then
-                        .repos = ((.repos + $new) | unique_by(.url))
+                        .repos = (
+                            (
+                                (.repos | map(select(
+                                    . as $item
+                                    | ($owners | index($item.owner) | not)
+                                      or ($newUrls | index($item.url))
+                                )))
+                                + $new
+                            ) | unique_by(.url)
+                        )
                     else . end
                 )
-            else
+              else
                 .repos += [{category: $cat, repos: ($new | unique_by(.url))}]
-            end
+              end
         ' "$favorite_json" > "$tmp"
         mv "$tmp" "$favorite_json"
     } always {

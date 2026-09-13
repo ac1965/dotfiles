@@ -17,13 +17,13 @@
 # 任意環境変数:
 #   HUB_REPOS_SCRIPT - オーナーのリポジトリ一覧を取得するスクリプトのパス
 #                       （デフォルト: ${HOME}/.local/bin/hub-repos.sh）
-#   GITHUB_TOKEN      - hub-repos.sh 呼び出しに使う GitHub トークン
-#                       （未設定の場合、一覧取得ステップは警告を出してスキップ）
 #
 # hub-repos.sh との連携契約:
 #   入力: 第1引数にオーナー名（GitHub ユーザー名 / Organization 名）
 #   出力: 標準出力に JSON 配列を1つ出力
-#         （各要素: name, full_name, html_url, private, fork）
+#         （各要素: owner, repo, url ─ favorite-repos.json の repos[].repos[]
+#           要素と同形。clone-favorite-repos.sh --import-* で取り込める）
+#   認証: GitHub CLI (gh) の認証情報を利用する（事前に `gh auth login` を実行）
 #   失敗時: 非ゼロ終了コード（本スクリプト側では致命扱いにせず警告のみで継続）
 #
 # 対応 URL 形式:
@@ -31,6 +31,8 @@
 #   http://host/owner/repo(.git)
 #   git@host:owner/repo(.git)
 #   ssh://git@host/owner/repo(.git)
+#   上記に GitHub Web UI のパス（/tree/<branch>, /blob/<branch>/<path> 等）が
+#   付いた URL（ブラウザからコピーした URL）にも対応し、余分な部分は無視する。
 
 set -o errexit
 set -o nounset
@@ -125,6 +127,25 @@ parse_git_url() {
 }
 
 # ---------------------------------------------------------------------------
+# GitHub Web UI の URL（.../tree/<branch>, .../blob/<branch>/<path> 等）を
+# そのまま `git clone` に渡すと失敗するため、host/owner/repo から
+# clone 可能な正規の URL を再構築する
+# ---------------------------------------------------------------------------
+build_clone_url() {
+    local url="$1" host="$2" owner="$3" repo="$4"
+
+    if [[ "$url" == git@*:* ]]; then
+        print -r -- "git@${host}:${owner}/${repo}.git"
+    elif [[ "$url" == ssh://* ]]; then
+        print -r -- "ssh://git@${host}/${owner}/${repo}.git"
+    elif [[ "$url" == http://* ]]; then
+        print -r -- "http://${host}/${owner}/${repo}.git"
+    else
+        print -r -- "https://${host}/${owner}/${repo}.git"
+    fi
+}
+
+# ---------------------------------------------------------------------------
 # オーナーのリポジトリ一覧を JSON で保存
 # （付随的な処理のため、hub-repos.sh が無い/失敗しても本処理は継続する）
 # ---------------------------------------------------------------------------
@@ -137,8 +158,8 @@ save_owner_repo_list() {
         return 0
     fi
 
-    if [[ -z "${GITHUB_TOKEN:-}" ]]; then
-        log_info "GITHUB_TOKEN 未設定のため、リポジトリ一覧の取得をスキップします。"
+    if ! command -v gh >/dev/null 2>&1 || ! gh auth status >/dev/null 2>&1; then
+        log_info "gh が未認証のため、リポジトリ一覧の取得をスキップします（'gh auth login' を実行してください）。"
         return 0
     fi
 
@@ -179,6 +200,9 @@ main() {
     local host owner repo
     IFS=$'\t' read -r host owner repo <<< "$(parse_git_url "$url")"
 
+    local clone_url
+    clone_url="$(build_clone_url "$url" "$host" "$owner" "$repo")"
+
     print -- "url: ${url}"
     print -- "owner: ${owner}"
     print -- "repo: ${repo}"
@@ -188,7 +212,7 @@ main() {
     print -- "repo_dir: ${dest_dir}"
 
     save_owner_repo_list "$owner" "$dest_dir"
-    clone_or_pull "$url" "$repo" "$dest_dir"
+    clone_or_pull "$clone_url" "$repo" "$dest_dir"
 }
 
 main "$@"

@@ -11,6 +11,12 @@
 #   ./clone-favorite-repos.sh --list-categories
 #   ./clone-favorite-repos.sh -n            # dry-run
 #
+#   # favorite-repos.json への取り込み（hub-repos.sh の出力を利用）
+#   ./clone-favorite-repos.sh --import-owner d12frosted              # カテゴリは owner 名になる
+#   ./clone-favorite-repos.sh --import-owner d12frosted -c emacs     # カテゴリを指定
+#   ./clone-favorite-repos.sh --import-json repos-d12frosted.json -c emacs
+#   ./clone-favorite-repos.sh --import-owner d12frosted -n           # dry-run（取り込み内容の表示のみ）
+#
 # 必須環境変数（いずれか。hub-clone.sh に準拠）:
 #   GITHUB_REPOS  - リポジトリ保存先ルート（正式名称）
 #   T             - 後方互換のための短縮エイリアス
@@ -21,6 +27,8 @@
 #                          次点で ./favorite-repos.json）
 #   HUB_CLONE_SCRIPT    - clone/pull を行うスクリプトのパス
 #                         （デフォルト: このスクリプトと同じディレクトリの hub-clone.sh）
+#   HUB_REPOS_SCRIPT    - --import-owner でリポジトリ一覧を取得するスクリプトのパス
+#                         （デフォルト: このスクリプトと同じディレクトリの hub-repos.sh）
 
 set -o errexit
 set -o nounset
@@ -36,11 +44,17 @@ usage() {
     cat <<EOF >&2
 Usage: ${SCRIPT_NAME} [-c category ...] [-n] [-j favorite-repos.json]
        ${SCRIPT_NAME} --list-categories
+       ${SCRIPT_NAME} --import-owner OWNER [-c category] [-n] [-j favorite-repos.json]
+       ${SCRIPT_NAME} --import-json PATH [-c category] [-n] [-j favorite-repos.json]
 
-  -c, --category NAME   このカテゴリのリポジトリのみ対象にする（複数指定可）
+  -c, --category NAME   [通常モード] このカテゴリのみ対象にする（複数指定可）
+                        [import モード] 取り込み先のカテゴリ（省略時は owner 名）
   -j, --json PATH       favorite-repos.json のパスを指定する
-  -n, --dry-run         clone/pull を実行せず対象を表示するのみ
+  -n, --dry-run         [通常モード] clone/pull を実行せず対象を表示するのみ
+                        [import モード] favorite-repos.json を書き換えず取り込み内容を表示するのみ
       --list-categories 利用可能なカテゴリ一覧を表示して終了する
+      --import-owner OWNER  hub-repos.sh で OWNER のリポジトリ一覧を取得し favorite-repos.json に取り込む
+      --import-json PATH    hub-repos.sh 形式（{owner,repo,url}の配列）の JSON ファイルを取り込む
   -h, --help            このヘルプを表示する
 EOF
 }
@@ -90,9 +104,77 @@ resolve_hub_clone_script() {
     print -r -- "$script"
 }
 
+resolve_hub_repos_script() {
+    local script="${HUB_REPOS_SCRIPT:-${SCRIPT_DIR}/hub-repos.sh}"
+    if [[ ! -x "$script" ]]; then
+        log_error "hub-repos.sh が見つかりません、または実行できません: ${script}"
+        exit 1
+    fi
+    print -r -- "$script"
+}
+
 list_categories() {
     local json_file="$1"
     jq -r '.repos[].category' "$json_file"
+}
+
+# ---------------------------------------------------------------------------
+# hub-repos.sh の出力（{owner,repo,url} の配列）を favorite-repos.json の
+# 指定カテゴリにマージする（url が一致するものは重複排除）
+# ---------------------------------------------------------------------------
+import_repos() {
+    local owner="$1" json_path="$2" category="$3" favorite_json="$4" dryrun="$5"
+    local import_data
+
+    if [[ -n "$owner" ]]; then
+        local hub_repos_script
+        hub_repos_script="$(resolve_hub_repos_script)"
+        log_info "hub-repos.sh でリポジトリ一覧を取得: ${owner}"
+        import_data="$("$hub_repos_script" "$owner")"
+    else
+        [[ -f "$json_path" ]] || { log_error "ファイルが存在しません: ${json_path}"; exit 1; }
+        import_data="$(cat "$json_path")"
+    fi
+
+    local count
+    count="$(jq 'length' <<< "$import_data")"
+    if [[ "$count" -eq 0 ]]; then
+        log_error "インポート対象のリポジトリがありません。"
+        exit 1
+    fi
+
+    if [[ -z "$category" ]]; then
+        category="$(jq -r '.[0].owner' <<< "$import_data")"
+    fi
+
+    if (( dryrun )); then
+        log_info "[dry-run] カテゴリ「${category}」に ${count} 件を取り込み予定:"
+        jq -r '.[] | "  - \(.owner)/\(.repo) (\(.url))"' <<< "$import_data"
+        return
+    fi
+
+    log_info "カテゴリ「${category}」に ${count} 件をマージします → ${favorite_json}"
+
+    local tmp
+    tmp="$(mktemp)"
+    {
+        jq --argjson new "$import_data" --arg cat "$category" '
+            if (.repos | any(.category == $cat)) then
+                .repos |= map(
+                    if .category == $cat then
+                        .repos = ((.repos + $new) | unique_by(.url))
+                    else . end
+                )
+            else
+                .repos += [{category: $cat, repos: ($new | unique_by(.url))}]
+            end
+        ' "$favorite_json" > "$tmp"
+        mv "$tmp" "$favorite_json"
+    } always {
+        rm -f "$tmp"
+    }
+
+    log_info "完了: ${favorite_json}"
 }
 
 main() {
@@ -102,6 +184,8 @@ main() {
     local -a categories=()
     local -i dryrun=0
     local -i list_only=0
+    local import_owner=""
+    local import_json=""
 
     while (( $# > 0 )); do
         case "$1" in
@@ -123,6 +207,16 @@ main() {
                 list_only=1
                 shift
                 ;;
+            --import-owner)
+                [[ $# -ge 2 ]] || { usage; exit 1; }
+                import_owner="$2"
+                shift 2
+                ;;
+            --import-json)
+                [[ $# -ge 2 ]] || { usage; exit 1; }
+                import_json="$2"
+                shift 2
+                ;;
             -h|--help)
                 usage
                 exit 0
@@ -140,6 +234,19 @@ main() {
 
     if (( list_only )); then
         list_categories "$json_file"
+        return
+    fi
+
+    if [[ -n "$import_owner" || -n "$import_json" ]]; then
+        if [[ -n "$import_owner" && -n "$import_json" ]]; then
+            log_error "--import-owner と --import-json は同時に指定できません。"
+            exit 1
+        fi
+        if (( ${#categories[@]} > 1 )); then
+            log_error "import モードでは -c/--category は1つだけ指定してください。"
+            exit 1
+        fi
+        import_repos "$import_owner" "$import_json" "${categories[1]:-}" "$json_file" "$dryrun"
         return
     fi
 

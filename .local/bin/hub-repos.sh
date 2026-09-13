@@ -4,21 +4,28 @@
 # 指定した GitHub ユーザーのリポジトリ一覧を JSON 配列で取得する
 #
 # 使い方:
-#   GITHUB_TOKEN=xxxx ./hub-repos.sh [username]
+#   ./hub-repos.sh [username]
+#   ./hub-repos.sh [https://github.com/username ...]  （URL 指定も可、owner 部分のみ抽出）
 #   環境変数 SNS_USERNAME でユーザー名を指定することも可能
 #
 # 出力:
 #   標準出力に JSON 配列を1つ出力する。各要素は
-#   {name, full_name, html_url, private, fork} を持つオブジェクト。
+#   {owner, repo, url} を持つオブジェクト（favorite-repos.json の
+#   repos[].repos[] 要素と同じ形。clone-favorite-repos.sh --import-* に
+#   そのまま渡せる）。
 #
-# 必須環境変数:
-#   GITHUB_TOKEN   - GitHub Personal Access Token
+# 認証:
+#   GitHub CLI (gh) の認証情報を利用する。
+#   事前に `gh auth login` を実行しておくこと
+#   （macOS ではトークンが Keychain に安全に保存される）。
 #
 # 任意環境変数:
-#   GITHUB_APIURL  - GitHub API のベースURL（デフォルト: https://api.github.com）
+#   GH_HOST        - github.com 以外（GitHub Enterprise 等）を対象にする場合に指定
+#                     （gh CLI 標準の環境変数。詳細は `gh help environment` 参照）
 #   SNS_USERNAME   - 引数省略時に使うユーザー名
 #   REPO_TYPE      - all | owner | member (デフォルト: owner)
 #                    private repo も含めたい場合の絞り込み条件
+#   INCLUDE_FORKS  - 1 を指定すると fork リポジトリも含める（デフォルト: 除外）
 
 set -o errexit
 set -o nounset
@@ -29,7 +36,6 @@ set -o pipefail
 # ---------------------------------------------------------------------------
 typeset -r SCRIPT_NAME="${0:t}"
 typeset -r PER_PAGE=100
-typeset -r GITHUB_APIURL="${GITHUB_APIURL:-https://api.github.com}"
 typeset -r REPO_TYPE="${REPO_TYPE:-owner}"
 
 # ---------------------------------------------------------------------------
@@ -51,87 +57,88 @@ require_command() {
 # 事前チェック
 # ---------------------------------------------------------------------------
 check_dependencies() {
-    require_command curl
+    require_command gh
     require_command jq
 }
 
-check_token() {
-    : "${GITHUB_TOKEN:?❌ Error: GITHUB_TOKEN is required}"
+check_gh_auth() {
+    if ! gh auth status >/dev/null 2>&1; then
+        log_error "gh が認証されていません。'gh auth login' を実行してください。"
+        exit 1
+    fi
 }
 
 resolve_username() {
-    local username="${1:-${SNS_USERNAME:-}}"
-    if [[ -z "$username" ]]; then
+    local input="${1:-${SNS_USERNAME:-}}"
+    if [[ -z "$input" ]]; then
         log_error "GitHub username is not specified（引数または SNS_USERNAME を指定してください）"
         exit 1
     fi
-    print -r -- "$username"
+    extract_owner "$input"
 }
 
 # ---------------------------------------------------------------------------
-# API 呼び出し（ページネーション対応）
+# 引数がプレーンなユーザー名ではなく GitHub の URL
+# （https://host/owner, https://host/owner/repo, git@host:owner/repo 等）
+# で渡された場合に、owner 部分だけを取り出す
+# ---------------------------------------------------------------------------
+extract_owner() {
+    local input="$1" path owner
+
+    if [[ "$input" == git@*:* ]]; then
+        path="${input#*:}"
+    elif [[ "$input" == *://* ]]; then
+        path="${input#*://}"
+        path="${path#*@}"  # ssh://git@host/... のユーザー情報を除去
+        path="${path#*/}"  # host を除去
+    else
+        print -r -- "$input"
+        return
+    fi
+
+    owner="${path%%/*}"
+    if [[ -z "$owner" ]]; then
+        log_error "URL からユーザー名（owner）を抽出できません: ${input}"
+        exit 2
+    fi
+    print -r -- "$owner"
+}
+
+# ---------------------------------------------------------------------------
+# API 呼び出し（gh api --paginate によりページネーションを自動処理）
 # ---------------------------------------------------------------------------
 fetch_all_repo_names() {
     local username="$1"
-    local page=1
-    local http_status
-    local tmp_response
-    local tmp_buffer
-    local endpoint
+    local tmp_err jq_program
 
-    tmp_response="$(mktemp)"
-    tmp_buffer="$(mktemp)"
+    tmp_err="$(mktemp)"
+
+    if [[ "${INCLUDE_FORKS:-0}" == "1" ]]; then
+        jq_program='.[] | {owner: (.full_name | split("/")[0]), repo: .name, url: (.html_url + ".git")}'
+    else
+        jq_program='.[] | select(.fork == false) | {owner: (.full_name | split("/")[0]), repo: .name, url: (.html_url + ".git")}'
+    fi
 
     # `trap ... EXIT` はスクリプト全体の終了時に発火するため、この関数の
-    # local 変数（tmp_response/tmp_buffer）はその時点で既にスコープ外になり
-    # nounset エラーで落ちる（＝成功時も呼び出し元に失敗と誤認される）。
+    # local 変数（tmp_err）はその時点で既にスコープ外になり nounset エラー
+    # で落ちる（＝成功時も呼び出し元に失敗と誤認される）。
     # 同じ関数スコープ内で確実にクリーンアップするため always ブロックを使う。
     {
-        while true; do
-            endpoint="${GITHUB_APIURL}/users/${username}/repos?per_page=${PER_PAGE}&page=${page}&type=${REPO_TYPE}"
-
-            http_status="$(
-                curl -sS \
-                    -u ":${GITHUB_TOKEN}" \
-                    -H "Accept: application/vnd.github+json" \
-                    -o "$tmp_response" \
-                    -w '%{http_code}' \
-                    "$endpoint"
-            )" || {
-                log_error "API 呼び出し自体に失敗しました（ネットワーク/TLS等）: ${endpoint}"
-                exit 2
-            }
-
-            if [[ "$http_status" != "200" ]]; then
-                log_error "API 呼び出しに失敗しました（HTTP ${http_status}）。ユーザー名またはトークンを確認してください。"
-                log_error "レスポンス: $(cat "$tmp_response")"
-                exit 2
-            fi
-
-            # jq には $tmp_response を直接読ませる（echo/変数経由だと、zsh の
-            # 組み込み echo がデフォルトで \n 等をバックスラッシュ解釈してしまい、
-            # レスポンス中の JSON エスケープを破壊して jq のパースが壊れるため）。
-
-            # 配列が空になったらページング終了
-            if [[ "$(jq 'length' "$tmp_response")" -eq 0 ]]; then
-                break
-            fi
-
-            # 必要なフィールドだけに絞り込み、ページごとに NDJSON として貯める
-            jq -c '.[] | {name, full_name, html_url, private, fork}' "$tmp_response" >> "$tmp_buffer"
-
-            # per_page 未満の件数しか返らなければ最終ページ
-            if [[ "$(jq 'length' "$tmp_response")" -lt "$PER_PAGE" ]]; then
-                break
-            fi
-
-            (( page++ ))
-        done
-
-        # 貯めた NDJSON を1つの JSON 配列にまとめて標準出力へ
-        jq -s '.' "$tmp_buffer"
+        if ! gh api --paginate \
+                --method GET \
+                "users/${username}/repos" \
+                -f "per_page=${PER_PAGE}" \
+                -f "type=${REPO_TYPE}" \
+                --jq "$jq_program" \
+                2>"$tmp_err" \
+            | jq -s '.'
+        then
+            log_error "GitHub API 呼び出しに失敗しました（gh api）。認証状態・ユーザー名を確認してください。"
+            log_error "詳細: $(cat "$tmp_err")"
+            exit 2
+        fi
     } always {
-        rm -f "$tmp_response" "$tmp_buffer"
+        rm -f "$tmp_err"
     }
 }
 
@@ -140,7 +147,7 @@ fetch_all_repo_names() {
 # ---------------------------------------------------------------------------
 main() {
     check_dependencies
-    check_token
+    check_gh_auth
 
     local username
     username="$(resolve_username "${1:-}")"

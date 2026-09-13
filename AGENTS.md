@@ -14,6 +14,8 @@ macOS 用の個人 dotfiles。`dotfiles.zsh` が **リポジトリ → `$HOME`**
 
 `dotfiles.zsh` 冒頭の `DOTFILES` 配列に列挙されたトップレベルのファイル/ディレクトリだけが同期対象になる。**新しいトップレベルの設定ディレクトリを追加したら、この配列にも追記すること。**
 
+macOS クリーンインストール直後のフルセットアップは `bootstrap.zsh` が担う。Homebrew 導入 → `brew bundle` → `dotfiles.zsh deploy` → private アーカイブの復号/`private/dotfiles.zsh deploy` → Emacs ビルドを順に呼び出すだけの薄いオーケストレーターで、新しいロジックは持たない。セットアップ手順を変更する場合は個々の委譲先スクリプト(`.local/bin/init-setup.zsh` 等)を直すのが基本で、`bootstrap.zsh` 側は呼び出し順序・スキップフラグの調整に留める。
+
 ## `.gitignore` は「まず全部無視、必要な物だけ許可」方式
 
 これがこのリポジトリで最も踏み外しやすい点。冒頭で

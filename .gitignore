@@ -27,6 +27,7 @@
 !/README.md
 !/AGENTS.md
 !/dotfiles.zsh
+!/bootstrap.zsh
 !/diffs.jsonl
 !/messages.json
 

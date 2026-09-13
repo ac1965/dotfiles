@@ -5,6 +5,7 @@ Personal dotfiles for macOS (Apple Silicon / Intel), managed with Homebrew and G
 ## 目次
 
 - [クイックスタート](#クイックスタート)
+- [リカバリ後のフルセットアップ](#リカバリ後のフルセットアップ)
 - [macOS のセットアップ](#macos-のセットアップ)
 - [Homebrew](#homebrew)
 - [Zsh 環境](#zsh-環境)
@@ -25,6 +26,30 @@ dotfiles/dotfiles.zsh deploy
 ```
 
 > **Note** `dotfiles.zsh` は `deploy`(repo→HOME)/ `reverse`(HOME→repo)の2モードを取る。引数省略時は使用方法を表示して終了する。
+
+---
+
+## リカバリ後のフルセットアップ
+
+macOS をクリーンインストール/初期化した直後は、`dotfiles.zsh` 単体ではなく **`bootstrap.zsh`** を使うと、Homebrew 導入から Emacs ビルドまでを1コマンドで通しで実行できる。
+
+```bash
+git clone https://github.com/ac1965/dotfiles.git
+cd dotfiles
+./bootstrap.zsh
+```
+
+実行順序は以下の通り(各ステップの実体は既存スクリプトへの委譲で、`bootstrap.zsh` 自体は新しい処理を持たない):
+
+1. Xcode Command Line Tools / Homebrew / iTerm2 インストール(`.local/bin/init-setup.zsh`)
+2. `Brewfile` 一括インストール(`brew bundle`)
+3. 公開 dotfiles の配置(`dotfiles.zsh deploy`)
+4. private アーカイブの復号・配置(`private/dotfiles.zsh deploy`)
+5. Emacs ビルド(`.local/bin/build-emacs-macos.sh`)
+
+> **Note** ステップ4は `private.tar.xz.enc` がリポジトリ直下に存在する場合のみ実行される。iCloud Drive / NAS 等からまだ配置していない新規マシンでは自動的にスキップされるので、後から配置して `./bootstrap.zsh --skip-brew --skip-dotfiles --skip-emacs` のように private だけ個別に再実行すればよい(詳細は[プライベートファイルの管理](#プライベートファイルの管理)参照)。
+
+> **Note** `-n`/`--dry-run` で副作用のあるコマンドを実行せず対象を確認できる。個別のステップを飛ばしたい場合は `--skip-brew` / `--skip-dotfiles` / `--skip-private` / `--skip-emacs` を組み合わせる(`-h`/`--help` で一覧表示)。`brew bundle` は mas(App Store)未サインイン等で一部パッケージが失敗しても、後続のステップは続行する。
 
 ---
 
@@ -184,7 +209,7 @@ latexmk foo.tex
 ### Emacs
 
 ```bash
-build-emacs.sh
+build-emacs-macos.sh
 ```
 
 Emacs 設定の詳細: [Emacs-01.org](https://github.com/ac1965/dotfiles/blob/master/.docs/Emacs-01.org)

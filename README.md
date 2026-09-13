@@ -15,6 +15,7 @@ Personal dotfiles for macOS (Apple Silicon / Intel), managed with Homebrew and G
   - [MacTeX](#mactex)
   - [Emacs](#emacs)
 - [プライベートファイルの管理](#プライベートファイルの管理)
+  - [macOS システム環境設定(defaults)の永続化](#macos-システム環境設定defaultsの永続化)
 
 ---
 
@@ -252,11 +253,33 @@ cd private && zsh dotfiles.zsh deploy
 **現在の `$HOME`/`$ZDOTDIR` の状態をアーカイブへ取り込む(reverse)**
 
 ```bash
+zsh .local/bin/defaults.zsh backup-all   # macOS システム環境設定を先にエクスポート(後述)
 cd private
 zsh dotfiles.zsh reverse
 ```
 
 > **Note** `reverse` はランタイムファイル除外込みで `$HOME`/`$ZDOTDIR` → `private/` へ同期する。手動で `cp`/`rsync` を直接実行して `private/.gnupg` を作り直すと、稼働中の `gpg-agent`/`gpg` プロセスのロックファイルごとコピーしてしまう恐れがあるため、スナップショット取得は必ずこのコマンド経由で行うこと。
+
+> **Note** `defaults.zsh backup-all` は `~/.local/state/mac-defaults-backup/` に現在の設定値をエクスポートする。`reverse` はこのディレクトリも(`HOME_FILES` に含まれるため)まとめて `private/` へ取り込むので、**`reverse` の前に** `backup-all` を実行しておかないと、アーカイブ内の macOS 設定バックアップが古いままになる。
+
+---
+
+### macOS システム環境設定(defaults)の永続化
+
+Dock・Finder・トラックパッド等の `defaults` domain は [.local/bin/defaults.zsh](.local/bin/defaults.zsh) の `backup-all`/`restore-all` で一括管理する。
+
+- 対象ドメインの**名前**は公開リポジトリの [.config/macos-defaults/domains.txt](.config/macos-defaults/domains.txt) に列挙する(ドメイン名のみで実データは含まない。追加/削除は自由)。
+- 実データ(plist)は `~/.local/state/mac-defaults-backup/` にエクスポートされ、`private/dotfiles.zsh` の `HOME_FILES` 経由で private アーカイブに取り込まれる。Finder のサイドバーパスなど個人情報が混ざりうるため、公開リポジトリには置かない。
+
+```bash
+# バックアップ(private アーカイブを作り直す前に実行)
+zsh .local/bin/defaults.zsh backup-all
+
+# リストア(private アーカイブ配置後。bootstrap.zsh のステップ5として自動実行される)
+zsh .local/bin/defaults.zsh restore-all
+```
+
+> **Note** `restore-all` はリストア後、反映のため `Dock`/`Finder`/`SystemUIServer`/`cfprefsd` を `killall` する。実行中のウィンドウ配置等が一瞬リセットされる点に注意。
 
 **アーカイブして暗号化**
 

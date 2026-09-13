@@ -11,9 +11,10 @@
 #
 # 各ステップは元々冪等なので、失敗した/不要なステップだけ --skip-* で
 # 飛ばして途中から再実行してよい。private アーカイブ(private.tar.xz.enc)
-# は git 管理外のため、iCloud Drive / NAS 等からリポジトリ直下に配置して
-# から実行すること(README.md「プライベートファイルの管理」参照)。未配置
-# なら 4) は自動的にスキップする。
+# は git 管理外かつリポジトリのディレクトリツリーにも置かない方針のため、
+# iCloud Drive / NAS 等からリポジトリの「親ディレクトリ」(dotfiles/ の
+# 隣)に配置してから実行すること(README.md「プライベートファイルの管理」
+# 参照)。未配置なら 4) は自動的にスキップする。
 set -euo pipefail
 
 readonly REPO_ROOT="$(git rev-parse --show-toplevel)"
@@ -68,17 +69,23 @@ else
 fi
 
 log_step "4/5 private アーカイブの復号・配置"
-readonly ARCHIVE="${REPO_ROOT}/private.tar.xz.enc"
+# dotfiles リポジトリの「外」(親ディレクトリ)に置く前提。git 管理外なの
+# はもちろん、リポジトリのディレクトリツリー自体にも実体を持ち込まない。
+readonly ARCHIVE_DIR="${REPO_ROOT:h}"
+readonly ARCHIVE="${ARCHIVE_DIR}/private.tar.xz.enc"
+readonly PRIVATE_DIR="${ARCHIVE_DIR}/private"
 if (( SKIP_PRIVATE )); then
   print -- "  skip (--skip-private)"
 elif [[ ! -f "$ARCHIVE" ]]; then
   print -- "  skip (${ARCHIVE} が見つかりません。iCloud Drive / NAS 等から配置してから再実行してください)"
 elif (( DRYRUN )); then
-  print -- "  (dry-run) decrypt ${ARCHIVE} | tar -xJ  (展開先: ${REPO_ROOT})"
-  print -- "  (dry-run) zsh ${REPO_ROOT}/private/dotfiles.zsh deploy"
+  print -- "  (dry-run) decrypt ${ARCHIVE} | tar -xJ  (展開先: ${ARCHIVE_DIR})"
+  print -- "  (dry-run) (cd ${PRIVATE_DIR} && zsh dotfiles.zsh deploy)"
 else
-  ( cd -- "$REPO_ROOT" && decrypt "$ARCHIVE" | tar -xJ )
-  zsh "${REPO_ROOT}/private/dotfiles.zsh" deploy
+  ( cd -- "$ARCHIVE_DIR" && decrypt "$ARCHIVE" | tar -xJ )
+  # private/dotfiles.zsh は $(pwd) を基準に相対解決するため、展開先
+  # ディレクトリ自身に cd してから呼び出す必要がある。
+  ( cd -- "$PRIVATE_DIR" && zsh dotfiles.zsh deploy )
 fi
 
 log_step "5/5 Emacs ビルド"

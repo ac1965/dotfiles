@@ -47,7 +47,7 @@ cd dotfiles
 4. private アーカイブの復号・配置(`private/dotfiles.zsh deploy`)
 5. Emacs ビルド(`.local/bin/build-emacs-macos.sh`)
 
-> **Note** ステップ4は `private.tar.xz.enc` がリポジトリ直下に存在する場合のみ実行される。iCloud Drive / NAS 等からまだ配置していない新規マシンでは自動的にスキップされるので、後から配置して `./bootstrap.zsh --skip-brew --skip-dotfiles --skip-emacs` のように private だけ個別に再実行すればよい(詳細は[プライベートファイルの管理](#プライベートファイルの管理)参照)。
+> **Note** ステップ4は `private.tar.xz.enc` が **`dotfiles` リポジトリの親ディレクトリ**(上記の例では `cd dotfiles` する前にいた場所)に存在する場合のみ実行される。リポジトリの中には置かない([プライベートファイルの管理](#プライベートファイルの管理)参照)。iCloud Drive / NAS 等からまだ配置していない新規マシンでは自動的にスキップされるので、後から配置して `./bootstrap.zsh --skip-brew --skip-dotfiles --skip-emacs` のように private だけ個別に再実行すればよい。
 
 > **Note** `-n`/`--dry-run` で副作用のあるコマンドを実行せず対象を確認できる。個別のステップを飛ばしたい場合は `--skip-brew` / `--skip-dotfiles` / `--skip-private` / `--skip-emacs` を組み合わせる(`-h`/`--help` で一覧表示)。`brew bundle` は mas(App Store)未サインイン等で一部パッケージが失敗しても、後続のステップは続行する。
 
@@ -220,8 +220,8 @@ Emacs 設定の詳細: [Emacs-01.org](https://github.com/ac1965/dotfiles/blob/ma
 
 個人情報は AES-256-CBC(PBKDF2, 21万イテレーション)で暗号化した `private.tar.xz.enc` として管理する。
 
-> **Note — アーカイブは git 管理外**
-> `private.tar.xz.enc` は暗号化済みとはいえ86MB超のバイナリで、更新のたびに差分圧縮がほぼ効かず履歴が肥大化するため、**リポジトリには含めない**(`.gitignore` で除外済み)。実体は iCloud Drive / NAS など別チャネルで同期し、`dotfiles` リポジトリと同じ作業ディレクトリ直下に配置してから下記コマンドを実行する運用とする。
+> **Note — アーカイブは git 管理外・リポジトリのディレクトリツリーにも置かない**
+> `private.tar.xz.enc` は暗号化済みとはいえ86MB超のバイナリで、更新のたびに差分圧縮がほぼ効かず履歴が肥大化するため、**リポジトリには含めない**(`.gitignore` で除外済み)。加えて、`git clone` のやり直しなどで `dotfiles/` ディレクトリ自体を作り直す操作から独立させておくため、実体はリポジトリの**外**(`dotfiles/` の親ディレクトリなど)に置く。実体は iCloud Drive / NAS など別チャネルで同期し、`dotfiles` リポジトリと同じ階層(親ディレクトリ)に配置してから、そのディレクトリで下記コマンドを実行する運用とする。
 
 グローバルの `dotfiles.zsh` と対称的に、private 側にも `deploy`(archive→HOME)/ `reverse`(HOME→archive)の両モードを持つ **`private/dotfiles.zsh`** を用意している。従来の `private/setup.sh`(deployのみの片方向スクリプト)は廃止した。
 
@@ -240,12 +240,14 @@ Emacs 設定の詳細: [Emacs-01.org](https://github.com/ac1965/dotfiles/blob/ma
 
 **復号して展開 → 配置**
 
+`dotfiles` リポジトリの親ディレクトリ(`private.tar.xz.enc` を置いた場所)で実行する。
+
 ```bash
 decrypt private.tar.xz.enc | tar -xvJ
-zsh private/dotfiles.zsh deploy
+cd private && zsh dotfiles.zsh deploy
 ```
 
-> **Note** `tar -xvJ` は `private/` ディレクトリを展開するだけで、`$HOME`/`$ZDOTDIR` への配置は行わない。必ず `private/dotfiles.zsh deploy` を実行して反映すること。
+> **Note** `tar -xvJ` は `private/` ディレクトリを展開するだけで、`$HOME`/`$ZDOTDIR` への配置は行わない。必ず `private/dotfiles.zsh deploy` を実行して反映すること。`private/dotfiles.zsh` は実行時のカレントディレクトリを基準に `.claude`・`.gitconfig` 等を解決するため、`private/` の**外側**から `zsh private/dotfiles.zsh deploy` のように呼び出しても正しく動作しない。必ず `cd private` してから `zsh dotfiles.zsh deploy` を実行すること(`reverse` 側は元からこの形になっている)。
 
 **現在の `$HOME`/`$ZDOTDIR` の状態をアーカイブへ取り込む(reverse)**
 

@@ -26,7 +26,8 @@ readonly DOTFILES=(
   Brewfile
 )
 readonly REPO_ROOT="$(git rev-parse --show-toplevel)"
-readonly USAGE="usage: ${0:t} [d|deploy|r|reverse] [-n|--dry-run]"
+readonly USAGE="usage: ${0:t} [d|deploy|r|reverse] [-n|--dry-run]
+       ${0:t} rb|rollback <relpath> [n] [-n|--dry-run]"
 readonly MODE=${1:?${USAGE}}
 local -i _dryrun=0
 local _a=""
@@ -36,6 +37,66 @@ for _a in "$@"; do
   esac
 done
 readonly -i DRYRUN=$_dryrun
+
+# rollback: <relpath> を n 個前(既定 1)にコミットされたバージョンへ戻し、
+# repo と $HOME 両方に反映して commit する。deploy/reverse の一括コピーとは
+# 独立した単一ファイル操作なので、下の DOTFILES ループには合流させない。
+do_rollback() {
+  local relpath=$1
+  local -i n=${2:-1}
+  relpath="${relpath#${HOME}/}"
+  relpath="${relpath#${REPO_ROOT}/}"
+  relpath="${relpath#./}"
+  local repo_path="${REPO_ROOT}/${relpath}"
+  local home_path="${HOME}/${relpath}"
+
+  if (( n < 1 )); then
+    print -u2 "rollback: n は 1 以上を指定してください"
+    return 1
+  fi
+  if [[ ! -e "$repo_path" ]]; then
+    print -u2 "rollback: リポジトリ内に見つかりません: ${relpath}"
+    return 1
+  fi
+
+  local -a hashes
+  hashes=(${(f)"$(git -C "${REPO_ROOT}" log --follow --format=%H -- "${relpath}")"})
+  if (( ${#hashes} == 0 )); then
+    print -u2 "rollback: git 履歴が見つかりません: ${relpath}"
+    return 1
+  fi
+  if (( n > ${#hashes} - 1 )); then
+    print -u2 "rollback: n は 1〜$(( ${#hashes} - 1 )) の範囲で指定してください(${relpath} の履歴は ${#hashes} コミット)"
+    return 1
+  fi
+
+  local target_hash=${hashes[$(( 1 + n ))]}
+  local meta
+  meta="$(git -C "${REPO_ROOT}" show -s --format='%h %ad %s' --date=short "${target_hash}")"
+
+  if (( DRYRUN )); then
+    print -- "-- DRY RUN: ${relpath} を ${n} 個前のバージョン(${meta})に戻します(何も書き込みません) --"
+    return 0
+  fi
+
+  git -C "${REPO_ROOT}" show "${target_hash}:${relpath}" > "${repo_path}"
+  mkdir -p -- "${home_path:h}"
+  rsync -ah --no-perms -- "${repo_path}" "${home_path}"
+  git -C "${REPO_ROOT}" add -- "${relpath}"
+  if git -C "${REPO_ROOT}" diff --cached --quiet -- "${relpath}"; then
+    print -- "rollback: ${relpath} は既に ${meta} の内容と同じです(変更なし)"
+    git -C "${REPO_ROOT}" reset -q -- "${relpath}"
+    return 0
+  fi
+  git -C "${REPO_ROOT}" commit -q -m "revert(rollback): ${relpath} を ${meta} の内容に戻す"
+  print -- "✅ rollback: ${relpath} を ${meta} の内容に戻し、\$HOME にも反映してコミットしました"
+}
+
+if [[ $MODE == rb || $MODE == rollback ]]; then
+  do_rollback "${2:?${USAGE}}" "${3:-1}"
+  exit $?
+fi
+
 case $MODE in
   d|deploy)  src_base="${REPO_ROOT}" dst_base="${HOME}"     ;;
   r|reverse) src_base="${HOME}"      dst_base="${REPO_ROOT}" ;;

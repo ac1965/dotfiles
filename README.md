@@ -16,6 +16,7 @@ Personal dotfiles for macOS (Apple Silicon / Intel), managed with Homebrew and G
   - [Emacs](#emacs)
 - [プライベートファイルの管理](#プライベートファイルの管理)
   - [macOS システム環境設定(defaults)の永続化](#macos-システム環境設定defaultsの永続化)
+- [dotfiles の自動同期とロールバック](#dotfiles-の自動同期とロールバック)
 
 ---
 
@@ -339,3 +340,38 @@ else
   exit 1
 fi
 ```
+
+---
+
+## dotfiles の自動同期とロールバック
+
+`dotfiles.zsh` の deploy/reverse は手動実行が前提だが、公開リポジトリ側(`.config` 等の非機密ファイルのみ、[プライベートファイルの管理](#プライベートファイルの管理)で扱う暗号化アーカイブは対象外)に限り、以下の2つの補助機能を用意している。
+
+### 自動同期(`dotfiles-autosync.zsh`)
+
+[.local/bin/dotfiles-autosync.zsh](.local/bin/dotfiles-autosync.zsh) は launchd 経由で定期的に `reverse`(`$HOME`→repo)→`git commit`→`git push` を行う準自動同期。常駐監視プロセスは使わず、`StartInterval` による定期実行のみで完結する。
+
+```bash
+~/.local/bin/dotfiles-autosync.zsh run -n     # dry-run: 何が起きるか確認のみ
+~/.local/bin/dotfiles-autosync.zsh install     # launchd に登録して有効化(既定: 1時間間隔)
+~/.local/bin/dotfiles-autosync.zsh status      # 登録状態とログ末尾を確認
+~/.local/bin/dotfiles-autosync.zsh uninstall   # 登録解除
+```
+
+> **Note** commit/push の対象は `dotfiles.zsh` の `DOTFILES` 配列に列挙された範囲のみ(`git add` もこの範囲に限定)。リポジトリ内で進行中の他の作業(スクリプト開発やドキュメント編集など)を誤って自動コミット・自動 push してしまわないための安全策。
+
+> **Note** push はリモートが自分より先行している場合、`git pull --rebase --autostash` を試みる。コンフリクトした場合は rebase を中断して push をスキップし、ログにエラーを残すのみ(強制上書き・強制pushは行わない)。upstream 未設定のブランチでは commit のみ行い push はスキップする。
+
+> **Note** ログは `~/.local/state/dotfiles-autosync/autosync.log` に蓄積される(`.local/state/` は `.gitignore` で除外済みのためリポジトリには含まれない)。実行間隔は `DOTFILES_AUTOSYNC_INTERVAL` 環境変数(秒)で `install` 時のみ変更できる。
+
+### ロールバック(`dotfiles.zsh rollback`)
+
+特定ファイルを過去のコミット時点の内容に戻し、repo と `$HOME` の両方へ反映した上で commit する。
+
+```bash
+./dotfiles.zsh rollback .zshenv        # 1つ前のバージョンに戻す(既定 n=1)
+./dotfiles.zsh rollback .zshenv 3      # 3つ前のバージョンに戻す
+./dotfiles.zsh rollback .zshenv 1 -n   # dry-run: 戻す対象のコミットを確認するだけ
+```
+
+> **Note** 対象パスは `$HOME` 起点・リポジトリルート起点のどちらで渡しても解決する。`n` はそのファイルの `git log --follow` 上で現在から何コミット前かを指定する(範囲外を指定するとエラーで終了し、何も変更しない)。push は行わないため、リモートに反映するには通常の `git push` を別途実行するか、自動同期が次回実行時に拾う。

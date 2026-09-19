@@ -210,7 +210,19 @@ case "generate":
     guard result == errSecSuccess else { fail("SecRandomCopyBytes failed") }
     let pass = Data(bytes).base64EncodedString()
     setPassword(account: account, password: pass, force: force)
-    FileHandle.standardError.write("Generated and stored in Keychain (self-only access): service=\(SERVICE), account=\(account)\n".data(using: .utf8)!)
+    // This Keychain entry is local to this Mac only (not iCloud-synced —
+    // iCloud sync would need SecItemAdd + proper app entitlements, which an
+    // unsigned command-line binary can't obtain; see README). If nobody
+    // records the generated value now, decrypting this archive on any other
+    // machine becomes permanently impossible — print it once so it can be
+    // copied into a password manager immediately.
+    FileHandle.standardError.write("""
+        Generated and stored in Keychain (self-only access): service=\(SERVICE), account=\(account)
+        ⚠️  This passphrase exists ONLY in this Mac's Keychain (not iCloud-synced).
+            Save it in a password manager now — it will not be shown again:
+            \(pass)
+
+        """.data(using: .utf8)!)
 case "label":
     setLabel(account: account, label: defaultLabel(account: account))
     FileHandle.standardError.write("Label set: service=\(SERVICE), account=\(account)\n".data(using: .utf8)!)

@@ -16,6 +16,12 @@
 # iCloud Drive / NAS 等からリポジトリの「親ディレクトリ」(dotfiles/ の
 # 隣)に配置してから実行すること(README.md「プライベートファイルの管理」
 # 参照)。未配置なら 4)・5) は自動的にスキップする。
+#
+# private アーカイブの復号パスフレーズは macOS Keychain 管理(README.md
+# 「プライベートファイルの管理」参照)のため、クリーンインストール後の
+# Keychain には存在しない。アーカイブは配置したがパスフレーズが未登録の
+# 場合も 4)・5) は中断せず自動的にスキップするので、`zsh .local/bin/
+# keychain_store.sh private-archive` で登録してから再実行すること。
 set -euo pipefail
 
 readonly REPO_ROOT="$(git rev-parse --show-toplevel)"
@@ -76,6 +82,7 @@ log_step "4/6 private アーカイブの復号・配置"
 readonly ARCHIVE_DIR="${REPO_ROOT:h}"
 readonly ARCHIVE="${ARCHIVE_DIR}/private.tar.xz.enc"
 readonly PRIVATE_DIR="${ARCHIVE_DIR}/private"
+integer PRIVATE_DEPLOYED=0
 if (( SKIP_PRIVATE )); then
   print -- "  skip (--skip-private)"
 elif [[ ! -f "$ARCHIVE" ]]; then
@@ -83,22 +90,31 @@ elif [[ ! -f "$ARCHIVE" ]]; then
 elif (( DRYRUN )); then
   print -- "  (dry-run) decrypt ${ARCHIVE} | tar -xJ  (展開先: ${ARCHIVE_DIR})"
   print -- "  (dry-run) (cd ${PRIVATE_DIR} && zsh dotfiles.zsh deploy)"
+  PRIVATE_DEPLOYED=1
+elif ! ( cd -- "$ARCHIVE_DIR" && decrypt "$ARCHIVE" | tar -xJ ); then
+  # decrypt はパスフレーズ未登録・改ざん検知いずれの場合もここで失敗する。
+  # クリーンインストール直後は Keychain が空なのが通常なので、bootstrap
+  # 全体を中断せずスキップし、後で該当ステップだけ再実行できるようにする。
+  print -u2 -- "  skip (復号に失敗しました。Keychain にパスフレーズが未登録の可能性があります。"
+  print -u2 -- "        'zsh ${REPO_ROOT}/.local/bin/keychain_store.sh private-archive' で登録してから、"
+  print -u2 -- "        ${0:t} --skip-brew --skip-dotfiles --skip-emacs で該当ステップのみ再実行してください)"
 else
-  ( cd -- "$ARCHIVE_DIR" && decrypt "$ARCHIVE" | tar -xJ )
   # private/dotfiles.zsh は $(pwd) を基準に相対解決するため、展開先
   # ディレクトリ自身に cd してから呼び出す必要がある。
   ( cd -- "$PRIVATE_DIR" && zsh dotfiles.zsh deploy )
+  PRIVATE_DEPLOYED=1
 fi
+readonly -i PRIVATE_DEPLOYED
 
 log_step "5/6 macOS システム環境設定(defaults)の復元"
 # 復元対象は private アーカイブに含まれる .local/state/mac-defaults-backup
-# (ステップ4で $HOME に配置される)なので、private アーカイブが無い/スキ
-# ップされた場合はここも一緒にスキップする(アーカイブの有無で判定する
-# のは、dry-run では実際には配置されないため)。
+# (ステップ4で $HOME に配置される)なので、ステップ4が実際にデータを
+# 配置しなかった場合(未配置/スキップ/パスフレーズ未登録による復号失敗)
+# はここも一緒にスキップする。
 if (( SKIP_DEFAULTS )); then
   print -- "  skip (--skip-defaults)"
-elif (( SKIP_PRIVATE )) || [[ ! -f "$ARCHIVE" ]]; then
-  print -- "  skip (private アーカイブが未配置/スキップのため対象データがありません)"
+elif (( ! PRIVATE_DEPLOYED )); then
+  print -- "  skip (private アーカイブが未配置/未復号のため対象データがありません)"
 elif (( DRYRUN )); then
   print -- "  (dry-run) zsh ${REPO_ROOT}/.local/bin/defaults.zsh restore-all"
 else

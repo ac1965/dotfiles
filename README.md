@@ -240,6 +240,15 @@ Emacs 設定の詳細: [Emacs-01.org](https://github.com/ac1965/dotfiles/blob/ma
 >
 > 万一 `gpg --list-keys` 等が原因不明のタイムアウトを起こした場合は、まず `~/.gnupg/public-keys.d/` 配下に `.#lk*` や `*.lock` が残っていないか確認すること。
 
+> **Note — クリーンインストール後の初回復号について**
+> `decrypt` のパスフレーズは macOS Keychain 管理(後述)のため、クリーンインストール直後の新しいMacにはまだ登録されていない。`private.tar.xz.enc` をiCloud Drive / NAS等から配置しただけでは復号できず、`bootstrap.zsh` を実行しても該当ステップ(4・5)は中断せずスキップされる(README冒頭の設計方針通り、失敗しても他のステップは続行される)。**復号する前に**、当時使ったパスフレーズを次のコマンドで登録すること。
+>
+> ```bash
+> zsh .local/bin/keychain_store.sh private-archive
+> ```
+>
+> 登録後、`bootstrap.zsh --skip-brew --skip-dotfiles --skip-emacs` のように該当ステップだけ再実行するか、下記コマンドを直接実行する。
+
 **復号して展開 → 配置**
 
 `dotfiles` リポジトリの親ディレクトリ(`private.tar.xz.enc` を置いた場所)で実行する。
@@ -319,6 +328,11 @@ zsh .local/bin/keychain_store.sh          # 対話でパスフレーズ(20文字
 zsh .local/bin/keychain_store.sh -g       # ランダム生成して自動登録
 zsh .local/bin/keychain_store.sh -f ...   # 既存エントリを確認なしで上書き
 ```
+
+> **Note — このパスフレーズは他のMacに自動では引き継がれない**
+> `keychain-helper` が使う「このバイナリだけ信頼するACL」は、iCloudキーチェーン同期に必要なモダンな `SecItemAdd` API では設定できず、レガシーな `SecKeychainItemCreateFromContent` API 専用の機能である。逆にiCloud同期(`kSecAttrSynchronizable`)は署名なしのコマンドラインバイナリからは `SecItemAdd` 自体が `errSecMissingEntitlement (-34018)` で失敗し、Apple Developer Programでの正式な署名が無いと使えない(実機で検証済み)。つまりこの構成では「ヘルパー限定アクセス」と「iCloud同期」は二者択一で両立せず、本リポジトリは前者を採用している。
+>
+> したがって `-g`(自動生成)で登録したパスフレーズは、**このMacのKeychainにしか存在しない**。`keychain-helper generate` 実行時に一度だけ画面に表示されるので、**その場でパスワードマネージャーに保存**しておくこと(再表示はできない)。手動選択したパスフレーズの場合も同様に、別途パスワードマネージャー等に控えておかないと、クリーンインストール後の `keychain_store.sh` での再登録(前述)ができなくなる。
 
 ---
 

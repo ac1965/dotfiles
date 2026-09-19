@@ -2,6 +2,18 @@
 # Since OpenSSL enc parsing can be brittle, call the cipher subcommand directly.
 # AES-256-CBC + PBKDF2 (210k iterations), output perms via umask 077,
 # then remove the source in order: gshred > shred > rm.
+# Passphrase lives in the macOS Keychain (service: com.encrypt.aes256gcm,
+# account: $KEYCHAIN_ACCOUNT or "default"). Missing entries are generated
+# and stored automatically; run keychain_store.sh beforehand to set a
+# stronger passphrase by hand instead.
+#
+# Encrypt-then-MAC: a 32-byte HMAC-SHA256 tag is appended to the ciphertext
+# so decrypt can detect tampering/corruption before decrypting. The MAC key
+# is derived from the same passphrase via PBKDF2 with a fixed, non-secret
+# salt distinct from the (random) salt used for the ciphertext itself, so
+# it never reuses the actual encryption key. openssl's dgst/mac subcommands
+# have no env-based key input, so this derived (non-master) key briefly
+# appears on argv — the master passphrase itself never does.
 
 set -euo pipefail
 
@@ -13,9 +25,25 @@ fi
 in="$1"
 out="$in.enc"
 iter="${ITER:-210000}"
+service="com.encrypt.aes256gcm"
+account="${KEYCHAIN_ACCOUNT:-default}"
+hmac_salt="646f7466686d6163"
 
 umask 077
-openssl aes-256-cbc -e -pbkdf2 -iter "$iter" -salt -in "$in" -out "$out"
+
+if ! pass=$(security find-generic-password -s "$service" -a "$account" -w 2>/dev/null); then
+  pass=$(openssl rand -base64 32)
+  security add-generic-password -s "$service" -a "$account" -w "$pass" -U
+  echo "🔑 Generated new passphrase and stored in Keychain (service=$service, account=$account)" >&2
+fi
+
+PASSPHRASE="$pass" openssl aes-256-cbc -e -pbkdf2 -iter "$iter" -salt -in "$in" -out "$out" -pass env:PASSPHRASE
+
+mac_key=$(PASSPHRASE="$pass" openssl enc -aes-256-cbc -pbkdf2 -iter "$iter" -S "$hmac_salt" -pass env:PASSPHRASE -P 2>/dev/null | awk -F= '/^key=/{print $2}')
+tag=$(openssl dgst -sha256 -hmac "$mac_key" -binary < "$out" | xxd -p -c 64 | tr -d '\n')
+printf '%s' "$tag" | xxd -r -p >> "$out"
+
+unset pass PASSPHRASE mac_key tag
 
 if command -v gshred >/dev/null 2>&1; then
   gshred -u -- "$in"

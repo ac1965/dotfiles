@@ -1,8 +1,19 @@
 #!/bin/bash
-# Decrypt to STDOUT for piping (e.g., `decrypt_cbc file.enc | tar -xvJ`).
+# Decrypt to STDOUT for piping (e.g., `decrypt file.enc | tar -xvJ`).
 # Cipher: AES-256-CBC + PBKDF2 (default 210k iterations).
 # No messages on STDOUT (binary only). All prompts/errors go to STDERR.
-# Passphrase priority: PASSPHRASE env > /dev/tty prompt. Passed via -pass env:... or -pass fd:3.
+# Passphrase is read from the macOS Keychain (service: com.encrypt.aes256gcm,
+# account: $KEYCHAIN_ACCOUNT or "default"); run keychain_store.sh first if
+# the entry doesn't exist yet. Passed to openssl via -pass env:... to avoid
+# exposing it on argv.
+#
+# Encrypt-then-MAC: the last 32 bytes of the input are an HMAC-SHA256 tag
+# over the preceding ciphertext (see encrypt). It is verified before any
+# decryption is attempted, so a corrupted/tampered file is rejected outright
+# instead of silently producing garbage (or garbage-in/garbage-out) plaintext.
+# Files produced by the pre-HMAC version of encrypt lack this trailer and
+# will no longer decrypt; re-encrypt them with the current encrypt first.
+#
 # Safety: refuse to write binary to a terminal (STDOUT must be piped or redirected).
 
 set -euo pipefail
@@ -14,6 +25,9 @@ fi
 
 in="$1"
 iter="${ITER:-210000}"
+service="com.encrypt.aes256gcm"
+account="${KEYCHAIN_ACCOUNT:-default}"
+hmac_salt="646f7466686d6163"
 
 # Refuse writing binary to a terminal
 if [ -t 1 ]; then
@@ -22,22 +36,29 @@ if [ -t 1 ]; then
   exit 1
 fi
 
-# Build openssl command
-cmd=(openssl aes-256-cbc -d -pbkdf2 -iter "$iter" -in "$in" -out -)
-
-if [ "${PASSPHRASE:-}" != "" ]; then
-  # Use env to avoid exposing the passphrase on argv
-  PASSPHRASE="$PASSPHRASE" "${cmd[@]}" -pass env:PASSPHRASE
-else
-  # Read from /dev/tty so we don't consume pipeline stdin, then feed via fd:3
-  if [ -r /dev/tty ]; then
-    # shellcheck disable=SC2162
-    read -s -p "Passphrase: " pass </dev/tty >&2; echo >&2
-    exec 3<<<"$pass"
-    "${cmd[@]}" -pass fd:3
-  else
-    echo "No PASSPHRASE set and no /dev/tty available for prompt." >&2
-    echo "Set PASSPHRASE env or run interactively." >&2
-    exit 1
-  fi
+if ! pass=$(security find-generic-password -s "$service" -a "$account" -w 2>/dev/null); then
+  echo "Passphrase not found in Keychain (service=$service, account=$account)." >&2
+  echo "Run keychain_store.sh first to register it." >&2
+  exit 1
 fi
+
+total_size=$(stat -f%z "$in")
+if [ "$total_size" -le 32 ]; then
+  echo "File too small to contain an HMAC tag; likely corrupted or pre-HMAC format." >&2
+  unset pass PASSPHRASE
+  exit 1
+fi
+ct_size=$((total_size - 32))
+
+mac_key=$(PASSPHRASE="$pass" openssl enc -aes-256-cbc -pbkdf2 -iter "$iter" -S "$hmac_salt" -pass env:PASSPHRASE -P 2>/dev/null | awk -F= '/^key=/{print $2}')
+tag_actual=$(tail -c 32 "$in" | xxd -p -c 64 | tr -d '\n')
+tag_expected=$(head -c "$ct_size" "$in" | openssl dgst -sha256 -hmac "$mac_key" -binary | xxd -p -c 64 | tr -d '\n')
+
+if [ "$tag_actual" != "$tag_expected" ]; then
+  echo "Tamper/corruption detected: HMAC mismatch. Refusing to decrypt." >&2
+  unset pass PASSPHRASE mac_key
+  exit 1
+fi
+
+head -c "$ct_size" "$in" | PASSPHRASE="$pass" openssl aes-256-cbc -d -pbkdf2 -iter "$iter" -pass env:PASSPHRASE -out -
+unset pass PASSPHRASE mac_key

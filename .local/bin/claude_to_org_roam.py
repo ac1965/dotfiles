@@ -21,6 +21,11 @@ Claude Chat History JSON → org-roam ノード変換バッチ
 Usage:
   python claude_to_org_roam.py <input.json> [--output-dir DIR]
   python claude_to_org_roam.py *.json --output-dir ~/org/roam --tags tools,claude
+
+--flat を付けると、org-roamノード分割ではなく、入力JSON 1件につき1つの
+単純な .org ファイル(会話ごとに `* タイトル` の見出しを並べただけ、
+ROAM_REFS/タグ自動判定なし)を出力する(旧 claude_to_org.py 相当)。
+  python claude_to_org_roam.py chat.json --flat
 """
 
 import argparse
@@ -265,6 +270,92 @@ def render_messages(messages) -> str:
     return '\n'.join(lines)
 
 
+# --- 単純出力モード(--flat, 旧 claude_to_org.py 相当) -----------------------
+
+def convert_conversation_flat(conv: dict) -> str:
+    """1つの会話を、org-roam分割ではなく単純な `* タイトル` 見出しに変換する。"""
+    lines = []
+
+    title = conv.get('name') or conv.get('title') or conv.get('id') or 'Untitled Conversation'
+    lines.append(f'* {title}')
+
+    created = format_timestamp(conv.get('created_at') or conv.get('created'))
+    updated = format_timestamp(conv.get('updated_at') or conv.get('updated'))
+    if created:
+        lines.append(':PROPERTIES:')
+        lines.append(f':CREATED: {created}')
+        if updated:
+            lines.append(f':UPDATED: {updated}')
+        conv_id = conv.get('uuid') or conv.get('id') or ''
+        if conv_id:
+            lines.append(f':ID: {conv_id}')
+        lines.append(':END:')
+    lines.append('')
+
+    messages = (
+        conv.get('chat_messages') or
+        conv.get('messages') or
+        conv.get('turns') or
+        []
+    )
+    if not messages:
+        lines.append('/(No messages)/\n')
+        return '\n'.join(lines)
+
+    for msg in messages:
+        role = msg.get('role') or msg.get('sender') or 'unknown'
+        text = extract_text(msg.get('content') or msg.get('text') or '')
+        ts = format_timestamp(
+            msg.get('created_at') or msg.get('timestamp') or msg.get('updated_at')
+        )
+
+        if role in ('human', 'user'):
+            role_label, tag = '👤 Human', ':human:'
+        elif role in ('assistant', 'claude'):
+            role_label, tag = '🤖 Claude', ':claude:'
+        else:
+            role_label, tag = f'🔧 {role.capitalize()}', f':{role}:'
+
+        heading = f'** {role_label}'
+        if ts:
+            heading += f'  {ts}'
+        heading += f'  {tag}'
+        lines.append(heading)
+        lines.append('')
+        lines.append(markdown_to_org(text) if text else '/(empty message)/')
+        lines.append('')
+
+    return '\n'.join(lines)
+
+
+def json_to_org_flat(input_path: Path, output_path: Path) -> None:
+    """入力JSON 1件を、単純な単一 .org ファイルに変換する(--flat)。"""
+    with open(input_path, encoding='utf-8') as f:
+        data = json.load(f)
+
+    conversations = normalize_conversations(data)
+    print(f'  → {len(conversations)} 件の会話を変換中...')
+
+    org_lines = [
+        f'#+TITLE: Claude Chat History - {input_path.stem}',
+        f'#+DATE: {datetime.now().strftime("[%Y-%m-%d %a]")}',
+        '#+AUTHOR: Claude Chat Exporter',
+        '#+STARTUP: overview',
+        '#+OPTIONS: toc:2 num:nil',
+        '',
+    ]
+    for i, conv in enumerate(conversations, 1):
+        try:
+            org_lines.append(convert_conversation_flat(conv))
+            org_lines.append('')
+        except Exception as e:
+            org_lines.append(f'* [Error in conversation {i}: {e}]')
+            org_lines.append('')
+
+    output_path.write_text('\n'.join(org_lines), encoding='utf-8')
+    print(f'  ✓ 保存: {output_path}')
+
+
 # --- プロパティドロワー -------------------------------------------------------
 
 def property_line(key: str, value: str, align_to: int = 11) -> str:
@@ -474,6 +565,11 @@ def main():
                          help='カテゴリの自動判定を無効化する（--category のみを使う）')
     parser.add_argument('--force', action='store_true',
                          help='既存のROAM_REFSと重複していても新規ファイルを作成する')
+    parser.add_argument('--flat', action='store_true',
+                         help='org-roamノード分割ではなく、入力JSON 1件につき1つの単純な'
+                              '.org ファイルを出力する(ROAM_REFS/タグ自動判定なし、旧 '
+                              'claude_to_org.py 相当)。--output-dir はこのモードでは無視され、'
+                              '入力ファイルと同じディレクトリに <入力名>.org として保存する。')
 
     if len(sys.argv) < 2:
         parser.print_help()
@@ -483,6 +579,24 @@ def main():
     if not args.input_files:
         parser.print_help()
         sys.exit(1)
+
+    if args.flat:
+        for input_file in args.input_files:
+            input_path = Path(input_file)
+            if not input_path.exists():
+                print(f'[ERROR] ファイルが見つかりません: {input_path}')
+                continue
+            output_path = input_path.with_suffix('.org')
+            print(f'\n変換中: {input_path.name}')
+            try:
+                json_to_org_flat(input_path, output_path)
+            except json.JSONDecodeError as e:
+                print(f'  [ERROR] JSON パースエラー: {e}')
+            except Exception as e:
+                print(f'  [ERROR] 変換エラー: {e}')
+                raise
+        print('\n完了!')
+        return
 
     output_dir = args.output_dir.expanduser()
     output_dir.mkdir(parents=True, exist_ok=True)

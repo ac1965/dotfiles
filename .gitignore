@@ -76,6 +76,11 @@
 !.local/bin/*.zsh
 !.local/bin/*.py
 !.local/bin/*.zh
+!.local/bin/*.swift
+# keychain-helper (コンパイル成果物) はソース(.swift)からビルドするため
+# 追跡しない。ビルド済みバイナリの信頼登録はマシン固有なので、コミットで
+# 配っても意味がない。
+.local/bin/keychain-helper
 # ===== .local/share (favorite-repos.json のみ) =====
 .local/share/*
 !.local/share/favorite-repos.json

@@ -3,9 +3,15 @@
 # AES-256-CBC + PBKDF2 (210k iterations), output perms via umask 077,
 # then remove the source in order: gshred > shred > rm.
 # Passphrase lives in the macOS Keychain (service: com.encrypt.aes256gcm,
-# account: $KEYCHAIN_ACCOUNT or "default"). Missing entries are generated
-# and stored automatically; run keychain_store.sh beforehand to set a
-# stronger passphrase by hand instead.
+# account: $KEYCHAIN_ACCOUNT or "default"), accessed only through
+# keychain-helper (a small self-trusted binary; see keychain-helper.swift).
+# Unlike the plain `security` CLI — which is the same accessing process no
+# matter which script invokes it, so a "trusted apps" ACL can't tell our
+# scripts apart from anything else calling `security` — the helper is
+# registered as the item's sole trusted application, so unrelated callers
+# hit the Keychain's own confirmation prompt instead of silent access.
+# Missing entries are generated and stored automatically; run
+# keychain_store.sh beforehand to set a stronger passphrase by hand instead.
 #
 # Encrypt-then-MAC: a 32-byte HMAC-SHA256 tag is appended to the ciphertext
 # so decrypt can detect tampering/corruption before decrypting. The MAC key
@@ -25,16 +31,20 @@ fi
 in="$1"
 out="$in.enc"
 iter="${ITER:-210000}"
-service="com.encrypt.aes256gcm"
 account="${KEYCHAIN_ACCOUNT:-default}"
 hmac_salt="646f7466686d6163"
+bindir="$(cd "$(dirname "$0")" && pwd)"
+helper="$bindir/keychain-helper"
 
 umask 077
 
-if ! pass=$(security find-generic-password -s "$service" -a "$account" -w 2>/dev/null); then
-  pass=$(openssl rand -base64 32)
-  security add-generic-password -s "$service" -a "$account" -w "$pass" -U
-  echo "🔑 Generated new passphrase and stored in Keychain (service=$service, account=$account)" >&2
+if [ ! -x "$helper" ]; then
+  swiftc "$bindir/keychain-helper.swift" -o "$helper"
+fi
+
+if ! pass=$("$helper" get "$account" 2>/dev/null); then
+  "$helper" generate "$account"
+  pass=$("$helper" get "$account")
 fi
 
 PASSPHRASE="$pass" openssl aes-256-cbc -e -pbkdf2 -iter "$iter" -salt -in "$in" -out "$out" -pass env:PASSPHRASE

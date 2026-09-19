@@ -302,43 +302,22 @@ encrypt private.tar.xz
 
 `encrypt` は成功後、`shred`(macOS では `gshred`、無ければ `rm`)で平文の `private.tar.xz` を削除するため、手動での後始末は不要。
 
-**スクリプト定義** (`~/.local/bin/` などに配置)
+**実装** ([.local/bin/encrypt](.local/bin/encrypt) / [.local/bin/decrypt](.local/bin/decrypt) / [.local/bin/keychain_store.sh](.local/bin/keychain_store.sh) / [.local/bin/keychain-helper.swift](.local/bin/keychain-helper.swift))
+
+パスフレーズの生成・保存・読み出しは macOS Keychain(service: `com.encrypt.aes256gcm`, account: `$KEYCHAIN_ACCOUNT` または `default`)を介して行う。
+
+- **暗号化**: AES-256-CBC + PBKDF2(既定21万回、`ITER`環境変数で変更可)。出力パーミッションは `umask 077` で絞り、成功後に平文を `gshred`/`shred`/`rm` の優先順で安全削除する。
+- **改ざん検知(Encrypt-then-MAC)**: 暗号化後、同じパスフレーズから固定salt(非秘匿の分離用定数)でPBKDF2導出した別鍵でHMAC-SHA256を計算し、`.enc`ファイル末尾に32バイト連結する。`decrypt`は復号前にこのタグを検証し、不一致なら復号を試みずに即エラー終了する。この形式変更より前に作られた `.enc` ファイルはタグが無いため復号できず、現行の `encrypt` での再暗号化が必要。
+- **Keychainアクセス制限**: `security` CLIはどのスクリプトから呼んでも同じプロセス(`/usr/bin/security`)として扱われるため、Keychainの「信頼アプリのみ許可」ACLでは呼び出し元のスクリプトを区別できない。そこで [keychain-helper.swift](.local/bin/keychain-helper.swift) という小さな自前バイナリを用意し、Keychainアイテム作成時に**このヘルパー自身だけ**を信頼アプリとして登録する(レガシーな `SecKeychainItemCreateFromContent` + `SecAccessCreate` API を使用)。`encrypt`/`decrypt`/`keychain_store.sh` は全てこのヘルパー経由でKeychainにアクセスし、ヘルパー以外(素の `security` コマンド等)からのアクセスはKeychainの確認ダイアログの対象になる。ヘルパーのバイナリはコンパイル成果物のため git 管理外(`.gitignore`)で、各スクリプトが初回実行時に `swiftc` で自動ビルドする。
+
+**初回セットアップ**
+
+Keychain にまだパスフレーズが無い状態で `encrypt` を実行すると、ランダムなパスフレーズが自動生成されてKeychainに保存される(初回はヘルパーバイナリのビルドも自動で行われる)。既存の `.enc` を復号する場合など、特定のパスフレーズを手動で登録しておきたい場合は事前に [keychain_store.sh](.local/bin/keychain_store.sh) を実行する。
 
 ```bash
-#!/bin/bash
-# encrypt — AES-256-CBC + PBKDF2(既定21万回、ITER環境変数で変更可)。
-# 出力パーミッションを umask 077 で絞り、平文はshred/gshredで安全削除。
-set -euo pipefail
-[ $# -eq 1 ] || { echo "Usage: $0 <file>"; exit 1; }
-in="$1"; out="$in.enc"; iter="${ITER:-210000}"
-umask 077
-openssl aes-256-cbc -e -pbkdf2 -iter "$iter" -salt -in "$in" -out "$out"
-if command -v gshred >/dev/null 2>&1; then gshred -u -- "$in"
-elif command -v shred >/dev/null 2>&1; then shred -u -- "$in"
-else rm -f -- "$in"; fi
-echo "✅ Encrypted: $out"
-```
-
-```bash
-#!/bin/bash
-# decrypt — 標準出力へ復号(パイプ前提: `decrypt file.enc | tar -xvJ`)。
-# パスフレーズは PASSPHRASE 環境変数 > /dev/tty プロンプトの優先順。
-# STDOUT が端末の場合はバイナリ書き込みを拒否する。
-set -euo pipefail
-[ $# -eq 1 ] || { echo "Usage: $0 <file.enc>" >&2; exit 1; }
-in="$1"; iter="${ITER:-210000}"
-[ -t 1 ] && { echo "Refusing to write binary to terminal. Pipe or redirect the output." >&2; exit 1; }
-cmd=(openssl aes-256-cbc -d -pbkdf2 -iter "$iter" -in "$in" -out -)
-if [ "${PASSPHRASE:-}" != "" ]; then
-  PASSPHRASE="$PASSPHRASE" "${cmd[@]}" -pass env:PASSPHRASE
-elif [ -r /dev/tty ]; then
-  read -s -p "Passphrase: " pass </dev/tty >&2; echo >&2
-  exec 3<<<"$pass"
-  "${cmd[@]}" -pass fd:3
-else
-  echo "No PASSPHRASE set and no /dev/tty available for prompt." >&2
-  exit 1
-fi
+zsh .local/bin/keychain_store.sh          # 対話でパスフレーズ(20文字以上)を入力しKeychainに保存
+zsh .local/bin/keychain_store.sh -g       # ランダム生成して自動登録
+zsh .local/bin/keychain_store.sh -f ...   # 既存エントリを確認なしで上書き
 ```
 
 ---

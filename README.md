@@ -304,7 +304,7 @@ encrypt private.tar.xz
 
 **実装** ([.local/bin/encrypt](.local/bin/encrypt) / [.local/bin/decrypt](.local/bin/decrypt) / [.local/bin/keychain_store.sh](.local/bin/keychain_store.sh) / [.local/bin/keychain-helper.swift](.local/bin/keychain-helper.swift))
 
-パスフレーズの生成・保存・読み出しは macOS Keychain(service: `com.encrypt.aes256gcm`, account: `$KEYCHAIN_ACCOUNT` または `default`)を介して行う。
+パスフレーズの生成・保存・読み出しは macOS Keychain(service: `com.encrypt.aes256gcm`, account: `$KEYCHAIN_ACCOUNT` または `private-archive`)を介して行う。
 
 - **暗号化**: AES-256-CBC + PBKDF2(既定21万回、`ITER`環境変数で変更可)。出力パーミッションは `umask 077` で絞り、成功後に平文を `gshred`/`shred`/`rm` の優先順で安全削除する。
 - **改ざん検知(Encrypt-then-MAC)**: 暗号化後、同じパスフレーズから固定salt(非秘匿の分離用定数)でPBKDF2導出した別鍵でHMAC-SHA256を計算し、`.enc`ファイル末尾に32バイト連結する。`decrypt`は復号前にこのタグを検証し、不一致なら復号を試みずに即エラー終了する。この形式変更より前に作られた `.enc` ファイルはタグが無いため復号できず、現行の `encrypt` での再暗号化が必要。

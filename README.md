@@ -323,7 +323,7 @@ encrypt private.tar.xz
 
 **初回セットアップ**
 
-Keychain にまだパスフレーズが無い状態で `encrypt` を実行すると、ランダムなパスフレーズが自動生成されてKeychainに保存される(初回はヘルパーバイナリのビルドも自動で行われる)。既存の `.enc` を復号する場合など、特定のパスフレーズを手動で登録しておきたい場合は事前に [keychain_store.sh](.local/bin/keychain_store.sh) を実行する。
+Keychain にまだパスフレーズが無い状態で `encrypt` を実行すると、ランダムなパスフレーズが自動生成されてKeychainに保存される。既存の `.enc` を復号する場合など、特定のパスフレーズを手動で登録しておきたい場合は事前に [keychain_store.sh](.local/bin/keychain_store.sh) を実行する。
 
 ```bash
 zsh .local/bin/keychain_store.sh          # 対話でパスフレーズ(20文字以上)を入力しKeychainに保存
@@ -335,6 +335,12 @@ zsh .local/bin/keychain_store.sh -f ...   # 既存エントリを確認なしで
 > iCloudキーチェーン同期(`kSecAttrSynchronizable`)は、モダンな `SecItemAdd` API 経由でのみ設定でき、署名なしのコマンドラインツールから呼ぶと `errSecMissingEntitlement (-34018)` で失敗する(実機で検証済み)。`security` コマンド自体にもこの属性を設定するオプションは無い。つまり第三者の汎用パスワードをiCloud同期させるには、Apple Developer Programで正式に署名されたアプリが必要で、本リポジトリのようなシェルスクリプト構成では実現できない。
 >
 > したがって `-g`(自動生成)で登録したパスフレーズは、**このMacのKeychainにしか存在しない**。生成時に一度だけ画面に表示されるので、**その場でパスワードマネージャーに保存**しておくこと(再表示はできない)。手動選択したパスフレーズの場合も同様に、別途パスワードマネージャー等に控えておかないと、クリーンインストール後の `keychain_store.sh` での再登録(前述)ができなくなる。
+>
+> 登録済みの値を後から確認したい場合(パスワードマネージャーへの控え忘れに気づいた時など)は、次のコマンドで取得できる(`keychain-helper` は撤去済みのため、素の `security` コマンドを使う)。
+>
+> ```bash
+> security find-generic-password -s com.encrypt.aes256gcm -a private-archive -w
+> ```
 
 ---
 

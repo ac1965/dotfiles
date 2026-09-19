@@ -10,11 +10,16 @@
 // 確認ダイアログの対象になる。
 //
 // 使い方:
-//   keychain-helper get     [account]              パスフレーズを標準出力に印字
-//   keychain-helper set     [-f|--force] [account]  標準入力の1行をパスフレーズとして登録
+//   keychain-helper get      [account]              パスフレーズを標準出力に印字
+//   keychain-helper set      [-f|--force] [account]  標準入力の1行をパスフレーズとして登録
 //   keychain-helper generate [-f|--force] [account]  ランダム生成して登録
+//   keychain-helper label    [account]               表示名(ラベル)を設定/更新
 //
 // account 省略時は "default"。ビルド: `swiftc keychain-helper.swift -o keychain-helper`
+//
+// キーチェーンアクセス.app で見つけやすいよう、新規作成時は自動でラベルを
+// 付与する。ラベル無しで作られた既存項目には `label` サブコマンドで後から
+// 付与できる。
 
 import Foundation
 import Security
@@ -31,7 +36,12 @@ func fourCharCode(_ s: String) -> UInt32 {
 }
 let kSecServiceItemAttr_: SecKeychainAttrType = fourCharCode("svce")
 let kSecAccountItemAttr_: SecKeychainAttrType = fourCharCode("acct")
+let kSecLabelItemAttr_: SecKeychainAttrType = fourCharCode("labl")
 let kSecGenericPasswordItemClass_ = SecItemClass(rawValue: fourCharCode("genp"))!
+
+func defaultLabel(account: String) -> String {
+    "dotfiles encrypt/decrypt (\(account))"
+}
 
 func fail(_ msg: String) -> Never {
     FileHandle.standardError.write((msg + "\n").data(using: .utf8)!)
@@ -115,34 +125,59 @@ func setPassword(account: String, password: String, force: Bool) {
 
     var svcAttr = SecKeychainAttribute(tag: kSecServiceItemAttr_, length: 0, data: nil)
     var acctAttr = SecKeychainAttribute(tag: kSecAccountItemAttr_, length: 0, data: nil)
+    var lblAttr = SecKeychainAttribute(tag: kSecLabelItemAttr_, length: 0, data: nil)
 
     var status: OSStatus = errSecSuccess
     var svc = Array(SERVICE.utf8)
     var acct = Array(account.utf8)
+    var lbl = Array(defaultLabel(account: account).utf8)
     svc.withUnsafeMutableBytes { svcBuf in
         acct.withUnsafeMutableBytes { acctBuf in
-            svcAttr.length = UInt32(svcBuf.count)
-            svcAttr.data = svcBuf.baseAddress
-            acctAttr.length = UInt32(acctBuf.count)
-            acctAttr.data = acctBuf.baseAddress
-            var attrs = [svcAttr, acctAttr]
-            attrs.withUnsafeMutableBufferPointer { attrsBuf in
-                var attrList = SecKeychainAttributeList(count: UInt32(attrsBuf.count), attr: attrsBuf.baseAddress)
-                var newItem: SecKeychainItem?
-                status = SecKeychainItemCreateFromContent(
-                    kSecGenericPasswordItemClass_,
-                    &attrList,
-                    UInt32(pwBytes.count),
-                    pwBytes,
-                    nil,
-                    access,
-                    &newItem
-                )
+            lbl.withUnsafeMutableBytes { lblBuf in
+                svcAttr.length = UInt32(svcBuf.count)
+                svcAttr.data = svcBuf.baseAddress
+                acctAttr.length = UInt32(acctBuf.count)
+                acctAttr.data = acctBuf.baseAddress
+                lblAttr.length = UInt32(lblBuf.count)
+                lblAttr.data = lblBuf.baseAddress
+                var attrs = [svcAttr, acctAttr, lblAttr]
+                attrs.withUnsafeMutableBufferPointer { attrsBuf in
+                    var attrList = SecKeychainAttributeList(count: UInt32(attrsBuf.count), attr: attrsBuf.baseAddress)
+                    var newItem: SecKeychainItem?
+                    status = SecKeychainItemCreateFromContent(
+                        kSecGenericPasswordItemClass_,
+                        &attrList,
+                        UInt32(pwBytes.count),
+                        pwBytes,
+                        nil,
+                        access,
+                        &newItem
+                    )
+                }
             }
         }
     }
     guard status == errSecSuccess else {
         fail("Failed to create item: \(status)")
+    }
+}
+
+func setLabel(account: String, label: String) {
+    guard let item = findItem(account: account) else {
+        fail("Not found in Keychain (service=\(SERVICE), account=\(account))")
+    }
+    var status: OSStatus = errSecSuccess
+    var lbl = Array(label.utf8)
+    lbl.withUnsafeMutableBytes { buf in
+        var labelAttr = SecKeychainAttribute(tag: kSecLabelItemAttr_, length: UInt32(buf.count), data: buf.baseAddress)
+        var attrs = [labelAttr]
+        attrs.withUnsafeMutableBufferPointer { attrsBuf in
+            var attrList = SecKeychainAttributeList(count: UInt32(attrsBuf.count), attr: attrsBuf.baseAddress)
+            status = SecKeychainItemModifyContent(item, &attrList, 0, nil)
+        }
+    }
+    guard status == errSecSuccess else {
+        fail("Failed to set label: \(status)")
     }
 }
 
@@ -176,6 +211,9 @@ case "generate":
     let pass = Data(bytes).base64EncodedString()
     setPassword(account: account, password: pass, force: force)
     FileHandle.standardError.write("Generated and stored in Keychain (self-only access): service=\(SERVICE), account=\(account)\n".data(using: .utf8)!)
+case "label":
+    setLabel(account: account, label: defaultLabel(account: account))
+    FileHandle.standardError.write("Label set: service=\(SERVICE), account=\(account)\n".data(using: .utf8)!)
 default:
     fail("Unknown command: \(cmd)")
 }

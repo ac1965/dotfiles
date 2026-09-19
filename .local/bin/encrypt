@@ -3,7 +3,7 @@
 # AES-256-CBC + PBKDF2 (210k iterations), output perms via umask 077,
 # then remove the source in order: gshred > shred > rm.
 # Passphrase lives in the macOS Keychain (service: com.encrypt.aes256gcm,
-# account: $KEYCHAIN_ACCOUNT or "default"), accessed only through
+# account: $KEYCHAIN_ACCOUNT or "private-archive"), accessed only through
 # keychain-helper (a small self-trusted binary; see keychain-helper.swift).
 # Unlike the plain `security` CLI — which is the same accessing process no
 # matter which script invokes it, so a "trusted apps" ACL can't tell our
@@ -31,7 +31,7 @@ fi
 in="$1"
 out="$in.enc"
 iter="${ITER:-210000}"
-account="${KEYCHAIN_ACCOUNT:-default}"
+account="${KEYCHAIN_ACCOUNT:-private-archive}"
 hmac_salt="646f7466686d6163"
 bindir="$(cd "$(dirname "$0")" && pwd)"
 helper="$bindir/keychain-helper"

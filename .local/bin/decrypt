@@ -3,7 +3,7 @@
 # Cipher: AES-256-CBC + PBKDF2 (default 210k iterations).
 # No messages on STDOUT (binary only). All prompts/errors go to STDERR.
 # Passphrase is read from the macOS Keychain (service: com.encrypt.aes256gcm,
-# account: $KEYCHAIN_ACCOUNT or "default") through keychain-helper, a small
+# account: $KEYCHAIN_ACCOUNT or "private-archive") through keychain-helper, a small
 # self-trusted binary that is the item's sole trusted application — see
 # keychain-helper.swift and the note in encrypt for why the plain `security`
 # CLI can't provide that restriction on its own. Run keychain_store.sh first
@@ -28,7 +28,7 @@ fi
 
 in="$1"
 iter="${ITER:-210000}"
-account="${KEYCHAIN_ACCOUNT:-default}"
+account="${KEYCHAIN_ACCOUNT:-private-archive}"
 hmac_salt="646f7466686d6163"
 bindir="$(cd "$(dirname "$0")" && pwd)"
 helper="$bindir/keychain-helper"

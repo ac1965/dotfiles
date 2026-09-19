@@ -32,7 +32,7 @@ for a in "$@"; do
     *) account="$a" ;;
   esac
 done
-ACCOUNT="${account:-default}"    # 複数ファイル管理する場合のラベル
+ACCOUNT="${account:-private-archive}"    # 複数ファイル管理する場合のラベル
 
 if [ ! -x "$HELPER" ]; then
   swiftc "${BINDIR}/keychain-helper.swift" -o "$HELPER"

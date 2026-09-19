@@ -452,16 +452,6 @@ if [[ "$NATIVE_COMP" == "--with-native-compilation=aot" ]] \
 	ln -s Frameworks/native-lisp "$APP_DST/Contents/native-lisp"
 fi
 
-# "make install" は Contents/MacOS/Emacs (temacs) のみ ad-hoc 署名し、
-# バンドル全体(Contents/_CodeSignature)は未署名のまま残す。この状態だと
-# `codesign --verify` が
-#   code has no resources but signature indicates they must be present
-# を返し、Gatekeeper/LaunchServices がバンドルを不完全と判定して
-# Dock/Finder のアイコン表示が汎用アイコンにフォールバックする
-# (2026-09-20 実機で確認)。cp 後に必ずバンドル全体へ再署名する。
-heading "Code-signing Emacs.app (ad-hoc)"
-codesign --force --deep --sign - "$APP_DST"
-
 # ============================================================
 # CLI wrapper
 # ============================================================

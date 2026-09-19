@@ -171,12 +171,17 @@ def list_conversations(session: requests.Session, org_id: str, limit: int) -> No
         params={"limit": limit, "archived": "false", "consistency": "strong"},
     )
     resp.raise_for_status()
-    conversations = resp.json()
+    payload = resp.json()
+    # chat_conversations_v2 は {"data": [...], "has_more": bool} 形式を返す
+    # (以前は素の配列だったため、仕様変更で構造が変わった)
+    conversations = payload["data"] if isinstance(payload, dict) else payload
     print(f"{'conversation_uuid':<38} name")
     print("-" * 60)
     for c in conversations:
         name = c.get("name") or "(無題)"
         print(f"{c.get('uuid'):<38} {name}")
+    if isinstance(payload, dict) and payload.get("has_more"):
+        print(f"\n[INFO] 他にも会話があります(has_more=true)。--limit を増やして確認してください。")
 
 
 def move_many(

@@ -29,6 +29,17 @@ dotfiles/dotfiles.zsh deploy
 
 > **Note** `dotfiles.zsh` は `deploy`(repo→HOME)/ `reverse`(HOME→repo)の2モードを取る。引数省略時は使用方法を表示して終了する。
 
+> **Note — 実行結果の `(N copied, M ignored)` は件数のみで、個別ファイル名は記録されない**
+> `.config`/`.local` 等のディレクトリ項目は `.gitignore` でファイル単位に事前フィルタしてからコピーする(トップコメント参照)が、実行時に出る集計(例: `.config (118 copied, 140 ignored)`)は件数のみで、どのファイルが対象/除外だったかはログに残らない。dry-run(`-n`)なら「コピーされる側」のファイル名だけは個別表示されるが、ignore側は出ない。
+>
+> ignore対象を個別に確認したい場合、**対象ディレクトリを間違えやすい**点に注意。`deploy` はリポジトリ内の `dotfiles/.config` を走査するのであって、実際の `~/.config`(アプリのキャッシュ等を含む遥かに大きいツリー)ではない。後者に対して `git check-ignore -v ~/.config` のように**ディレクトリそのもの**を渡しても、`.config` 自体はignore対象ではないため何も表示されない(除外はその配下の個別ファイル単位でのみ発生する)。正しくは:
+>
+> ```bash
+> find dotfiles/.config -type f | sed "s|^dotfiles/||" | git -C dotfiles check-ignore --stdin
+> ```
+>
+> さらに、`-v`(verbose)を付けると**入れ子になったgitリポジトリ**(例: `.config/zsh/.antidote/.git/` のようなgit管理下のツール)の内部パスまで `.gitignore` の全部除外パターン(`*`)にマッチしたとして余分に報告される、という`git check-ignore`自体の癖がある。`dotfiles.zsh`が実際に使っているのは`-v`無しの判定なので、正確な件数を再現したいときは`-v`を外すこと。
+
 ---
 
 ## リカバリ後のフルセットアップ

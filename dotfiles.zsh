@@ -110,6 +110,12 @@ esac
 # that IS ignored, NUL-separated; anything git itself can't classify (e.g.
 # a submodule boundary) is silently omitted from that "ignored" output, so
 # treat "not reported as ignored" as the only green light to copy.
+#
+# To manually reproduce the "N ignored" count printed per entry below,
+# check-ignore *without* -v against the exact same relative paths — `-v`
+# additionally reports paths inside a nested repo's .git/ (e.g.
+# .config/zsh/.antidote/.git/*) as matching the catch-all `*` pattern,
+# which this non-verbose call does not, and inflates the count.
 ignored_rels() {
   git -C "${REPO_ROOT}" check-ignore -z --stdin < "$1" 2>/dev/null || true
 }

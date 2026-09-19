@@ -27,7 +27,8 @@ readonly DOTFILES=(
 )
 readonly REPO_ROOT="$(git rev-parse --show-toplevel)"
 readonly USAGE="usage: ${0:t} [d|deploy|r|reverse] [-n|--dry-run]
-       ${0:t} rb|rollback <relpath> [n] [-n|--dry-run]"
+       ${0:t} rb|rollback <relpath> [n] [-n|--dry-run]
+       ${0:t} p|prune [-n|--dry-run]"
 readonly MODE=${1:?${USAGE}}
 local -i _dryrun=0
 local _a=""
@@ -94,6 +95,58 @@ do_rollback() {
 
 if [[ $MODE == rb || $MODE == rollback ]]; then
   do_rollback "${2:?${USAGE}}" "${3:-1}"
+  exit $?
+fi
+
+# prune: deploy はコピーするだけで削除はしない(repo からファイルを消しても
+# $HOME 側の古いコピーは残り続ける)ため、リポジトリの全履歴上で一度でも
+# 削除されたパスのうち、今の repo には無く $HOME にはまだ残っているものを
+# 検出して削除する。「$HOME にあって repo に無い」だけでは判定に使えない
+# ("git 管理外の個人ファイル" と "repo から消したファイル" を区別できない)
+# ため、必ず git 履歴に基づいて判定する。
+#
+# 重要: 履歴上「削除」されたパスには、(a) 廃止されたスクリプト等の意図的な
+# 削除と、(b) 誤って一度追跡してしまい、後から .gitignore に追加して
+# 追跡だけ外した実行時データ(zshヒストリ、認証情報キャッシュ等)の2種類が
+# 混在する。後者は $HOME 側にあり続けるべき現役データなので、現在
+# .gitignore にマッチするパスは「今後も追跡しない」という明示的な意思表示
+# とみなし、prune 対象から除外する(除外しないと .zsh_history や
+# keychain_passwords.org のような実データを消してしまう事故になる。
+# 実機検証で発覚)。
+do_prune() {
+  print -- "-- prune: repo から削除済みだが \$HOME に残っているファイルを検出 --"
+  (( DRYRUN )) && print -- "-- DRY RUN: 削除は行いません --"
+
+  local -a deleted_paths
+  deleted_paths=(${(f)"$(git -C "${REPO_ROOT}" log --all --diff-filter=D --name-only --format= -- "${DOTFILES[@]}" 2>/dev/null | sort -u)"})
+
+  integer orphan=0 ignored=0
+  local p=""
+  for p in "${deleted_paths[@]}"; do
+    [[ -z "$p" ]] && continue
+    [[ -e "${REPO_ROOT}/${p}" ]] && continue   # 復活済み(再追加された)
+    [[ -e "${HOME}/${p}" ]] || continue        # $HOME側に無ければ対象外
+    if git -C "${REPO_ROOT}" check-ignore -q -- "${p}"; then
+      (( ignored++ )) || true                  # 今も追跡しない方針の実行時データ
+      continue
+    fi
+    print -- "  orphan   ${p}"
+    (( orphan++ )) || true
+    (( DRYRUN )) || rm -f -- "${HOME}/${p}"
+  done
+  (( ignored > 0 )) && print -- "  (.gitignore 対象のため対象外: ${ignored} 件)"
+
+  if (( orphan == 0 )); then
+    print -- "orphan は見つかりませんでした"
+  elif (( DRYRUN )); then
+    print -- "\n${orphan} 件の orphan を検出(dry-run のため削除なし。実削除するには -n を外して実行)"
+  else
+    print -- "\n${orphan} 件の orphan を \$HOME から削除しました"
+  fi
+}
+
+if [[ $MODE == p || $MODE == prune ]]; then
+  do_prune
   exit $?
 fi
 

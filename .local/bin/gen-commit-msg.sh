@@ -18,6 +18,7 @@
 #   ./gen-commit-msg.sh --host http://localhost:11434
 #
 set -euo pipefail
+zmodload zsh/system
 
 MODEL="qwen3-coder:latest"
 HOST="http://localhost:11434"
@@ -45,6 +46,22 @@ done
 
 if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   echo "[ERROR] gitリポジトリの中で実行してください" >&2
+  exit 1
+fi
+
+# dotfiles-autosync.zsh(launchdで1時間ごとに reverse→commit→push を行う)
+# と同じロックファイルを使って排他する。Ollamaへの問い合わせは数秒〜1分
+# 程度かかることがあり、その間に自動同期が git add/commit/push を実行す
+# ると、ここでステージした変更が自動同期側の汎用コミットメッセージで
+# 先に持っていかれてしまい、後段の `git commit` が失敗する不安定な挙動
+# の原因になっていた。autosync 側は待たずにスキップする(-t 0)のに対し、
+# こちらは対話的な単発操作なので、多少待ってでもロックを取得する。
+AUTOSYNC_STATE_DIR="${HOME}/.local/state/dotfiles-autosync"
+AUTOSYNC_LOCK_FILE="${AUTOSYNC_STATE_DIR}/autosync.lock"
+mkdir -p -- "${AUTOSYNC_STATE_DIR}"
+: >>"${AUTOSYNC_LOCK_FILE}"
+if ! zsystem flock -t 30 "${AUTOSYNC_LOCK_FILE}" 2>/dev/null; then
+  echo "[ERROR] dotfiles-autosync のロックが30秒経っても解放されませんでした。自動同期の実行中の可能性があります。しばらくしてから再実行してください。" >&2
   exit 1
 fi
 

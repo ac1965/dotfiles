@@ -311,13 +311,15 @@ encrypt private.tar.xz
 
 `encrypt` は成功後、`shred`(macOS では `gshred`、無ければ `rm`)で平文の `private.tar.xz` を削除するため、手動での後始末は不要。
 
-**実装** ([.local/bin/encrypt](.local/bin/encrypt) / [.local/bin/decrypt](.local/bin/decrypt) / [.local/bin/keychain_store.sh](.local/bin/keychain_store.sh) / [.local/bin/keychain-helper.swift](.local/bin/keychain-helper.swift))
+**実装** ([.local/bin/encrypt](.local/bin/encrypt) / [.local/bin/decrypt](.local/bin/decrypt) / [.local/bin/keychain_store.sh](.local/bin/keychain_store.sh))
 
-パスフレーズの生成・保存・読み出しは macOS Keychain(service: `com.encrypt.aes256gcm`, account: `$KEYCHAIN_ACCOUNT` または `private-archive`)を介して行う。
+パスフレーズの生成・保存・読み出しは macOS Keychain(service: `com.encrypt.aes256gcm`, account: `$KEYCHAIN_ACCOUNT` または `private-archive`)を、`security` コマンド経由で行う。
 
 - **暗号化**: AES-256-CBC + PBKDF2(既定21万回、`ITER`環境変数で変更可)。出力パーミッションは `umask 077` で絞り、成功後に平文を `gshred`/`shred`/`rm` の優先順で安全削除する。
 - **改ざん検知(Encrypt-then-MAC)**: 暗号化後、同じパスフレーズから固定salt(非秘匿の分離用定数)でPBKDF2導出した別鍵でHMAC-SHA256を計算し、`.enc`ファイル末尾に32バイト連結する。`decrypt`は復号前にこのタグを検証し、不一致なら復号を試みずに即エラー終了する。この形式変更より前に作られた `.enc` ファイルはタグが無いため復号できず、現行の `encrypt` での再暗号化が必要。
-- **Keychainアクセス制限**: `security` CLIはどのスクリプトから呼んでも同じプロセス(`/usr/bin/security`)として扱われるため、Keychainの「信頼アプリのみ許可」ACLでは呼び出し元のスクリプトを区別できない。そこで [keychain-helper.swift](.local/bin/keychain-helper.swift) という小さな自前バイナリを用意し、Keychainアイテム作成時に**このヘルパー自身だけ**を信頼アプリとして登録する(レガシーな `SecKeychainItemCreateFromContent` + `SecAccessCreate` API を使用)。`encrypt`/`decrypt`/`keychain_store.sh` は全てこのヘルパー経由でKeychainにアクセスし、ヘルパー以外(素の `security` コマンド等)からのアクセスはKeychainの確認ダイアログの対象になる。ヘルパーのバイナリはコンパイル成果物のため git 管理外(`.gitignore`)で、各スクリプトが初回実行時に `swiftc` で自動ビルドする。
+
+> **Note — 「呼び出し元スクリプト限定」のKeychainアクセス制限は撤回した**
+> 一時期、`security` CLIはどのスクリプトから呼んでも同じプロセス(`/usr/bin/security`)として扱われる問題を回避するため、専用のSwiftヘルパー(`SecKeychainItemCreateFromContent` + `SecAccessCreate` で「このヘルパー自身だけ」を信頼アプリとして登録)を使っていた。しかし `SecTrustedApplicationCreateFromPath` はアイテム作成時点の**コンパイル済みバイナリの実体**を信頼登録するため、ヘルパーのソースを編集して再ビルドするたびに信頼関係が壊れ、Keychainの確認ダイアログ(パスワード入力)が復活してしまうことが判明した。`decrypt`/`encrypt` は無人実行(バックアップの自動化等)を想定しているため、これは致命的な回帰であり撤回した。現在は素の `security` コマンドで作成・参照しており、`security` 自身はOS標準の不変なバイナリのため、この種の破損は起きない。
 
 **初回セットアップ**
 
@@ -330,9 +332,9 @@ zsh .local/bin/keychain_store.sh -f ...   # 既存エントリを確認なしで
 ```
 
 > **Note — このパスフレーズは他のMacに自動では引き継がれない**
-> `keychain-helper` が使う「このバイナリだけ信頼するACL」は、iCloudキーチェーン同期に必要なモダンな `SecItemAdd` API では設定できず、レガシーな `SecKeychainItemCreateFromContent` API 専用の機能である。逆にiCloud同期(`kSecAttrSynchronizable`)は署名なしのコマンドラインバイナリからは `SecItemAdd` 自体が `errSecMissingEntitlement (-34018)` で失敗し、Apple Developer Programでの正式な署名が無いと使えない(実機で検証済み)。つまりこの構成では「ヘルパー限定アクセス」と「iCloud同期」は二者択一で両立せず、本リポジトリは前者を採用している。
+> iCloudキーチェーン同期(`kSecAttrSynchronizable`)は、モダンな `SecItemAdd` API 経由でのみ設定でき、署名なしのコマンドラインツールから呼ぶと `errSecMissingEntitlement (-34018)` で失敗する(実機で検証済み)。`security` コマンド自体にもこの属性を設定するオプションは無い。つまり第三者の汎用パスワードをiCloud同期させるには、Apple Developer Programで正式に署名されたアプリが必要で、本リポジトリのようなシェルスクリプト構成では実現できない。
 >
-> したがって `-g`(自動生成)で登録したパスフレーズは、**このMacのKeychainにしか存在しない**。`keychain-helper generate` 実行時に一度だけ画面に表示されるので、**その場でパスワードマネージャーに保存**しておくこと(再表示はできない)。手動選択したパスフレーズの場合も同様に、別途パスワードマネージャー等に控えておかないと、クリーンインストール後の `keychain_store.sh` での再登録(前述)ができなくなる。
+> したがって `-g`(自動生成)で登録したパスフレーズは、**このMacのKeychainにしか存在しない**。生成時に一度だけ画面に表示されるので、**その場でパスワードマネージャーに保存**しておくこと(再表示はできない)。手動選択したパスフレーズの場合も同様に、別途パスワードマネージャー等に控えておかないと、クリーンインストール後の `keychain_store.sh` での再登録(前述)ができなくなる。
 
 ---
 

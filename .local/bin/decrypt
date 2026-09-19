@@ -3,12 +3,10 @@
 # Cipher: AES-256-CBC + PBKDF2 (default 210k iterations).
 # No messages on STDOUT (binary only). All prompts/errors go to STDERR.
 # Passphrase is read from the macOS Keychain (service: com.encrypt.aes256gcm,
-# account: $KEYCHAIN_ACCOUNT or "private-archive") through keychain-helper, a small
-# self-trusted binary that is the item's sole trusted application — see
-# keychain-helper.swift and the note in encrypt for why the plain `security`
-# CLI can't provide that restriction on its own. Run keychain_store.sh first
-# if the entry doesn't exist yet. Passed to openssl via -pass env:... to
-# avoid exposing it on argv.
+# account: $KEYCHAIN_ACCOUNT or "private-archive") via the plain `security`
+# CLI (see the note in encrypt for why a custom access-restricted helper was
+# tried and abandoned). Run keychain_store.sh first if the entry doesn't
+# exist yet. Passed to openssl via -pass env:... to avoid exposing it on argv.
 #
 # Encrypt-then-MAC: the last 32 bytes of the input are an HMAC-SHA256 tag
 # over the preceding ciphertext (see encrypt). It is verified before any
@@ -30,8 +28,7 @@ in="$1"
 iter="${ITER:-210000}"
 account="${KEYCHAIN_ACCOUNT:-private-archive}"
 hmac_salt="646f7466686d6163"
-bindir="$(cd "$(dirname "$0")" && pwd)"
-helper="$bindir/keychain-helper"
+service="com.encrypt.aes256gcm"
 
 # Refuse writing binary to a terminal
 if [ -t 1 ]; then
@@ -40,12 +37,8 @@ if [ -t 1 ]; then
   exit 1
 fi
 
-if [ ! -x "$helper" ]; then
-  swiftc "$bindir/keychain-helper.swift" -o "$helper"
-fi
-
-if ! pass=$("$helper" get "$account" 2>/dev/null); then
-  echo "Passphrase not found in Keychain (account=$account)." >&2
+if ! pass=$(security find-generic-password -s "$service" -a "$account" -w 2>/dev/null); then
+  echo "Passphrase not found in Keychain (service=$service, account=$account)." >&2
   echo "Run keychain_store.sh first to register it." >&2
   exit 1
 fi

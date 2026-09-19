@@ -3,13 +3,14 @@
 # AES-256-CBC + PBKDF2 (210k iterations), output perms via umask 077,
 # then remove the source in order: gshred > shred > rm.
 # Passphrase lives in the macOS Keychain (service: com.encrypt.aes256gcm,
-# account: $KEYCHAIN_ACCOUNT or "private-archive"), accessed only through
-# keychain-helper (a small self-trusted binary; see keychain-helper.swift).
-# Unlike the plain `security` CLI — which is the same accessing process no
-# matter which script invokes it, so a "trusted apps" ACL can't tell our
-# scripts apart from anything else calling `security` — the helper is
-# registered as the item's sole trusted application, so unrelated callers
-# hit the Keychain's own confirmation prompt instead of silent access.
+# account: $KEYCHAIN_ACCOUNT or "private-archive"), accessed via the plain
+# `security` CLI. (A custom Swift helper with a "trusted apps" ACL was tried
+# to restrict access to this script alone, but SecTrustedApplicationCreateFromPath
+# binds trust to the exact compiled binary — every source edit/rebuild broke
+# the trust relationship and brought back an interactive confirmation dialog,
+# which would hang unattended runs. Not worth the fragility for the marginal
+# benefit, so this uses the same unrestricted access model as any other
+# Keychain-backed credential.)
 # Missing entries are generated and stored automatically; run
 # keychain_store.sh beforehand to set a stronger passphrase by hand instead.
 #
@@ -33,18 +34,24 @@ out="$in.enc"
 iter="${ITER:-210000}"
 account="${KEYCHAIN_ACCOUNT:-private-archive}"
 hmac_salt="646f7466686d6163"
-bindir="$(cd "$(dirname "$0")" && pwd)"
-helper="$bindir/keychain-helper"
+service="com.encrypt.aes256gcm"
 
 umask 077
 
-if [ ! -x "$helper" ]; then
-  swiftc "$bindir/keychain-helper.swift" -o "$helper"
-fi
+if ! pass=$(security find-generic-password -s "$service" -a "$account" -w 2>/dev/null); then
+  pass=$(openssl rand -base64 32)
+  security add-generic-password -s "$service" -a "$account" -l "dotfiles encrypt/decrypt ($account)" -w "$pass" -U
+  # This Keychain entry is local to this Mac only (not iCloud-synced — see
+  # README for why). If nobody records the generated value now, decrypting
+  # this archive on any other machine becomes permanently impossible — print
+  # it once so it can be copied into a password manager immediately.
+  cat >&2 <<PASSMSG
+🔑 Generated new passphrase and stored in Keychain (service=$service, account=$account)
+⚠️  This passphrase exists ONLY in this Mac's Keychain (not iCloud-synced).
+    Save it in a password manager now — it will not be shown again:
+    $pass
 
-if ! pass=$("$helper" get "$account" 2>/dev/null); then
-  "$helper" generate "$account"
-  pass=$("$helper" get "$account")
+PASSMSG
 fi
 
 PASSPHRASE="$pass" openssl aes-256-cbc -e -pbkdf2 -iter "$iter" -salt -in "$in" -out "$out" -pass env:PASSPHRASE

@@ -57,7 +57,7 @@ cd dotfiles
 1. Xcode Command Line Tools / Homebrew / iTerm2 インストール(`.local/bin/init-setup.zsh`)
 2. `Brewfile` 一括インストール(`brew bundle`)
 3. 公開 dotfiles の配置(`dotfiles.zsh deploy`)
-4. private アーカイブの復号・配置(`private/dotfiles.zsh deploy`)
+4. private アーカイブの復号・配置(`cd private && zsh dotfiles.zsh deploy`)
 5. Emacs ビルド(`.local/bin/build-emacs-macos.sh`)
 
 > **Note** ステップ4は `private.tar.xz.enc` が **`dotfiles` リポジトリの親ディレクトリ**(上記の例では `cd dotfiles` する前にいた場所)に存在する場合のみ実行される。リポジトリの中には置かない([プライベートファイルの管理](#プライベートファイルの管理)参照)。iCloud Drive / NAS 等からまだ配置していない新規マシンでは自動的にスキップされるので、後から配置して `./bootstrap.zsh --skip-brew --skip-dotfiles --skip-emacs` のように private だけ個別に再実行すればよい。

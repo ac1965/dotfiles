@@ -18,7 +18,7 @@ macOS 用の個人 dotfiles。`dotfiles.zsh` が **リポジトリ → `$HOME`**
 
 [.local/bin/dotfiles-autosync.zsh](.local/bin/dotfiles-autosync.zsh) は launchd 経由で `reverse`→`commit`→`push` を定期実行する準自動同期(詳細は README の[「dotfiles の自動同期とロールバック」](README.md#dotfiles-の自動同期とロールバック)参照)。commit/push は `DOTFILES` 配列の範囲に限定しているため、他の作業中ファイルを巻き込む心配はない。ただし **`install` サブコマンド(launchd への登録)は実行前に必ずユーザーへ確認すること** — 有効化するとユーザーの確認なしに GitHub へ自動 push する常駐設定になるため、標準的なアカウント/システム設定変更と同様、都度の明示的な許可が必要な操作として扱う。
 
-macOS クリーンインストール直後のフルセットアップは `bootstrap.zsh` が担う。Homebrew 導入 → `brew bundle` → `dotfiles.zsh deploy` → private アーカイブの復号/`private/dotfiles.zsh deploy` → Emacs ビルドを順に呼び出すだけの薄いオーケストレーターで、新しいロジックは持たない。セットアップ手順を変更する場合は個々の委譲先スクリプト(`.local/bin/init-setup.zsh` 等)を直すのが基本で、`bootstrap.zsh` 側は呼び出し順序・スキップフラグの調整に留める。`private.tar.xz.enc`/展開後の `private/` はリポジトリのディレクトリツリーの外(親ディレクトリ)に置く前提なので、パスをいじる際は `REPO_ROOT` 直下決め打ちにしないこと。
+macOS クリーンインストール直後のフルセットアップは `bootstrap.zsh` が担う。Homebrew 導入 → `brew bundle` → `dotfiles.zsh deploy` → private アーカイブの復号/`cd private && zsh dotfiles.zsh deploy` → Emacs ビルドを順に呼び出すだけの薄いオーケストレーターで、新しいロジックは持たない。`private/dotfiles.zsh` は実行時のカレントディレクトリを基準にパスを解決するため、`private/` の外側から `zsh private/dotfiles.zsh ...` のように直接呼び出すと正しく動作しない(`bootstrap.zsh` 内でも `(cd -- "$PRIVATE_DIR" && zsh dotfiles.zsh deploy)` の形で呼んでいる)。セットアップ手順を変更する場合は個々の委譲先スクリプト(`.local/bin/init-setup.zsh` 等)を直すのが基本で、`bootstrap.zsh` 側は呼び出し順序・スキップフラグの調整に留める。`private.tar.xz.enc`/展開後の `private/` はリポジトリのディレクトリツリーの外(親ディレクトリ)に置く前提なので、パスをいじる際は `REPO_ROOT` 直下決め打ちにしないこと。
 
 ## `.gitignore` は「まず全部無視、必要な物だけ許可」方式
 

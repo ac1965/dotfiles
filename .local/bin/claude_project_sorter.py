@@ -3,7 +3,8 @@
 claude_project_sorter.py
 
 claude.ai の会話(チャット)を、指定したプロジェクトへ一括で振り分ける汎用CLIツール。
-非公式の内部APIエンドポイント(move_many)を利用するため、仕様変更で動かなくなる可能性がある。
+会話のスター付け/解除にも対応する。非公式の内部APIエンドポイント(move_many,
+chat_conversations の PUT)を利用するため、仕様変更で動かなくなる可能性がある。
 
 ## 不変条件(invariants)
 - このスクリプトはユーザー自身のセッションCookieを使い、ユーザー自身のアカウント内の
@@ -22,6 +23,11 @@ claude.ai の会話(チャット)を、指定したプロジェクトへ一括�
   assignments.json は .gitignore に追加すること。)
 - assignments(振り分け定義)は外部JSONファイルとして分離する。コード本体を編集せずに
   対象を変更できるようにするため。
+- --star / --unstar / --unassign / --delete も --apply なしではdry-runのみ
+  (move_manyと同じ安全設計)。
+- --delete は**取り消せない破壊的操作**。他の操作(移動・スター・割り当て解除)は
+  すべて元に戻せるが、削除だけは元に戻せない。実装や動作確認で --apply を付けて
+  実際に叩くテストは行わないこと(dry-runの出力確認までに留める)。
 - --auto-refresh-cookie 指定時、APIが `account_session_invalid`(Cookieセッション
   無効)を返した場合に限り、--refresh-browser で指定したブラウザ(既定: safari)の
   ローカルcookieストアから claude.ai のCookieを読み直し、GPGで再暗号化して
@@ -61,6 +67,35 @@ claude.ai の会話(チャット)を、指定したプロジェクトへ一括�
     # pip install browser_cookie3)
     python claude_project_sorter.py --cookie-gpg-file cookie.txt.gpg --list-projects \
         --auto-refresh-cookie --gpg-recipient ac1965@ty07.net
+
+    # 会話にスターを付ける/外す(--apply が必要、複数UUID指定可)
+    python claude_project_sorter.py --cookie-gpg-file cookie.txt.gpg \
+        --star <conversation_uuid1> <conversation_uuid2> --apply
+    python claude_project_sorter.py --cookie-gpg-file cookie.txt.gpg \
+        --unstar <conversation_uuid> --apply
+
+    # 会話名を変更する(--rename UUID NEW_NAME、複数回指定可)
+    python claude_project_sorter.py --cookie-gpg-file cookie.txt.gpg \
+        --rename <conversation_uuid> "新しい名前" --apply
+
+    # 会話をプロジェクトから割り当て解除する(move_manyにproject_uuid=nullを送信)
+    python claude_project_sorter.py --cookie-gpg-file cookie.txt.gpg \
+        --unassign <conversation_uuid> --apply
+
+    # スター付きの会話だけ一覧表示
+    python claude_project_sorter.py --cookie-gpg-file cookie.txt.gpg \
+        --list-conversations --starred-only --limit 30
+
+    # 会話を完全に削除する(取り消せません。実行前に --list-conversations で
+    # UUIDと会話名を必ず確認すること)
+    python claude_project_sorter.py --cookie-gpg-file cookie.txt.gpg \
+        --delete <conversation_uuid> --apply
+
+    # 複数件まとめて処理したい場合は、CLI引数の代わりにJSONファイルでも指定できる
+    # (star.example.json / unstar.example.json / rename.example.json /
+    #  unassign.example.json / delete.example.json 参照。インライン引数と併用可)
+    python claude_project_sorter.py --cookie-gpg-file cookie.txt.gpg \
+        --star-file star.json --apply
 
 ## assignments.json のフォーマット
 {
@@ -279,10 +314,13 @@ def list_projects(session: requests.Session, org_id: str) -> None:
         print(f"{p.get('uuid'):<38} {p.get('name')}")
 
 
-def list_conversations(session: requests.Session, org_id: str, limit: int) -> None:
+def list_conversations(session: requests.Session, org_id: str, limit: int, starred_only: bool = False) -> None:
+    params = {"limit": limit, "archived": "false", "consistency": "strong"}
+    if starred_only:
+        params["starred"] = "true"
     resp = session.get(
         f"{BASE_URL}/organizations/{org_id}/chat_conversations_v2",
-        params={"limit": limit, "archived": "false", "consistency": "strong"},
+        params=params,
     )
     resp.raise_for_status()
     payload = resp.json()
@@ -298,29 +336,145 @@ def list_conversations(session: requests.Session, org_id: str, limit: int) -> No
         print(f"\n[INFO] 他にも会話があります(has_more=true)。--limit を増やして確認してください。")
 
 
+MOVE_MANY_MAX_PER_REQUEST = 50  # API制限: 1回のmove_manyで送れるのは最大50件
+
+
 def move_many(
     session: requests.Session,
     org_id: str,
     conversation_uuids: list[str],
-    project_uuid: str,
+    project_uuid: str | None,
     apply: bool,
+    sleep: float = 1.0,
 ) -> None:
+    """project_uuid に None を渡すと、プロジェクトからの割り当て解除になる
+    (claude.aiのWeb UIでの「プロジェクトから削除」操作と同じリクエスト)。
+
+    APIは1回のリクエストで最大 MOVE_MANY_MAX_PER_REQUEST 件までしか受け付けない
+    (超えると "Cannot move more than 50 conversations at once" で400エラーになる)
+    ため、50件ずつのチャンクに分割して送信する。
+    """
+    label = project_uuid if project_uuid is not None else "(プロジェクト解除)"
     if not apply:
-        print(f"[DRY-RUN] {len(conversation_uuids)}件 -> {project_uuid}")
+        print(f"[DRY-RUN] {len(conversation_uuids)}件 -> {label}")
         for cid in conversation_uuids:
             print(f"           - {cid}")
         return
 
     url = f"{BASE_URL}/organizations/{org_id}/chat_conversations/move_many"
-    resp = session.post(
+    chunks = [
+        conversation_uuids[i : i + MOVE_MANY_MAX_PER_REQUEST]
+        for i in range(0, len(conversation_uuids), MOVE_MANY_MAX_PER_REQUEST)
+    ]
+    for i, chunk in enumerate(chunks):
+        resp = session.post(url, json={"conversation_uuids": chunk, "project_uuid": project_uuid})
+        try:
+            resp.raise_for_status()
+            print(f"[OK] {len(chunk)}件 -> {label}")
+        except requests.HTTPError as e:
+            print(f"[NG] {label}: {e}")
+        if i < len(chunks) - 1:
+            time.sleep(sleep)
+
+
+def set_starred(
+    session: requests.Session,
+    org_id: str,
+    conversation_uuid: str,
+    starred: bool,
+    apply: bool,
+) -> None:
+    """会話のスター付け/解除。move_many同様、--apply なしではdry-runのみ。"""
+    action = "スター付け" if starred else "スター解除"
+    if not apply:
+        print(f"[DRY-RUN] {action}: {conversation_uuid}")
+        return
+
+    url = f"{BASE_URL}/organizations/{org_id}/chat_conversations/{conversation_uuid}"
+    resp = session.put(
         url,
-        json={"conversation_uuids": conversation_uuids, "project_uuid": project_uuid},
+        params={"rendering_mode": "raw"},
+        json={"is_starred": starred},
     )
     try:
         resp.raise_for_status()
-        print(f"[OK] {len(conversation_uuids)}件 -> {project_uuid}")
+        print(f"[OK] {action}: {conversation_uuid}")
     except requests.HTTPError as e:
-        print(f"[NG] {project_uuid}: {e}")
+        print(f"[NG] {conversation_uuid}: {e}")
+
+
+def rename_conversation(
+    session: requests.Session,
+    org_id: str,
+    conversation_uuid: str,
+    name: str,
+    apply: bool,
+) -> None:
+    """会話名を変更する。set_starredと同じエンドポイントだが、こちらは
+    rendering_mode=raw クエリパラメータなしでキャプチャされた。
+    --apply なしではdry-runのみ。
+    """
+    if not apply:
+        print(f"[DRY-RUN] リネーム: {conversation_uuid} -> {name!r}")
+        return
+
+    url = f"{BASE_URL}/organizations/{org_id}/chat_conversations/{conversation_uuid}"
+    resp = session.put(url, json={"name": name})
+    try:
+        resp.raise_for_status()
+        print(f"[OK] リネーム: {conversation_uuid} -> {name!r}")
+    except requests.HTTPError as e:
+        print(f"[NG] {conversation_uuid}: {e}")
+
+
+def delete_conversation(
+    session: requests.Session,
+    org_id: str,
+    conversation_uuid: str,
+    apply: bool,
+) -> None:
+    """会話を完全に削除する。**取り消せない破壊的操作**。move_many/set_starredと
+    同じくdry-run既定だが、他の操作(移動・スター)と違って元に戻せないため、
+    --apply 実行時は追加の警告を出す(呼び出し元のmain()側で表示)。
+    """
+    if not apply:
+        print(f"[DRY-RUN] 削除: {conversation_uuid}")
+        return
+
+    url = f"{BASE_URL}/organizations/{org_id}/chat_conversations/{conversation_uuid}"
+    resp = session.delete(url)
+    try:
+        resp.raise_for_status()
+        print(f"[OK] 削除: {conversation_uuid}")
+    except requests.HTTPError as e:
+        print(f"[NG] {conversation_uuid}: {e}")
+
+
+def load_uuid_list_json(path: str) -> list[str]:
+    """会話UUIDの配列(JSON list)を読み込む。
+    star.example.json / unstar.example.json / unassign.example.json /
+    delete.example.json と同じフォーマット。
+    """
+    p = Path(path)
+    if not p.exists():
+        sys.exit(f"[ERROR] ファイルが見つかりません: {path}")
+    data = json.loads(p.read_text(encoding="utf-8"))
+    if not isinstance(data, list):
+        sys.exit(f"[ERROR] {path} はUUIDの配列(JSON list)である必要があります。")
+    return data
+
+
+def load_rename_map_json(path: str) -> dict[str, str]:
+    """{conversation_uuid: 新しい名前} 形式のJSONを読み込む。
+    rename.example.json と同じフォーマット。
+    """
+    p = Path(path)
+    if not p.exists():
+        sys.exit(f"[ERROR] ファイルが見つかりません: {path}")
+    data = json.loads(p.read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        sys.exit(f"[ERROR] {path} は {{uuid: 新しい名前}} 形式のJSONオブジェクトである必要があります。")
+    return data
 
 
 def main() -> None:
@@ -341,6 +495,82 @@ def main() -> None:
     parser.add_argument("--apply", action="store_true", help="実際に移動を実行する(省略時はdry-run)")
     parser.add_argument("--list-projects", action="store_true", help="プロジェクト一覧を表示して終了")
     parser.add_argument("--list-conversations", action="store_true", help="チャット一覧を表示して終了")
+    parser.add_argument(
+        "--star",
+        nargs="+",
+        metavar="CONVERSATION_UUID",
+        default=None,
+        help="指定した会話にスターを付ける(複数指定可、--apply が必要)",
+    )
+    parser.add_argument(
+        "--star-file",
+        default=None,
+        help="スターを付ける会話UUIDのJSON配列ファイル(star.example.json参照。--starと併用可)",
+    )
+    parser.add_argument(
+        "--unstar",
+        nargs="+",
+        metavar="CONVERSATION_UUID",
+        default=None,
+        help="指定した会話のスターを外す(複数指定可、--apply が必要)",
+    )
+    parser.add_argument(
+        "--unstar-file",
+        default=None,
+        help="スターを外す会話UUIDのJSON配列ファイル(unstar.example.json参照。--unstarと併用可)",
+    )
+    parser.add_argument(
+        "--rename",
+        nargs=2,
+        action="append",
+        metavar=("CONVERSATION_UUID", "NEW_NAME"),
+        default=None,
+        help="会話名を変更する(--rename UUID NEW_NAME。複数回指定可、--apply が必要)",
+    )
+    parser.add_argument(
+        "--rename-file",
+        default=None,
+        help="{uuid: 新しい名前} 形式のJSONファイル(rename.example.json参照。--renameと併用可)",
+    )
+    parser.add_argument(
+        "--unassign",
+        nargs="+",
+        metavar="CONVERSATION_UUID",
+        default=None,
+        help=(
+            "指定した会話をプロジェクトから割り当て解除する"
+            "(move_manyにproject_uuid=nullを送信。複数指定可、--apply が必要)"
+        ),
+    )
+    parser.add_argument(
+        "--unassign-file",
+        default=None,
+        help="割り当て解除する会話UUIDのJSON配列ファイル(unassign.example.json参照。--unassignと併用可)",
+    )
+    parser.add_argument(
+        "--starred-only",
+        action="store_true",
+        help="--list-conversations でスター付きの会話のみ表示する",
+    )
+    parser.add_argument(
+        "--delete",
+        nargs="+",
+        metavar="CONVERSATION_UUID",
+        default=None,
+        help=(
+            "指定した会話を完全に削除する。取り消せません。"
+            "実行前に --list-conversations でUUIDを必ず確認すること"
+            "(複数指定可、--apply が必要)"
+        ),
+    )
+    parser.add_argument(
+        "--delete-file",
+        default=None,
+        help=(
+            "削除する会話UUIDのJSON配列ファイル(delete.example.json参照。取り消せません。"
+            "--deleteと併用可)"
+        ),
+    )
     parser.add_argument("--limit", type=int, default=30, help="--list-conversations 時の取得件数")
     parser.add_argument("--sleep", type=float, default=1.0, help="各リクエスト間のスリープ秒数")
     parser.add_argument(
@@ -383,11 +613,57 @@ def main() -> None:
         return
 
     if args.list_conversations:
-        list_conversations(session, org_id, args.limit)
+        list_conversations(session, org_id, args.limit, starred_only=args.starred_only)
+        return
+
+    star_uuids = list(args.star or [])
+    if args.star_file:
+        star_uuids += load_uuid_list_json(args.star_file)
+
+    unstar_uuids = list(args.unstar or [])
+    if args.unstar_file:
+        unstar_uuids += load_uuid_list_json(args.unstar_file)
+
+    rename_pairs = list(args.rename or [])
+    if args.rename_file:
+        rename_pairs += list(load_rename_map_json(args.rename_file).items())
+
+    unassign_uuids = list(args.unassign or [])
+    if args.unassign_file:
+        unassign_uuids += load_uuid_list_json(args.unassign_file)
+
+    delete_uuids = list(args.delete or [])
+    if args.delete_file:
+        delete_uuids += load_uuid_list_json(args.delete_file)
+
+    if star_uuids or unstar_uuids or rename_pairs or unassign_uuids or delete_uuids:
+        if not args.apply:
+            print("[INFO] dry-runモードです。実際には変更しません。--apply を付けると実行します。\n")
+        for cid in star_uuids:
+            set_starred(session, org_id, cid, True, apply=args.apply)
+            time.sleep(args.sleep)
+        for cid in unstar_uuids:
+            set_starred(session, org_id, cid, False, apply=args.apply)
+            time.sleep(args.sleep)
+        for cid, name in rename_pairs:
+            rename_conversation(session, org_id, cid, name, apply=args.apply)
+            time.sleep(args.sleep)
+        if unassign_uuids:
+            move_many(session, org_id, unassign_uuids, None, apply=args.apply, sleep=args.sleep)
+        if delete_uuids:
+            if args.apply:
+                print(f"[WARNING] {len(delete_uuids)}件の会話を完全に削除します。この操作は取り消せません。")
+            for cid in delete_uuids:
+                delete_conversation(session, org_id, cid, apply=args.apply)
+                time.sleep(args.sleep)
         return
 
     if not args.assignments:
-        sys.exit("[ERROR] --assignments を指定するか、--list-projects / --list-conversations を使ってください。")
+        sys.exit(
+            "[ERROR] --assignments を指定するか、--list-projects / --list-conversations / "
+            "--star[-file] / --unstar[-file] / --rename[-file] / --unassign[-file] / "
+            "--delete[-file] を使ってください。"
+        )
 
     assignments_path = Path(args.assignments)
     if not assignments_path.exists():
@@ -398,7 +674,7 @@ def main() -> None:
         print("[INFO] dry-runモードです。実際には移動しません。--apply を付けると実行します。\n")
 
     for project_uuid, conv_ids in assignments.items():
-        move_many(session, org_id, conv_ids, project_uuid, apply=args.apply)
+        move_many(session, org_id, conv_ids, project_uuid, apply=args.apply, sleep=args.sleep)
         time.sleep(args.sleep)
 
 

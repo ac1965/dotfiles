@@ -91,6 +91,14 @@ chat_conversations の PUT)を利用するため、仕様変更で動かなく�
     python claude_project_sorter.py --cookie-gpg-file cookie.txt.gpg \
         --delete <conversation_uuid> --apply
 
+    # 会話の詳細(名前・要約・メッセージ数)を表示
+    python claude_project_sorter.py --cookie-gpg-file cookie.txt.gpg \
+        --show <conversation_uuid>
+
+    # 会話の全データ(メッセージ本文含む)をJSONファイルに保存
+    python claude_project_sorter.py --cookie-gpg-file cookie.txt.gpg \
+        --export <conversation_uuid> --output out.json
+
     # 複数件まとめて処理したい場合は、CLI引数の代わりにJSONファイルでも指定できる
     # (star.example.json / unstar.example.json / rename.example.json /
     #  unassign.example.json / delete.example.json 参照。インライン引数と併用可)
@@ -304,6 +312,45 @@ def get_org_id(session: requests.Session) -> str:
     return orgs[0]["uuid"]
 
 
+def get_conversation(session: requests.Session, org_id: str, conversation_uuid: str) -> dict:
+    """会話の詳細(名前・要約・メッセージ本文など)を取得する。
+    ブラウザで会話を開いた際にキャプチャしたリクエストと同じパラメータを使用。
+    """
+    url = f"{BASE_URL}/organizations/{org_id}/chat_conversations/{conversation_uuid}"
+    resp = session.get(
+        url,
+        params={
+            "tree": "True",
+            "rendering_mode": "messages",
+            "render_all_tools": "true",
+            "include_inline_comparison": "true",
+            "consistency": "strong",
+        },
+    )
+    resp.raise_for_status()
+    return resp.json()
+
+
+def show_conversation(session: requests.Session, org_id: str, conversation_uuid: str) -> None:
+    data = get_conversation(session, org_id, conversation_uuid)
+    print(f"uuid: {data.get('uuid')}")
+    print(f"name: {data.get('name')}")
+    print(f"created_at: {data.get('created_at')}")
+    print(f"updated_at: {data.get('updated_at')}")
+    print(f"is_starred: {data.get('is_starred')}")
+    print(f"message数: {len(data.get('chat_messages') or [])}")
+    summary = data.get("summary")
+    if summary:
+        print(f"\n--- summary ---\n{summary}")
+
+
+def export_conversation(session: requests.Session, org_id: str, conversation_uuid: str, output: str) -> None:
+    """会話の全データ(メッセージ本文含む)を生のJSONとしてファイルに保存する。"""
+    data = get_conversation(session, org_id, conversation_uuid)
+    Path(output).write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+    print(f"[OK] エクスポート: {conversation_uuid} -> {output}")
+
+
 def list_projects(session: requests.Session, org_id: str) -> None:
     resp = session.get(f"{BASE_URL}/organizations/{org_id}/projects")
     resp.raise_for_status()
@@ -496,6 +543,23 @@ def main() -> None:
     parser.add_argument("--list-projects", action="store_true", help="プロジェクト一覧を表示して終了")
     parser.add_argument("--list-conversations", action="store_true", help="チャット一覧を表示して終了")
     parser.add_argument(
+        "--show",
+        metavar="CONVERSATION_UUID",
+        default=None,
+        help="指定した会話の詳細(名前・要約・メッセージ数)を表示して終了",
+    )
+    parser.add_argument(
+        "--export",
+        metavar="CONVERSATION_UUID",
+        default=None,
+        help="指定した会話の全データ(メッセージ本文含む)をJSONファイルに保存して終了(--outputと併用)",
+    )
+    parser.add_argument(
+        "--output",
+        default=None,
+        help="--export の出力先ファイル(省略時は <conversation_uuid>.json)",
+    )
+    parser.add_argument(
         "--star",
         nargs="+",
         metavar="CONVERSATION_UUID",
@@ -614,6 +678,15 @@ def main() -> None:
 
     if args.list_conversations:
         list_conversations(session, org_id, args.limit, starred_only=args.starred_only)
+        return
+
+    if args.show:
+        show_conversation(session, org_id, args.show)
+        return
+
+    if args.export:
+        output = args.output or f"{args.export}.json"
+        export_conversation(session, org_id, args.export, output)
         return
 
     star_uuids = list(args.star or [])

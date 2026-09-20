@@ -11,18 +11,26 @@ claude.ai の会話(チャット)を、指定したプロジェクトへ一括�
 - 既定は dry-run。実際に移動を実行するには明示的に --apply を指定する。
 - Cookieは平文で保存しない。GPG暗号化したファイル(例: cookie.txt.gpg)として保持し、
   --cookie-gpg-file で指定する。復号は都度 `gpg --decrypt` を呼び出して行い、
-  この環境の gpg-agent.conf(pinentry-program に pinentry-touchid を設定済み)により
-  Touch ID での認証が求められる。復号結果はメモリ上でのみ扱い、平文をディスクに
-  書き出さない。
-  pinentry-touchid は生体認証失敗時にmacOSログインパスコードへフォールバックしない
-  (Touch ID必須・代替経路なし)。これは意図した選択であり、SSH経由・外部ディスプレイ
-  ・lid closed等Touch IDが使えない環境では復号が失敗するのが正しい挙動。
-  「失敗するから」という理由で pinentry-mac 等フォールバックありの実装に変更しないこと。
+  この環境の gpg-agent.conf(pinentry-program に pinentry-mac を設定済み)による
+  認証が求められる(Touch IDも使えるが、失敗時は通常のパスフレーズダイアログに
+  フォールバックする)。復号結果はメモリ上でのみ扱い、平文をディスクに書き出さない。
+  以前はTouch ID専用の pinentry-touchid(フォールバックなし)を使っていたが、
+  macOS 27でTouch ID認証セッションが正しく有効化されず、パスワードでの代替入力も
+  失敗する不具合を確認したため pinentry-mac に切り替えた(詳細はAGENTS.md参照)。
   (検証用途に限り --cookie-file で平文ファイルからの読み込みも可能だが、
   そのファイルは絶対にVCS管理下に置かない。cookie.txt / cookie.txt.gpg /
   assignments.json は .gitignore に追加すること。)
 - assignments(振り分け定義)は外部JSONファイルとして分離する。コード本体を編集せずに
   対象を変更できるようにするため。
+- --auto-refresh-cookie 指定時、APIが `account_session_invalid`(Cookieセッション
+  無効)を返した場合に限り、--refresh-browser で指定したブラウザ(既定: safari)の
+  ローカルcookieストアから claude.ai のCookieを読み直し、GPGで再暗号化して
+  --cookie-gpg-file を上書きする。ユーザー名/パスワードを自動入力してログインし
+  直す処理は行わない(あくまで、ブラウザで既にログイン済みのセッションを読み取る
+  だけ)。account_session_invalid 以外の403(組織権限エラー等)では再取得しない。
+  Chromeは復号鍵をmacOS Keychainの同意ダイアログ経由で取得する必要があり、
+  macOS 27でこのダイアログがフォーカスを受け取れず操作不能になる不具合を確認して
+  いるため、既定はSafari(ダイアログを経由せずファイルを直接パースするだけ)。
 
 ## アンチ最適化チェックリスト(意図的にやらないこと)
 - [ ] Cookieをコード内にハードコードしない(GPG暗号化ファイルの復号、または平文ファイルからの読み込みのみ)
@@ -36,7 +44,7 @@ claude.ai の会話(チャット)を、指定したプロジェクトへ一括�
     echo -n '<cookie文字列>' | gpg --encrypt --recipient <自分のGPG鍵ID> -o cookie.txt.gpg
 
     # 1. プロジェクト一覧を確認(project_uuidを控えるため)
-    #    実行時にTouch IDでの認証が求められる(gpg-agentがpinentry-touchidを使用)
+    #    実行時にgpg-agent(pinentry-mac)による認証が求められる
     python claude_project_sorter.py --cookie-gpg-file cookie.txt.gpg --list-projects
 
     # 2. 直近のチャット一覧を確認(conversation_uuidを控えるため)
@@ -47,6 +55,12 @@ claude.ai の会話(チャット)を、指定したプロジェクトへ一括�
 
     # 4. 問題なければ --apply を付けて実行
     python claude_project_sorter.py --cookie-gpg-file cookie.txt.gpg --assignments assignments.json --apply
+
+    # Cookie期限切れ時にSafariから自動再取得したい場合は --auto-refresh-cookie と
+    # --gpg-recipient を追加する(要: Safariでclaude.aiにログイン済み、要:
+    # pip install browser_cookie3)
+    python claude_project_sorter.py --cookie-gpg-file cookie.txt.gpg --list-projects \
+        --auto-refresh-cookie --gpg-recipient ac1965@ty07.net
 
 ## assignments.json のフォーマット
 {
@@ -136,6 +150,106 @@ def build_session(cookie: str) -> requests.Session:
     headers["Cookie"] = cookie
     session.headers.update(headers)
     return session
+
+
+def fetch_cookie_from_browser(browser: str) -> str:
+    """指定したブラウザのローカルcookieストアから claude.ai のCookieを読み取る。
+
+    ユーザー名/パスワードの自動入力は一切行わない。あくまでブラウザで既に
+    ログイン済みのセッションを読み取るだけ。
+
+    - safari(既定): `~/Library/.../Cookies.binarycookies` を直接パースするだけで、
+      Keychainの同意ダイアログを経由しない。フルディスクアクセス権限のみ必要。
+    - chrome: 復号鍵をmacOS Keychain(Chrome Safe Storage)から取得するため、
+      対話的な同意ダイアログが出る。macOS 27でこのダイアログがフォーカスを
+      受け取れず操作不能になる不具合を確認しているため、直るまで非推奨。
+    """
+    try:
+        import browser_cookie3
+    except ImportError:
+        sys.exit(
+            "[ERROR] --auto-refresh-cookie には browser_cookie3 が必要です: "
+            "pip install browser_cookie3"
+        )
+    if browser == "safari":
+        cookiejar = browser_cookie3.safari(domain_name="claude.ai")
+    elif browser == "chrome":
+        cookiejar = browser_cookie3.chrome(domain_name="claude.ai")
+    else:
+        sys.exit(f"[ERROR] 未対応のブラウザです: {browser}")
+    cookie = "; ".join(f"{c.name}={c.value}" for c in cookiejar)
+    if not cookie:
+        sys.exit(
+            f"[ERROR] {browser}からclaude.aiのCookieを取得できませんでした。"
+            f"{browser}でclaude.aiにログインしているか確認してください。"
+        )
+    return cookie
+
+
+def encrypt_cookie_gpg(cookie: str, gpg_file: str, recipient: str) -> None:
+    """Cookie文字列をGPGで暗号化し、gpg_file に書き出す(既存ファイルは上書き)。
+    平文をディスクへ書き出すことはない(gpgへの標準入力経由のみ)。
+    """
+    try:
+        subprocess.run(
+            ["gpg", "--yes", "--encrypt", "--recipient", recipient, "-o", gpg_file],
+            input=cookie.encode("utf-8"),
+            check=True,
+            capture_output=True,
+        )
+    except FileNotFoundError:
+        sys.exit("[ERROR] gpg コマンドが見つかりません。GPGをインストールしてください。")
+    except subprocess.CalledProcessError as e:
+        stderr = e.stderr.decode("utf-8", errors="replace").strip() if e.stderr else ""
+        sys.exit(f"[ERROR] Cookieの再暗号化に失敗しました: {stderr}")
+
+
+def is_session_invalid_response(resp: requests.Response) -> bool:
+    """claude.aiが返す account_session_invalid エラーかどうかを判定する。
+    account_session_invalid 以外の403(組織権限エラー等)はここではFalseになり、
+    自動再取得の対象にしない。
+    """
+    if resp.status_code not in (401, 403):
+        return False
+    try:
+        body = resp.json()
+    except ValueError:
+        return False
+    error_code = body.get("error", {}).get("details", {}).get("error_code")
+    return error_code == "account_session_invalid"
+
+
+class AutoRefreshSession:
+    """requests.Session をラップし、account_session_invalid を検知したら
+    ブラウザから新しいCookieを取得してGPG再暗号化し、1回だけリトライする。
+    それ以外のエラー(組織権限エラー等)はそのまま呼び出し元に返す。
+    """
+
+    def __init__(self, session: requests.Session, gpg_file: str, recipient: str, browser: str = "safari"):
+        self._session = session
+        self._gpg_file = gpg_file
+        self._recipient = recipient
+        self._browser = browser
+
+    def _refresh(self) -> None:
+        print(f"[INFO] Cookieセッションが無効です。{self._browser}から再取得してGPG再暗号化します...")
+        cookie = fetch_cookie_from_browser(self._browser)
+        encrypt_cookie_gpg(cookie, self._gpg_file, self._recipient)
+        self._session.headers["Cookie"] = cookie
+        print(f"[INFO] {self._gpg_file} を更新しました。")
+
+    def request(self, method: str, url: str, **kwargs) -> requests.Response:
+        resp = getattr(self._session, method)(url, **kwargs)
+        if is_session_invalid_response(resp):
+            self._refresh()
+            resp = getattr(self._session, method)(url, **kwargs)
+        return resp
+
+    def get(self, url: str, **kwargs) -> requests.Response:
+        return self.request("get", url, **kwargs)
+
+    def post(self, url: str, **kwargs) -> requests.Response:
+        return self.request("post", url, **kwargs)
 
 
 def get_org_id(session: requests.Session) -> str:
@@ -229,10 +343,39 @@ def main() -> None:
     parser.add_argument("--list-conversations", action="store_true", help="チャット一覧を表示して終了")
     parser.add_argument("--limit", type=int, default=30, help="--list-conversations 時の取得件数")
     parser.add_argument("--sleep", type=float, default=1.0, help="各リクエスト間のスリープ秒数")
+    parser.add_argument(
+        "--auto-refresh-cookie",
+        action="store_true",
+        help=(
+            "Cookieセッション無効(account_session_invalid)時にブラウザから自動再取得し、"
+            "--cookie-gpg-file を上書きする(要 --gpg-recipient, pip install browser_cookie3)"
+        ),
+    )
+    parser.add_argument(
+        "--refresh-browser",
+        default="safari",
+        choices=["safari", "chrome"],
+        help=(
+            "--auto-refresh-cookie 使用時にCookieを読み取るブラウザ(既定: safari)。"
+            "chromeは復号鍵取得でmacOSのKeychain同意ダイアログが必要"
+        ),
+    )
+    parser.add_argument(
+        "--gpg-recipient",
+        default=None,
+        help="--auto-refresh-cookie 使用時の暗号化先(メールアドレスまたは鍵ID)",
+    )
     args = parser.parse_args()
 
+    if args.auto_refresh_cookie and not (args.cookie_gpg_file and args.gpg_recipient):
+        sys.exit("[ERROR] --auto-refresh-cookie には --cookie-gpg-file と --gpg-recipient の両方が必要です。")
+
     cookie = load_cookie_gpg(args.cookie_gpg_file) if args.cookie_gpg_file else load_cookie(args.cookie_file)
-    session = build_session(cookie)
+    raw_session = build_session(cookie)
+    if args.auto_refresh_cookie:
+        session = AutoRefreshSession(raw_session, args.cookie_gpg_file, args.gpg_recipient, args.refresh_browser)
+    else:
+        session = raw_session
     org_id = args.org_id or get_org_id(session)
 
     if args.list_projects:

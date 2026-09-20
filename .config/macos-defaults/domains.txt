@@ -24,3 +24,23 @@ com.apple.symbolichotkeys
 
 # キーリピート速度・外観(ダーク/ライト)等のグローバル設定
 NSGlobalDomain
+
+# ファイル拡張子ごとのデフォルトアプリ関連付け(LaunchServices)
+com.apple.LaunchServices/com.apple.launchservices.secure
+
+# Safari(ホームページ・ダウンロード先・検索エンジン・AutoFill 等。
+# ブックマーク/履歴/拡張機能の有効化状態は plist 管理外(~/Library/Safari/ の
+# SQLite)のためここではカバーされない)
+com.apple.Safari
+
+# メニューバーのアイコン表示/非表示・並び順
+com.apple.systemuiserver
+
+# 日本語入力の変換設定・ユーザー辞書関連
+com.apple.inputmethod.Kotoeri
+
+# Control Center の項目表示(Wi-Fi/Bluetooth/バッテリー等、Sonoma以降)
+com.apple.controlcenter
+
+# メニューバー時計の表示形式(24時間表記など)
+com.apple.menuextra.clock

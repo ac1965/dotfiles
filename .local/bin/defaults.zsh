@@ -37,13 +37,20 @@ EOF
 }
 
 # バックアップ関数
+#
+# ドメイン名に '/' を含むもの(例: com.apple.LaunchServices/com.apple.
+# launchservices.secure)は出力ファイルパスにもそのまま '/' が入り、
+# サブディレクトリが必要になる。`defaults export` はその親ディレクトリが
+# 無いと exit code 0 のまま何も書き込まずに黙って失敗する(エラー扱いに
+# ならない既知の挙動)ため、ここで (1) 親ディレクトリを都度作成し、
+# (2) 実際にファイルが生成されたかを exit code とは別に検証する。
 function backup() {
     local domain=$1
     local backup_file="${BACKUP_DIR}/${domain}.plist"
 
-    mkdir -p "$BACKUP_DIR"
+    mkdir -p -- "${backup_file:h}"
     echo "📦 バックアップ中: ${domain} → ${backup_file}"
-    if defaults export "$domain" "$backup_file"; then
+    if defaults export "$domain" "$backup_file" && [[ -f "$backup_file" ]]; then
         echo "✅ バックアップ完了: ${backup_file}"
         return 0
     else

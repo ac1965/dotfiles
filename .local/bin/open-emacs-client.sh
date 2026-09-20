@@ -13,4 +13,12 @@
 # 一瞬でクライアントフレームが開く。daemonが無ければ、通常起動と同じだけ
 # 待たされるが、エラーにはならない。
 
+
+# Dock/Finder からGUIアプリとして起動された場合、PATHが最小限
+# (/usr/bin:/bin:/usr/sbin:/sbin 等) しか渡されず、emacsclient が
+# `-a ""` で内部的に daemon を自動起動しようとして `emacs` コマンドを
+# execvp で探す際に見つからず失敗する。~/.local/bin を明示的に
+# PATH へ追加して回避する。
+export PATH="$HOME/.local/bin:$PATH"
+
 exec "$HOME/.local/bin/emacsclient" -c -n -a "" "$@"

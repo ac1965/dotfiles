@@ -75,6 +75,36 @@ dotfiles_entries() {
     | grep -v '^$'
 }
 
+# repo 側が $HOME より内容的に先行しているファイルを検出する。
+#
+# 背景: reverse は $HOME → repo の一方向コピーで、どちらが「新しい」かを
+# 判断せず機械的に repo を上書きする。そのため「repo だけを直接編集・commit
+# したが、まだ deploy していない」状態で autosync が走ると、その repo 側の
+# 変更が $HOME の古い内容でサイレントに打ち消され、そのまま commit・push
+# されてしまう(2026-09-14 の autosync が 48ed353 の backup-all/restore-all
+# 実装を巻き戻した事故が実例)。
+#
+# `./dotfiles.zsh deploy -n` の出力(.gitignore 判定済みの実コピー候補一覧)
+# は中身を比較せず対象を無条件列挙するだけなので、ここでさらに cmp で実際
+# に内容が異なるものだけに絞り込む。
+detect_repo_ahead() {
+  local -a candidates=()
+  local rel=""
+  while IFS= read -r rel; do
+    [[ -n $rel ]] && candidates+=("$rel")
+  done < <(./dotfiles.zsh deploy -n 2>/dev/null | sed -n 's/^  would copy  //p' || true)
+
+  local repo_f="" home_f=""
+  for rel in "${candidates[@]}"; do
+    repo_f="${DOTFILES_REPO}/${rel}"
+    home_f="${HOME}/${rel}"
+    [[ -f "$repo_f" ]] || continue
+    if [[ ! -e "$home_f" ]] || ! cmp -s -- "$repo_f" "$home_f"; then
+      print -- "$rel"
+    fi
+  done
+}
+
 do_run() {
   local -i dryrun=0
   local a=""
@@ -106,7 +136,32 @@ do_run() {
     return 0
   fi
 
+  local -a ahead
+  ahead=("${(@f)$(detect_repo_ahead)}")
+  ahead=("${ahead[@]:#}")  # 空文字要素(該当なし)を除去
+
+  local -A protect_backup
+  if (( ${#ahead} > 0 )); then
+    local rel="" tmp=""
+    for rel in "${ahead[@]}"; do
+      tmp="$(mktemp)"
+      cp -- "${DOTFILES_REPO}/${rel}" "$tmp"
+      protect_backup[$rel]="$tmp"
+    done
+  fi
+
   ./dotfiles.zsh reverse >/dev/null
+
+  if (( ${#ahead} > 0 )); then
+    local rel=""
+    for rel in "${(k)protect_backup[@]}"; do
+      mkdir -p -- "${DOTFILES_REPO}/${rel:h}"
+      cp -- "${protect_backup[$rel]}" "${DOTFILES_REPO}/${rel}"
+      command rm -f -- "${protect_backup[$rel]}"
+    done
+    log_error "repo が \$HOME より先行しているため reverse による上書きから保護しました(deploy 未反映の可能性): ${ahead[*]}"
+    append_log "warning: protected from reverse (repo ahead of \$HOME,要 deploy): ${ahead[*]}"
+  fi
 
   local -a entries
   entries=($(dotfiles_entries))

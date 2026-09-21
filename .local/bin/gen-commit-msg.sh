@@ -2,92 +2,71 @@
 #
 # gen-commit-msg.sh
 #
-# ステージ済みの git diff (git diff --cached) を Ollama に渡し、
-# Conventional Commits 形式のコミットメッセージを生成する。
+# ステージ済みの git diff (git diff --cached) を Claude Code (claude -p) に
+# 渡し、Conventional Commits 形式のコミットメッセージを生成する。
 #
 # 事前準備:
-#   ollama serve
-#   ollama pull qwen3-coder:latest   (初回のみ。既定モデル、約18GB)
+#   claude コマンドが使えること(このリポジトリを普段操作している端末なら
+#   通常インストール済み)。
+#   ANTHROPIC_API_KEY 環境変数(または apiKeyHelper)が使えること。
+#   このdotfilesリポジトリには含めない方針のため、private/ アーカイブ側の
+#   秘匿情報として別途用意すること(README.md「プライベートファイルの管理」
+#   参照)。
 #
-# 既定モデルの変遷:
-#   qwen3-coder:latest(20GB)を既定にしていたところ、搭載メモリ24GBのMac
-#   ではMetal GPUのバッファ確保がOOMで失敗し(Ollamaサーバーログに
-#   "Insufficient Memory")、以降のリクエストが実際には計算されず空応答を
-#   返し続ける不具合を引き起こした(2026-09-19に実機で確認)。
+# バックエンドの変遷:
+#   当初はローカルOllamaでgpt-oss:20b / qwen3:14b / qwen3-coder:latest等を
+#   試したが、(1) qwen3-coder:latest(18〜20GB)は搭載メモリ24GBのMacで
+#   Metal GPUのバッファ確保がOOMで失敗し、エラーにもならず以降のリクエスト
+#   が空応答を返し続ける事故(2026-09-19に実機で確認)、(2) qwen3:14bは
+#   diff中に日本語の文章がまるごと含まれると「自分への話しかけ」と誤解し
+#   規約外の感想文を生成する事故(2026-09-21に2回確認)が起きた。2026-09-21
+#   の再検証ではOllama側の改善でOOM自体は回避できたが、ロード時点の
+#   system free memoryが3.8GiBまで低下するなど、Macのメモリ制約に依存する
+#   不安定さが残り続けた。
 #
-#   より軽量な hf.co/LiquidAI/LFM2.5-8B-A1B-GGUF:Q4_K_M(約5GB)も試したが、
-#   生成速度は大幅に速い(数十秒→1〜数秒)ものの、diff中の類似ファイル名
-#   (claude_to_org.py と claude_to_org_roam.py)を取り違えるなど、コミット
-#   メッセージの精度が劣ったため、精度優先でqwen3:14bに切り替えた
-#   (2026-09-19)。
+#   根本対策として、ローカルLLMをやめてClaude Code(claude -p)に置き換えた
+#   (2026-09-21)。ローカルのGPUメモリ制約・OOMのクラスを丸ごと回避できる。
+#   ただしこれにより、コミット対象のdiffが初めてAnthropic APIへ送信される
+#   ようになる(従来は完全にローカル/オフラインで完結していた)。
 #
-#   その後qwen3:14bを既定にしていたが、ブログ記事(content/post/配下)の
-#   ような日本語の文章がまるごと含まれるdiffを渡すと、diffをコミット要約
-#   の対象データとしてではなく「自分への話しかけ」と誤解し、規約を無視
-#   した感想文・レビュー文を生成する事故が2回連続で発生した(2026-09-21
-#   に実機で確認。うち2回とも --commit がそのまま規約外のメッセージで
-#   コミットしてしまった)。同一条件(プロンプト・diff)でgpt-oss:20bを
-#   試したところ規約通りの簡潔な出力(docs(post): 追記)を安定して返し、
-#   生成速度も13 tok/s前後とqwen3:14b(5〜7 tok/s)より高速だったため、
-#   既定モデルをgpt-oss:20bに切り替えた(2026-09-21)。
+#   claude -p には2つの実行方法があり、コスト・速度が大きく異なることを
+#   実機で確認した(2026-09-21、同一diffでの比較)。
+#     - 通常呼び出し(--bareなし): 既存のOAuth/キーチェーンログインを
+#       そのまま使えるが、CLAUDE.md自動読込・スキル一覧などが毎回乗り、
+#       約21000トークン/$0.046/約9秒かかる。
+#     - --bare(スクリプト向け軽量モード): 上記のオーバーヘッドを省き、
+#       約1200トークン/$0.002/約2.6秒まで削減できる。ただし認証は
+#       ANTHROPIC_API_KEY(またはapiKeyHelper)経由に限定され、通常の
+#       OAuth/キーチェーンログインは使えない。
+#   頻繁に実行するスクリプトであることを踏まえ、--bareを採用した。
 #
-#   その後qwen3-coder:latest(18GB)を再検証した(2026-09-21)。2026-09-19に
-#   同モデルでMetal GPUのバッファ確保がOOMで失敗し空応答を返し続ける事故が
-#   あったが、再検証時点のOllama(0.34.2)ではメモリに収まらない場合、
-#   モデル全体を拒否する代わりに一部レイヤーを自動でCPU側に逃がして起動する
-#   挙動(fitting params to free device memory)に変わっており、OOMは再発
-#   しなかった(ロード時`ollama ps`のPROCESSORが `6%/94% CPU/GPU` 表示)。
-#   ウォーム状態での生成速度は34 tok/s前後とgpt-oss:20bより高速で、diffの
-#   要約精度も実用上問題ない出力だった。ただしロード時点のsystem free
-#   memoryは3.8GiBまで低下しており、他アプリの同時実行状況によっては
-#   OOMが再発する余地が残っている。既定モデルをqwen3-coder:latestに切り替
-#   えたが、"Insufficient Memory"などのエラーや応答が空になる不具合が
-#   再発した場合は、gpt-oss:20bへ戻すこと(--model gpt-oss:20bで動作確認
-#   済み)。--model で別モデルを指定する場合は `ollama ps` でメモリに
-#   収まるサイズか確認すること。
-#
-#   なお一部の推論系モデル(LFM2.5等)は <think>...</think> による思考過程を
-#   (別フィールドではなく)response 本文にそのまま埋め込んで返すため、下記
-#   のレスポンス解析処理で一律除去している(thinkingが別フィールドの
-#   モデルではこのタグを含まないため、除去処理自体は無害)。
-#
-#   モデルはgpt-oss:20bのまま、think オプションに "low"(推論強度)を指定する
-#   ことで体感速度を改善した(2026-09-21)。think: false は下記の通り
-#   thinkingチャンネルの出力を止められないが、think: "low" はthinkingフィールド
-#   自体は使いつつ思考の分量を大きく減らす効果があり、同一diffでの実機比較で
-#   thinking994文字→153文字、生成276トークン→76トークン、デコード時間
-#   10.8秒→3.0秒(Ollama 0.34.2で確認)。出力のConventional Commits形式にも
-#   劣化は見られなかった。
-#
-# 生成メッセージが規約に従わない事故への多重防御(2026-09-21に追加):
+# 生成メッセージが規約に従わない事故への多重防御(2026-09-21に追加、
+# バックエンドをClaude Codeに変更した後も維持):
 #   モデルの挙動だけに頼らず、(1) diffを <<<DIFF_START>>> /
 #   <<<DIFF_END>>> で明示的に区切りデータであることを示す、(2) システム
-#   プロンプトでdiff内容への返信・感想を明示的に禁止する、(3) num_predict
-#   でレスポンス長に上限を設ける、(4) 生成結果の1行目がConventional
-#   Commits形式かを正規表現で検証し、従わない場合は --commit でも実際には
-#   コミットせずエラー終了する、という対策を入れている。モデルを変更して
-#   も(4)のバリデーションが最後の砦として残る。
+#   プロンプトでdiff内容への返信・感想を明示的に禁止する、(3) --restricted
+#   でBash等のコマンド実行系ツール・WebFetchを外し、diffの中身がツール実行
+#   を誘発しても影響が及ばないようにする、(4) 生成結果の1行目が
+#   Conventional Commits形式かを正規表現で検証し、従わない場合は --commit
+#   でも実際にはコミットせずエラー終了する、という対策を入れている。
 #
 # 使い方:
 #   git add -A
 #   ./gen-commit-msg.sh                     # メッセージを表示するだけ
 #   ./gen-commit-msg.sh --commit            # 生成したメッセージでそのままコミット
 #   ./gen-commit-msg.sh --commit --edit     # 生成後、エディタで確認・編集してからコミット
-#   ./gen-commit-msg.sh --model hf.co/LiquidAI/LFM2.5-8B-A1B-GGUF:Q4_K_M  # 速度優先
-#   ./gen-commit-msg.sh --host http://localhost:11434
+#   ./gen-commit-msg.sh --model sonnet      # 精度優先(既定はhaiku、速度・費用優先)
 #
 set -euo pipefail
 zmodload zsh/system
 
-MODEL="qwen3-coder:latest"
-HOST="http://localhost:11434"
+MODEL="haiku"
 DO_COMMIT=0
 DO_EDIT=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --model)  MODEL="$2"; shift 2 ;;
-    --host)   HOST="$2"; shift 2 ;;
     --commit) DO_COMMIT=1; shift ;;
     --edit)   DO_EDIT=1; shift ;;
     -h|--help)
@@ -109,7 +88,7 @@ if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
 fi
 
 # dotfiles-autosync.zsh(launchdで1時間ごとに reverse→commit→push を行う)
-# と同じロックファイルを使って排他する。Ollamaへの問い合わせは数秒〜1分
+# と同じロックファイルを使って排他する。Claude Codeへの問い合わせは数秒
 # 程度かかることがあり、その間に自動同期が git add/commit/push を実行す
 # ると、ここでステージした変更が自動同期側の汎用コミットメッセージで
 # 先に持っていかれてしまい、後段の `git commit` が失敗する不安定な挙動
@@ -130,8 +109,17 @@ if [[ -z "$DIFF" ]]; then
   exit 1
 fi
 
-if ! curl -s -o /dev/null -w '%{http_code}' "$HOST/api/tags" | grep -q '^200$'; then
-  echo "[ERROR] $HOST に接続できません。'ollama serve' が起動しているか確認してください" >&2
+if ! command -v claude >/dev/null 2>&1; then
+  echo "[ERROR] claude コマンドが見つかりません。Claude Code をインストールしてください" >&2
+  exit 1
+fi
+
+# --bare は認証をANTHROPIC_API_KEY(またはapiKeyHelper経由)に限定するため、
+# 未設定のまま実行すると分かりにくい認証エラーになる。事前に検出して
+# 案内する。
+if [[ -z "${ANTHROPIC_API_KEY:-}" ]]; then
+  echo "[ERROR] ANTHROPIC_API_KEY が設定されていません(--bareモードでの認証に必須です)。" >&2
+  echo "[ERROR] private/ 側の秘匿情報を配置し、シェルを再読み込みしてから再実行してください。" >&2
   exit 1
 fi
 
@@ -186,53 +174,31 @@ ${DIFF}
 上記の変更内容を要約したコミットメッセージだけを、指定ルールの形式で
 出力してください。"
 
-# --- Ollama呼び出し -----------------------------------------------------
-# jqへの依存を避けるため、リクエストJSONの組み立て・レスポンスのパースは python3 で行う
+# --- Claude Code (claude -p) 呼び出し ------------------------------------
+# --bare: CLAUDE.md自動読込・hooks・スキル一覧などを省き、消費トークン・
+# 費用・応答時間を削減する(ファイル冒頭コメント参照)。
+# --restricted: Bash等のコマンド実行系ツール・WebFetchを外し、user/project/
+# local設定ファイルも無視する。diffの中身が何であってもツール実行を
+# 誘発させない防御。
+# --output-format json: レスポンスをJSONで受け取り、"result"フィールドを
+# 生成テキストとして扱う。
 
-REQUEST_JSON="$(
-  MODEL="$MODEL" SYSTEM_PROMPT="$SYSTEM_PROMPT" USER_PROMPT="$USER_PROMPT" python3 -c '
-import json, os
-model = os.environ["MODEL"]
-payload = {
-    "model": model,
-    "system": os.environ["SYSTEM_PROMPT"],
-    "prompt": os.environ["USER_PROMPT"],
-    "stream": False,
-    # num_predict でレスポンス長に上限を設ける。gpt-oss:20bはthinking込みで
-    # 600トークンでは思考の途中(最終回答を書く直前)で打ち切られ、
-    # response が空のまま done_reason=length になる事故を実機で確認した
-    # (2026-09-21)。thinking(数百トークン)+最終回答(数十〜百数十トークン)
-    # の両方を収められるよう余裕を持たせる。それでも暴走を防ぐための上限
-    # ではあるので無制限にはしない。
-    "options": {"temperature": 0.2, "num_predict": 1200},
-}
-# think は thinking capability を持つモデル(gpt-oss等)専用のパラメータ。
-# thinking非対応モデル(qwen3-coder等)に送ると
-# `"<model>" does not support thinking` エラーで即失敗するため、
-# gpt-oss系にのみ付与する。gpt-oss:20bでは think: false を指定しても
-# thinkingチャンネルへの出力自体は止まらない挙動を実機で確認したが
-# (2026-09-21)、think: "low"(推論強度)はthinkingフィールドは使いつつ
-# 思考の分量を大きく削減でき、同一diffの実機比較でデコード時間が
-# 10.8秒→3.0秒に短縮した(2026-09-21、詳細はファイル冒頭コメント参照)。
-if model.startswith("gpt-oss"):
-    payload["think"] = "low"
-print(json.dumps(payload))
-'
+echo "[INFO] model=$MODEL でメッセージを生成中..." >&2
+
+RESPONSE="$(
+  printf '%s' "$USER_PROMPT" | claude -p \
+    --bare \
+    --restricted \
+    --model "$MODEL" \
+    --output-format json \
+    --system-prompt "$SYSTEM_PROMPT"
 )"
 
-echo "[INFO] model=$MODEL host=$HOST でメッセージを生成中..." >&2
-
-RESPONSE="$(curl -s -X POST "$HOST/api/generate" -d "$REQUEST_JSON")"
-
 COMMIT_MSG="$(
-  printf '%s\n' "$RESPONSE" | python3 -c '
-import json, re, sys
+  printf '%s' "$RESPONSE" | python3 -c '
+import json, sys
 data = json.load(sys.stdin)
-text = data.get("response", "").strip()
-# 推論系モデルは <think>...</think> を別フィールドではなく response 本文に
-# そのまま埋め込むことがある(例: LFM2.5)。モデルによって挙動が異なるため、
-# あれば一律で除去しておく(無ければ何もしない)。
-text = re.sub(r"<think>.*?</think>\s*", "", text, flags=re.DOTALL).strip()
+text = data.get("result", "").strip()
 # モデルが ```...``` で囲って返すことがあるため剥がす
 if text.startswith("```"):
     lines = text.split("\n")
@@ -246,10 +212,7 @@ print(text)
 )"
 
 if [[ -z "$COMMIT_MSG" ]]; then
-  echo "[ERROR] メッセージの生成に失敗しました(responseが空)。" >&2
-  echo "[ERROR] done_reason=length かつ thinking が長い場合、num_predict不足で" >&2
-  echo "[ERROR] 思考過程の途中に打ち切られた可能性があります(--model や" >&2
-  echo "[ERROR] スクリプト内のnum_predictを見直してください)。Ollamaの応答:" >&2
+  echo "[ERROR] メッセージの生成に失敗しました(resultが空)。claudeの応答:" >&2
   printf '%s\n' "$RESPONSE" >&2
   exit 1
 fi

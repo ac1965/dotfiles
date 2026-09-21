@@ -7,7 +7,7 @@
 #
 # 事前準備:
 #   ollama serve
-#   ollama pull gpt-oss:20b   (初回のみ。既定モデル、約13GB)
+#   ollama pull qwen3-coder:latest   (初回のみ。既定モデル、約18GB)
 #
 # 既定モデルの変遷:
 #   qwen3-coder:latest(20GB)を既定にしていたところ、搭載メモリ24GBのMac
@@ -29,9 +29,22 @@
 #   コミットしてしまった)。同一条件(プロンプト・diff)でgpt-oss:20bを
 #   試したところ規約通りの簡潔な出力(docs(post): 追記)を安定して返し、
 #   生成速度も13 tok/s前後とqwen3:14b(5〜7 tok/s)より高速だったため、
-#   既定モデルをgpt-oss:20bに切り替えた(2026-09-21)。--model で
-#   別モデルを指定する場合は `ollama ps` でメモリに収まるサイズか確認
-#   すること。
+#   既定モデルをgpt-oss:20bに切り替えた(2026-09-21)。
+#
+#   その後qwen3-coder:latest(18GB)を再検証した(2026-09-21)。2026-09-19に
+#   同モデルでMetal GPUのバッファ確保がOOMで失敗し空応答を返し続ける事故が
+#   あったが、再検証時点のOllama(0.34.2)ではメモリに収まらない場合、
+#   モデル全体を拒否する代わりに一部レイヤーを自動でCPU側に逃がして起動する
+#   挙動(fitting params to free device memory)に変わっており、OOMは再発
+#   しなかった(ロード時`ollama ps`のPROCESSORが `6%/94% CPU/GPU` 表示)。
+#   ウォーム状態での生成速度は34 tok/s前後とgpt-oss:20bより高速で、diffの
+#   要約精度も実用上問題ない出力だった。ただしロード時点のsystem free
+#   memoryは3.8GiBまで低下しており、他アプリの同時実行状況によっては
+#   OOMが再発する余地が残っている。既定モデルをqwen3-coder:latestに切り替
+#   えたが、"Insufficient Memory"などのエラーや応答が空になる不具合が
+#   再発した場合は、gpt-oss:20bへ戻すこと(--model gpt-oss:20bで動作確認
+#   済み)。--model で別モデルを指定する場合は `ollama ps` でメモリに
+#   収まるサイズか確認すること。
 #
 #   なお一部の推論系モデル(LFM2.5等)は <think>...</think> による思考過程を
 #   (別フィールドではなく)response 本文にそのまま埋め込んで返すため、下記
@@ -66,7 +79,7 @@
 set -euo pipefail
 zmodload zsh/system
 
-MODEL="gpt-oss:20b"
+MODEL="qwen3-coder:latest"
 HOST="http://localhost:11434"
 DO_COMMIT=0
 DO_EDIT=0
@@ -179,20 +192,12 @@ ${DIFF}
 REQUEST_JSON="$(
   MODEL="$MODEL" SYSTEM_PROMPT="$SYSTEM_PROMPT" USER_PROMPT="$USER_PROMPT" python3 -c '
 import json, os
-print(json.dumps({
-    "model": os.environ["MODEL"],
+model = os.environ["MODEL"]
+payload = {
+    "model": model,
     "system": os.environ["SYSTEM_PROMPT"],
     "prompt": os.environ["USER_PROMPT"],
     "stream": False,
-    # gpt-oss等の推論系モデルは、最終回答を書く前に別フィールド
-    # ("thinking")へ思考過程を書き出す。think: false を指定しても
-    # gpt-oss:20bではthinkingチャンネルへの出力自体は止まらない挙動を
-    # 実機で確認した(2026-09-21)。一方 think: "low"(推論強度)は
-    # thinkingフィールドは使いつつ思考の分量を大きく削減でき、同一diffの
-    # 実機比較でデコード時間が10.8秒→3.0秒に短縮した(2026-09-21、詳細は
-    # ファイル冒頭コメント参照)。num_predictは念のためのセーフティ上限
-    # として維持しつつ、体感速度はこちらで改善する。
-    "think": "low",
     # num_predict でレスポンス長に上限を設ける。gpt-oss:20bはthinking込みで
     # 600トークンでは思考の途中(最終回答を書く直前)で打ち切られ、
     # response が空のまま done_reason=length になる事故を実機で確認した
@@ -200,7 +205,18 @@ print(json.dumps({
     # の両方を収められるよう余裕を持たせる。それでも暴走を防ぐための上限
     # ではあるので無制限にはしない。
     "options": {"temperature": 0.2, "num_predict": 1200},
-}))
+}
+# think は thinking capability を持つモデル(gpt-oss等)専用のパラメータ。
+# thinking非対応モデル(qwen3-coder等)に送ると
+# `"<model>" does not support thinking` エラーで即失敗するため、
+# gpt-oss系にのみ付与する。gpt-oss:20bでは think: false を指定しても
+# thinkingチャンネルへの出力自体は止まらない挙動を実機で確認したが
+# (2026-09-21)、think: "low"(推論強度)はthinkingフィールドは使いつつ
+# 思考の分量を大きく削減でき、同一diffの実機比較でデコード時間が
+# 10.8秒→3.0秒に短縮した(2026-09-21、詳細はファイル冒頭コメント参照)。
+if model.startswith("gpt-oss"):
+    payload["think"] = "low"
+print(json.dumps(payload))
 '
 )"
 

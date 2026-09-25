@@ -37,6 +37,10 @@ brew "libmpc"
 brew "gcc"
 # Package compiler and linker metadata toolkit
 brew "pkgconf"
+# Interpreted, interactive, object-oriented programming language
+brew "python@3.14"
+# Prevent cloud misconfigurations during build-time for IaC tools
+brew "checkov"
 # Cross-platform make
 brew "cmake"
 # GNU File, Shell, and Text utilities
@@ -63,8 +67,12 @@ brew "expat"
 brew "fd"
 # Play, record, convert, and stream select audio and video codecs
 brew "ffmpeg"
+# Fast web fuzzer written in Go
+brew "ffuf"
 # Free lossless audio codec
 brew "flac"
+# CLI application for interacting with a Cloudflare account
+brew "flarectl"
 # Command-line fuzzy finder written in Go
 brew "fzf"
 # GNU awk utility
@@ -79,18 +87,24 @@ brew "git"
 brew "git-filter-repo"
 # Git extension for versioning large files
 brew "git-lfs"
+# Audit git repos for secrets
+brew "gitleaks"
 # GNU implementation of the famous stream editor
 brew "gnu-sed"
 # GNU Transport Layer Security (TLS) Library
 brew "gnutls"
 # GNU Privacy Guard (OpenPGP)
 brew "gnupg"
+# Open source programming language to build simple/reliable/efficient software
+brew "go"
 # Language server for the Go language
 brew "gopls"
 # Library to render SVG files using Cairo
 brew "librsvg"
 # Graph visualization software from AT&T and Bell Labs
 brew "graphviz"
+# Vulnerability scanner for container images and filesystems
+brew "grype"
 # Toolkit for creating graphical user interfaces
 brew "gtk+3"
 # Smarter Dockerfile linter to validate best practices
@@ -99,10 +113,10 @@ brew "hadolint"
 brew "hugo"
 # Tools and libraries to manipulate images in select formats
 brew "imagemagick"
-# Interpreted, interactive, object-oriented programming language
-brew "python@3.14"
 # C library for encoding, decoding, and manipulating JSON
 brew "jansson"
+# Run local Kubernetes cluster in Docker
+brew "kind"
 # LaTeX to XML/HTML/MathML Converter
 brew "latexml"
 # Portable Foreign Function Interface library
@@ -149,6 +163,10 @@ brew "tree-sitter"
 brew "neovim"
 # Network Kanji code conversion Filter (NKF)
 brew "nkf"
+# Port scanning utility for large networks
+brew "nmap"
+# HTTP/DNS scanner configurable via YAML templates
+brew "nuclei"
 # Adds an OCR text layer to scanned PDF files
 brew "ocrmypdf"
 # Open source computer vision library
@@ -199,6 +217,8 @@ brew "ruff"
 brew "rust"
 # Rust toolchain installer
 brew "rustup"
+# Easily detect and prevent bugs and anti-patterns in your codebase
+brew "semgrep"
 # 7-Zip is a file archiver with a high compression ratio
 brew "sevenzip"
 # Autoformat shell script source code
@@ -207,12 +227,22 @@ brew "shfmt"
 brew "sox"
 # Tool to create intelligent and beautiful documentation
 brew "sphinx-doc"
+# Penetration testing for SQL injection and database servers
+brew "sqlmap"
+# Subdomain discovery tool
+brew "subfinder"
+# CLI for generating a Software Bill of Materials from container images
+brew "syft"
 # Enables extra languages support for Tesseract
 brew "tesseract-lang"
+# Tool which checks for the support of TLS/SSL ciphers and flaws
+brew "testssl"
 # Official documentation format of the GNU project
 brew "texinfo"
 # Parser generator tool
 brew "tree-sitter-cli"
+# Vulnerability scanner for container images, file systems, and Git repos
+brew "trivy"
 # Language Server Protocol implementation for TypeScript wrapping tsserver
 brew "typescript-language-server"
 # Maintained ctags implementation
@@ -282,6 +312,7 @@ mas "Slack", id: 803453959
 mas "Spark", id: 1176895641
 mas "Userscripts", id: 1463298887
 mas "Xcode", id: 497799835
+go "github.com/projectdiscovery/httpx/cmd/httpx"
 uv "aider-chat", with: ["pip"]
 npm "@magnitudedev/cli"
 npm "@mermaid-js/mermaid-cli"

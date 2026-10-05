@@ -66,7 +66,12 @@ DO_EDIT=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --model)  MODEL="$2"; shift 2 ;;
+    --model)
+      if [[ $# -lt 2 ]]; then
+        echo "[ERROR] --model にはモデル名が必要です(例: --model sonnet)" >&2
+        exit 1
+      fi
+      MODEL="$2"; shift 2 ;;
     --commit) DO_COMMIT=1; shift ;;
     --edit)   DO_EDIT=1; shift ;;
     -h|--help)

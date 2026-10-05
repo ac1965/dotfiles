@@ -110,6 +110,9 @@
 .config/zsh/.antidote/.bumpversion.cfg
 .config/zsh/.antidote/.editorconfig
 .config/zsh/.antidote/makefile
+.config/zsh/.antidote/man/
+.config/zsh/.antidote/README.md
+.config/zsh/.antidote/.gitignore
 .config/cmus/
 .local/state/
 .local/bin/keychain_passwords.org

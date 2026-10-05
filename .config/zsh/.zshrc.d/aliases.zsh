@@ -19,7 +19,6 @@ is_linux() { [[ "$OSTYPE" == linux* ]]; }
 # (必要に応じて外部でロードされる想定)
 
 # --- General tools ----------------------------------------------------------
-alias _='sudo'
 alias please='sudo'
 alias a='alias'
 alias l='ls'

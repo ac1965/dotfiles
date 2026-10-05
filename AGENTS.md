@@ -70,7 +70,7 @@ Emacs 設定など長文の解説は `.docs/*.org`（Org-mode）に置く。READ
 - `type(scope): 要約` の Conventional Commits 風（例: `feat(bin): ...`, `fix(zsh): ...`, `chore(gitignore): ...`, `docs: ...`）。scope はディレクトリ名や機能名（`bin`, `zsh`, `dotfiles`, `gitignore` など）。
 - 本文（任意）は `- ` の箇条書きで変更点を列挙することが多い。
 
-`.local/bin/gen-commit-msg.sh` は Ollama を使ってステージ済み diff からこの形式のメッセージを生成するローカルツール（要 `ollama serve`）。エージェントはこれを実行する必要はなく、同じ規約に沿って自分でメッセージを書けばよい。
+`.local/bin/gen-commit-msg.sh` は Claude Code（`claude -p --bare`）を使ってステージ済み diff からこの形式のメッセージを生成するツール（要 `claude` コマンドと `ANTHROPIC_API_KEY`。diff は Anthropic API へ送信される）。エージェントはこれを実行する必要はなく、同じ規約に沿って自分でメッセージを書けばよい。
 
 ## 変更後の確認
 

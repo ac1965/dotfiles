@@ -70,7 +70,7 @@ while [[ $# -gt 0 ]]; do
     --commit) DO_COMMIT=1; shift ;;
     --edit)   DO_EDIT=1; shift ;;
     -h|--help)
-      sed -n '2,20p' "$0"
+      sed -n '/^# 使い方:/,/^#$/p' "$0"
       exit 0
       ;;
     *)

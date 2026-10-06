@@ -150,6 +150,58 @@ OBJ_DIR="$OBJ_PARENT/$(basename "$OBJ_DIR")"
 LOG_DIR="$HOME/.cache/build-emacs-macos"
 mkdir -p "$LOG_DIR"
 
+# ============================================================
+# 二重起動防止 (排他ロック)
+# ============================================================
+#
+# このスクリプトは OBJ_DIR / REPO_DIR / $APP_DST / $BUILD_DIR を
+# 毎回 rm -rf または上書きするため、2つ同時に動くと互いのビルド途中の
+# 成果物を破壊する。実行開始時に排他ロックを取り、取れなければ終了する。
+#
+# ロックはシンボリックリンク ($LOG_DIR/.lock -> 所有者PID) で実装する。
+# `ln -s` は「作成」と「PIDの記録」を1回のアトミック操作で行えるため、
+# mkdir + PIDファイル書き込みの2段階方式にある
+# 「ロックはあるがPID未記録」の隙間が存在しない。
+# (macOS には flock が標準で無いための代替)
+#
+# 所有プロセスが存在しない(kill -9 / 電源断等で残った)ロックは
+# stale とみなして自動回収する。PID 再利用による誤判定を避けるため、
+# 生存確認ではコマンドライン中のスクリプト名も照合する。
+
+LOCK_LINK="$LOG_DIR/.lock"
+
+acquire_lock() {
+	local owner
+	ln -s "$$" "$LOCK_LINK" 2>/dev/null && return 0
+
+	owner="$(readlink "$LOCK_LINK" 2>/dev/null || true)"
+	if [[ "$owner" == <-> ]] \
+		&& kill -0 "$owner" 2>/dev/null \
+		&& [[ "$(ps -p "$owner" -o command= 2>/dev/null || true)" == *"$SCRIPT_NAME"* ]]; then
+		echo "❌ ${SCRIPT_NAME} は既に実行中です (PID $owner)。二重起動はできません。" >&2
+		echo "   lock: $LOCK_LINK" >&2
+		return 1
+	fi
+
+	echo "⚠️  stale lock を検出しました (owner PID: ${owner:-unknown})。回収して続行します。" >&2
+	rm -f "$LOCK_LINK"
+	ln -s "$$" "$LOCK_LINK" 2>/dev/null
+}
+
+release_lock() {
+	# サブシェル ($(...) やパイプ左辺) では解放しない
+	(( ZSH_SUBSHELL == 0 )) || return 0
+	if [[ "$(readlink "$LOCK_LINK" 2>/dev/null || true)" == "$$" ]]; then
+		rm -f "$LOCK_LINK"
+	fi
+	return 0
+}
+
+acquire_lock || exit 1
+trap release_lock EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
 # インストール先の .app バンドル。
 # CLI ラッパー生成でも参照するため、ここで一度だけ定義する。
 APP_DST="/Applications/Emacs.app"

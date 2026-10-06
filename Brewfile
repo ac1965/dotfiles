@@ -1,6 +1,7 @@
-tap "akicho8/shogi", trusted: { formulae: ["suisho", "yaneuraou"] }
+tap "akicho8/shogi"
+tap "anomalyco/tap"
 tap "jorgelbg/tap"
-tap "laishulu/homebrew", trusted: true
+tap "laishulu/homebrew"
 # Simple, modern, secure file encryption
 brew "age"
 # Asciicast to GIF converter
@@ -27,6 +28,8 @@ brew "automake"
 brew "bear"
 # X.Org: Library for the Render Extension to the X11 protocol
 brew "libxrender"
+# Record CDs in Disk-At-Once mode
+brew "cdrdao"
 # GNU multiple precision arithmetic library
 brew "gmp"
 # C library for multiple-precision floating-point computations
@@ -119,6 +122,8 @@ brew "jansson"
 brew "kind"
 # LaTeX to XML/HTML/MathML Converter
 brew "latexml"
+# CD paranoia on top of libcdio
+brew "libcdio-paranoia"
 # Portable Foreign Function Interface library
 brew "libffi"
 # JIT library for the GNU compiler collection
@@ -255,11 +260,6 @@ brew "watchexec"
 brew "wget"
 # General-purpose lossless data-compression library
 brew "zlib"
-# Custom GPG pinentry program for macOS that allows using Touch ID for fetching the password from
-# the macOS keychain.
-brew "jorgelbg/tap/pinentry-touchid", trusted: true
-# macOS Input Source Manager
-brew "laishulu/homebrew/macism", trusted: true
 # Utility that prevents the system from going to sleep
 cask "caffeine"
 cask "font-cascadia-code-nf"
@@ -283,10 +283,11 @@ cask "libreoffice"
 cask "mactex-no-gui"
 # Limitless clipboard
 cask "paste"
-# ShogiHome は Windows・macOS・Linux で動作する次世代のGUI将棋アプリです。
-cask "akicho8/shogi/shogi-home", trusted: true
+cask "shogi-home"
 # Quicklook extension for source files
 cask "syntax-highlight"
+# Multimedia player
+cask "vlc"
 # Virtual pet MMO
 cask "webkinz"
 mas "Amphetamine", id: 937984704
@@ -313,6 +314,7 @@ mas "Spark", id: 1176895641
 mas "Userscripts", id: 1463298887
 mas "Xcode", id: 497799835
 go "github.com/projectdiscovery/httpx/cmd/httpx"
+go "github.com/golang-migrate/migrate/v4/cmd/migrate"
 uv "aider-chat", with: ["pip"]
 npm "@magnitudedev/cli"
 npm "@mermaid-js/mermaid-cli"

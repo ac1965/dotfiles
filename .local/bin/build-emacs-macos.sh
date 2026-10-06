@@ -9,7 +9,7 @@
 # - Homebrew libgccjit による native-comp
 # - fingerprint 安定
 # - forward-safe (Emacs 30/31)
-# - out-of-tree ビルド (ソースツリーは常に git clean な状態を保つ)
+# - out-of-tree ビルド + 毎回ソースツリーの無視対象ファイルを掃除 (git clean -fdX)
 # - CLI ラッパー生成 (self-contained NS ビルドの $prefix/bin/emacs 問題への対処)
 #
 
@@ -51,11 +51,15 @@ Options:
   -h, --help                   このヘルプを表示
 
 Note:
-  ソースツリー ($REPO_DIR 相当) は git clone / git pull --rebase /
-  autogen.sh (configure スクリプト生成) 以外では一切変更しない。
-  configure・make・make install はすべて --obj-dir で指定した
-  別ディレクトリ内で実行されるため、ソースツリーは常に
-  "git status" がクリーンな状態を保つ。
+  ソースツリー ($REPO_DIR 相当) に対しては、git clone / git pull --rebase /
+  git clean -fdX / autogen.sh のみを行う。
+  git clean -fdX は .gitignore で無視されているファイル(.elc / .eln /
+  過去の configure 生成物など)だけを削除する。追跡中のファイルと、
+  無視されていない未追跡ファイルは削除しない。
+  このディレクトリをビルド専用の clone として使うこと。
+  configure・make・make install は --obj-dir で指定した別ディレクトリで
+  実行されるが、Emacs は .elc をソースツリー側に出力するため、
+  ソースツリーを掃除しないと前回の .elc が次回のビルドに残る。
 
   インストール後、\$BUILD_DIR/bin/emacs は /Applications/Emacs.app 内の
   バイナリを呼ぶシェルラッパーに差し替えられる (理由は該当セクションを参照)。
@@ -136,7 +140,8 @@ REPO_PARENT="$(cd "$(dirname "$REPO_DIR")" && pwd)"
 REPO_DIR="$REPO_PARENT/$(basename "$REPO_DIR")"
 
 # OBJ_DIR 未指定なら、REPO_DIR の兄弟ディレクトリ "<repo>-build" を既定値にする。
-# ソースツリーの外に置くことで、ソース側を "git clean" に保ったまま
+# ソースツリーの外に置くことで、ソース側と Makefile/.o 等を分離する
+# (.elc はソース側に出力されるため、下の git clean -fdX で掃除する)
 # ビルド生成物(Makefile, .o, .elc, .texi, info/, ダンプファイル等)を
 # 完全に分離する(out-of-tree build)。
 [[ -n "$OBJ_DIR" ]] || OBJ_DIR="${REPO_DIR}-build"
@@ -321,7 +326,7 @@ export CPPFLAGS="-I$LIBGCCJIT_PREFIX/include $CPPFLAGS"
 export LDFLAGS="-L$LIBGCCJIT_PREFIX/lib $LDFLAGS"
 
 # ============================================================
-# Source (ソースツリーは常にクリーンに保つ: clone/pull と
+# Source (clone/pull の後、無視対象ファイルを git clean -fdX で掃除する:
 # autogen.sh による configure スクリプト生成のみ行う)
 # ============================================================
 
@@ -338,10 +343,29 @@ else
 	cd "$SRC_DIR"
 fi
 
+heading "Cleaning source tree (git clean -fdX)"
+
+# Emacs は out-of-tree ビルドでも、バイトコンパイル結果の .elc を
+# ソースツリー側の lisp/ 等に出力する。OBJ_DIR を rm -rf しても
+# これらは消えず、前回のビルド(過去の in-tree ビルドを含む)の
+# 生成物が次回のビルドに引き継がれて、ログの内容や再コンパイル対象が
+# 実行ごとに変わる(2026-10-06 に実機で確認: lisp/faces.elc が
+# 1回目の実行で作られ、2回目が再利用した)。
+# -X は .gitignore で無視されているファイルだけを削除する。
+# 追跡中のファイルと、無視されていない未追跡ファイルは削除しない。
+# configure や autom4te.cache も消えるが、直後の autogen.sh が再生成する。
+# 誤って別のディレクトリを掃除しないよう、カレントが git の
+# トップレベルであることを確認してから実行する。
+
+[[ "$(git rev-parse --show-toplevel)" == "$(pwd -P)" ]] || {
+	echo "❌ $SRC_DIR is not a git top-level directory; refusing to run git clean" >&2
+	exit 1
+}
+
+git clean -fdX
+
 # ============================================================
-# Autogen (./configure スクリプトの生成には必須。
-# 生成物は通常 .gitignore 対象の autotools 生成ファイルのみで、
-# ビルド成果物(.o/.elc/.texi等)はここでは一切生成されない)
+# Autogen (./configure スクリプトの生成には必須)
 # ============================================================
 
 heading "Running autogen"
@@ -349,8 +373,8 @@ heading "Running autogen"
 ./autogen.sh
 
 # ============================================================
-# Clean (out-of-tree ビルドディレクトリを作り直すだけで良い。
-# ソースツリー側の distclean/git clean は不要になった)
+# Clean (out-of-tree ビルドディレクトリを作り直す。
+# ソースツリー側は上の git clean -fdX で掃除済み)
 # ============================================================
 
 heading "Cleaning previous build (obj dir)"
@@ -391,7 +415,6 @@ cd "$OBJ_DIR"
 	--with-ns \
 	"$NATIVE_COMP" \
 	--with-tree-sitter \
-	--with-json \
 	--with-gnutls \
 	--without-imagemagick \
 	--with-modules \

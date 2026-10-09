@@ -13,6 +13,12 @@ Safari の Bookmarks.plist から重複・死活チェックを行い整理す�
   # フル実行（重複 + 死活チェック、並列数 30）
   python safari_bookmark_cleaner.py --input ~/Library/Safari/Bookmarks.plist --concurrency 30
 
+  # カテゴリフォルダを作成してルート直下のブックマークを移動（まず --dry-run 推奨）
+  python safari_bookmark_cleaner.py --dedup-only --categorize --dry-run
+  # 既存フォルダ内も含めて全て再分類 / 独自ルール使用
+  python safari_bookmark_cleaner.py --dedup-only --categorize-all --category-rules rules.json
+  #   rules.json: [{"name": "開発", "domains": ["github.com"], "keywords": ["api"]}, ...]
+
   # 出力先を明示
   python safari_bookmark_cleaner.py --input ~/Library/Safari/Bookmarks.plist \
       --output ~/Desktop/Bookmarks_clean.plist --report ~/Desktop/report.json
@@ -30,6 +36,7 @@ import plistlib
 import shutil
 import sys
 import time
+import uuid
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
@@ -273,6 +280,156 @@ async def check_all_urls(
 
 
 # ---------------------------------------------------------------------------
+# カテゴリ分類（フォルダ作成 + 移動）
+# ---------------------------------------------------------------------------
+
+# (カテゴリ名, ドメイン, タイトル/URL に含まれるキーワード) を上から順に評価する。
+# 最初にマッチしたカテゴリが採用される。--category-rules でJSON上書き可能。
+DEFAULT_CATEGORY_RULES: list[dict] = [
+    {"name": "開発", "domains": [
+        "github.com", "gitlab.com", "stackoverflow.com", "qiita.com", "zenn.dev",
+        "npmjs.com", "pypi.org", "developer.mozilla.org", "docs.python.org",
+        "developer.apple.com", "readthedocs.io", "hub.docker.com", "crates.io",
+    ], "keywords": ["github", "api reference", "documentation", "プログラミング"]},
+    {"name": "Emacs・Org", "domains": [
+        "gnu.org", "melpa.org", "emacswiki.org", "orgmode.org", "emacs-jp.github.io",
+    ], "keywords": ["emacs", "org-mode", "org-roam"]},
+    {"name": "セキュリティ", "domains": [
+        "owasp.org", "cve.mitre.org", "nvd.nist.gov", "exploit-db.com", "jvn.jp",
+    ], "keywords": ["脆弱性", "security", "exploit", "pentest", "hacking"]},
+    {"name": "ニュース", "domains": [
+        "nikkei.com", "asahi.com", "yomiuri.co.jp", "nhk.or.jp", "bbc.com",
+        "nytimes.com", "reuters.com", "itmedia.co.jp", "gigazine.net",
+        "news.ycombinator.com", "hatena.ne.jp", "b.hatena.ne.jp",
+    ], "keywords": ["ニュース", "news"]},
+    {"name": "動画・音楽", "domains": [
+        "youtube.com", "youtu.be", "nicovideo.jp", "vimeo.com", "spotify.com",
+        "netflix.com", "twitch.tv", "soundcloud.com",
+    ], "keywords": ["動画", "video"]},
+    {"name": "SNS", "domains": [
+        "twitter.com", "x.com", "facebook.com", "instagram.com", "linkedin.com",
+        "reddit.com", "mastodon.social", "bsky.app", "threads.net",
+    ], "keywords": []},
+    {"name": "ショッピング", "domains": [
+        "amazon.co.jp", "amazon.com", "rakuten.co.jp", "kakaku.com",
+        "mercari.com", "yahoo.co.jp", "ebay.com",
+    ], "keywords": ["通販", "shop", "store"]},
+    {"name": "金融・行政", "domains": [
+        "go.jp", "lg.jp", "e-gov.go.jp",
+    ], "keywords": ["銀行", "証券", "bank", "税"]},
+    {"name": "リファレンス", "domains": [
+        "wikipedia.org", "wikimedia.org", "weblio.jp", "arxiv.org",
+    ], "keywords": ["wiki", "辞書", "reference"]},
+]
+
+UNCATEGORIZED_NAME = "その他"
+_ROOT_TITLES = ("BookmarksBar", "BookmarksMenu")
+
+
+def load_category_rules(path: str | None) -> list[dict]:
+    """--category-rules の JSON（DEFAULT_CATEGORY_RULES と同形式のリスト）を読む。"""
+    if not path:
+        return DEFAULT_CATEGORY_RULES
+    with Path(path).expanduser().open(encoding="utf-8") as f:
+        rules = json.load(f)
+    if not isinstance(rules, list) or not all("name" in r for r in rules):
+        raise ValueError("カテゴリルールは name を持つオブジェクトのリストにしてください")
+    return rules
+
+
+def classify_leaf(leaf: dict, rules: list[dict]) -> str:
+    """ドメイン一致 → キーワード一致の順でカテゴリ名を返す。"""
+    url = leaf.get("URLString", "")
+    title = leaf.get("URIDictionary", {}).get("title", "") or ""
+    host = (urlparse(url).hostname or "").lower()
+    haystack = f"{title} {url}".lower()
+    for rule in rules:
+        for d in rule.get("domains", []):
+            d = d.lower()
+            if host == d or host.endswith("." + d):
+                return rule["name"]
+        if any(k.lower() in haystack for k in rule.get("keywords", [])):
+            return rule["name"]
+    return UNCATEGORIZED_NAME
+
+
+def _find_root(root: dict, title: str) -> dict | None:
+    for child in root.get("Children", []):
+        if child.get("Title") == title:
+            return child
+    return None
+
+
+def _pop_leaves(folder: dict, recursive: bool, skip_ids: set[int]) -> list[dict]:
+    """folder 配下からリーフを取り出して返す（元の位置からは除去）。"""
+    popped, kept = [], []
+    for child in folder.get("Children", []):
+        t = child.get("WebBookmarkType", "")
+        if t == "WebBookmarkTypeLeaf":
+            popped.append(child)
+        else:
+            if recursive and t == "WebBookmarkTypeList" and id(child) not in skip_ids:
+                popped.extend(_pop_leaves(child, True, skip_ids))
+            kept.append(child)
+    folder["Children"] = kept
+    return popped
+
+
+def categorize_tree(
+    root: dict,
+    rules: list[dict],
+    target: str = "BookmarksMenu",
+    move_all: bool = False,
+) -> dict[str, list[dict]]:
+    """
+    BookmarksBar / BookmarksMenu 配下のブックマークをカテゴリ別フォルダへ移動する（root を直接変更）。
+    - move_all=False: 各ルート直下に置かれたリーフのみ移動（既存フォルダの整理は尊重）
+    - move_all=True : 既存サブフォルダ内のものも含めて全て移動
+    - フォルダは target 直下に作成。同名フォルダが既にあれば再利用する。
+    戻り値: カテゴリ名 → 移動したリーフのリスト
+    """
+    target_node = _find_root(root, target)
+    if target_node is None:
+        raise ValueError(f"{target} が plist に見つかりません")
+
+    # 既存のカテゴリフォルダは再利用し、その中身は動かさない
+    existing = {
+        c.get("Title"): c for c in target_node.get("Children", [])
+        if c.get("WebBookmarkType") == "WebBookmarkTypeList"
+    }
+    category_names = {r["name"] for r in rules} | {UNCATEGORIZED_NAME}
+    skip_ids = {id(n) for name, n in existing.items() if name in category_names}
+
+    leaves: list[dict] = []
+    for title in _ROOT_TITLES:
+        node = _find_root(root, title)
+        if node is not None:
+            leaves.extend(_pop_leaves(node, move_all, skip_ids))
+
+    moved: dict[str, list[dict]] = defaultdict(list)
+    for leaf in leaves:
+        moved[classify_leaf(leaf, rules)].append(leaf)
+
+    for name in sorted(moved, key=lambda n: (n == UNCATEGORIZED_NAME, n)):
+        folder = existing.get(name)
+        if folder is None:
+            folder = {
+                "Title": name,
+                "WebBookmarkType": "WebBookmarkTypeList",
+                "WebBookmarkUUID": str(uuid.uuid4()).upper(),
+                "Children": [],
+            }
+            target_node.setdefault("Children", []).append(folder)
+            existing[name] = folder
+        folder.setdefault("Children", []).extend(moved[name])
+
+    for items in moved.values():
+        for leaf in items:
+            leaf.pop("_path", None)  # 内部用の付与情報は plist に残さない
+    return moved
+
+
+# ---------------------------------------------------------------------------
 # メイン処理
 # ---------------------------------------------------------------------------
 
@@ -372,7 +529,30 @@ def main() -> None:
         default=True,
         help="ブックマーク削除後に空になったフォルダを残す（デフォルト: True）",
     )
+    parser.add_argument(
+        "--categorize",
+        action="store_true",
+        help="ブックマークをカテゴリ別フォルダを作成して移動する",
+    )
+    parser.add_argument(
+        "--categorize-all",
+        action="store_true",
+        help="既存サブフォルダ内のブックマークも含めて全て移動（省略時はルート直下のみ）",
+    )
+    parser.add_argument(
+        "--category-target",
+        choices=("BookmarksMenu", "BookmarksBar"),
+        default="BookmarksMenu",
+        help="カテゴリフォルダの作成先（デフォルト: BookmarksMenu）",
+    )
+    parser.add_argument(
+        "--category-rules",
+        default=None,
+        help="カテゴリルール JSON（[{name, domains, keywords}, ...]）。省略時は内蔵ルール",
+    )
     args = parser.parse_args()
+    if args.categorize_all:
+        args.categorize = True
 
     # パス解決
     input_path = Path(args.input).expanduser().resolve()
@@ -472,6 +652,26 @@ def main() -> None:
     log.info(f"  削除合計       : {len(all_remove_uuids)} 件")
     log.info(f"  残存           : {s['total_input'] - len(all_remove_uuids)} 件")
 
+    # 木から除去（+ カテゴリ移動）。ドライランでも計画を出すため保存前に実施
+    new_root = remove_dead_from_tree(copy.deepcopy(root), all_remove_uuids)
+    if args.categorize:
+        log.info("── カテゴリ分類 ──")
+        rules = load_category_rules(args.category_rules)
+        moved = categorize_tree(
+            new_root, rules, args.category_target, args.categorize_all
+        )
+        report["categorized"] = {
+            name: [
+                {"uuid": l.get("WebBookmarkUUID", ""), "url": l.get("URLString", ""),
+                 "title": l.get("URIDictionary", {}).get("title", "")}
+                for l in items
+            ]
+            for name, items in moved.items()
+        }
+        for name, items in sorted(moved.items(), key=lambda kv: -len(kv[1])):
+            log.info(f"  {name:<12}: {len(items)} 件")
+        log.info(f"  移動合計       : {sum(len(v) for v in moved.values())} 件")
+
     if args.dry_run:
         log.info("ドライランのため plist は保存しません")
     else:
@@ -485,9 +685,6 @@ def main() -> None:
             )
             shutil.copy2(input_path, bak_path)
             log.info(f"バックアップ: {bak_path}")
-
-        # 木から除去
-        new_root = remove_dead_from_tree(copy.deepcopy(root), all_remove_uuids)
 
         with output_path.open("wb") as f:
             plistlib.dump(new_root, f, fmt=plistlib.FMT_XML)

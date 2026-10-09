@@ -6,8 +6,6 @@ tap "laishulu/homebrew"
 brew "age"
 # Asciicast to GIF converter
 brew "agg"
-# Cryptography and SSL/TLS Toolkit
-brew "openssl@3"
 # Download with resuming and segmented downloading
 brew "aria2"
 # Record and share terminal sessions
@@ -40,6 +38,8 @@ brew "libmpc"
 brew "gcc"
 # Package compiler and linker metadata toolkit
 brew "pkgconf"
+# Cryptography and SSL/TLS Toolkit
+brew "openssl@3"
 # Interpreted, interactive, object-oriented programming language
 brew "python@3.14"
 # Prevent cloud misconfigurations during build-time for IaC tools

@@ -26,6 +26,7 @@ typeset -r SCRIPT_NAME="${0:t}"
 
 NATIVE_COMP="--with-native-compilation=aot"
 DEBUG=false
+FORCE=false
 
 # デフォルト値（従来の挙動と同じ）
 BUILD_DIR="$HOME/.local"
@@ -47,6 +48,8 @@ Options:
                                他の用途と共有しないこと。
       --no-native, --no-native-compilation
                                native-comp を無効化
+  -f, --force                 インストール済み Emacs の commit が git pull 後の HEAD と
+                               同一でもビルドする (通常はコンパイルをスキップ)
       --debug                  デバッグ出力 (set -x) を有効化
   -h, --help                   このヘルプを表示
 
@@ -107,6 +110,10 @@ while [[ $# -gt 0 ]]; do
 		;;
 	--debug)
 		DEBUG=true
+		shift
+		;;
+	-f | --force)
+		FORCE=true
 		shift
 		;;
 	--no-native | --no-native-compilation)
@@ -341,6 +348,39 @@ if [[ -d "$SRC_DIR/.git" ]]; then
 else
 	git clone "$SRC_REPO" "$SRC_DIR"
 	cd "$SRC_DIR"
+fi
+
+# ============================================================
+# Compile guard (インストール済み Emacs と pull 後の HEAD が同一なら中断)
+# ============================================================
+#
+# インストール済みバイナリは自身がビルドされた commit を
+# emacs-repository-version (40桁 SHA) として保持している。
+# これが git pull 後の HEAD と一致すれば、再ビルドしても同じ成果物に
+# なるだけなので、clean / configure / make を行わずに終了する。
+# バイナリが無い・起動できない・バージョンが取得できない場合は
+# 比較不能として通常どおりビルドを続行する。--force で常にビルドできる。
+
+heading "Checking installed Emacs commit"
+
+HEAD_COMMIT="$(git rev-parse HEAD)"
+INSTALLED_COMMIT=""
+if [[ -x "$APP_DST/Contents/MacOS/Emacs" ]]; then
+	INSTALLED_COMMIT="$("$APP_DST/Contents/MacOS/Emacs" -Q --batch \
+		--eval '(princ (or emacs-repository-version ""))' 2>/dev/null || true)"
+fi
+
+echo "Installed commit: ${INSTALLED_COMMIT:-(unknown)}"
+echo "Source HEAD:      $HEAD_COMMIT"
+
+if [[ "$INSTALLED_COMMIT" == "$HEAD_COMMIT" ]]; then
+	if $FORCE; then
+		echo "⚠️  commit は同一ですが --force 指定のためビルドを続行します。"
+	else
+		echo "✅ インストール済みの Emacs は最新 commit と同一です。ビルドをスキップします。"
+		echo "   (強制的に再ビルドするには --force を指定)"
+		exit 0
+	fi
 fi
 
 heading "Cleaning source tree (git clean -fdX)"

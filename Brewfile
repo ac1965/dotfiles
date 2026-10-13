@@ -1,4 +1,4 @@
-tap "akicho8/shogi"
+tap "akicho8/shogi", trusted: { casks: ["shogi-hom"] }
 tap "anomalyco/tap"
 tap "jorgelbg/tap"
 tap "laishulu/homebrew"
@@ -258,6 +258,8 @@ brew "uv"
 brew "watchexec"
 # Internet file retriever
 brew "wget"
+# Generate your Xcode project from a spec file and your folder structure
+brew "xcodegen"
 # General-purpose lossless data-compression library
 brew "zlib"
 # Utility that prevents the system from going to sleep

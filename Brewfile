@@ -285,7 +285,8 @@ cask "libreoffice"
 cask "mactex-no-gui"
 # Limitless clipboard
 cask "paste"
-cask "shogi-home"
+# ShogiHome は Windows・macOS・Linux で動作する次世代のGUI将棋アプリです。
+cask "akicho8/shogi/shogi-home", trusted: true
 # Quicklook extension for source files
 cask "syntax-highlight"
 # Multimedia player

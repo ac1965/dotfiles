@@ -62,11 +62,11 @@ cd dotfiles
 5. macOS システム環境設定(defaults)の復元(`.local/bin/defaults.zsh restore-all`)
 6. Emacs ビルド(`.local/bin/build-emacs-macos.sh`)
 
-> **Note** ステップ4は `private.tar.xz.enc` が **`dotfiles` リポジトリの親ディレクトリ**(上記の例では `cd dotfiles` する前にいた場所)に存在する場合のみ実行される。リポジトリの中には置かない([プライベートファイルの管理](#プライベートファイルの管理)参照)。iCloud Drive / NAS 等からまだ配置していない新規マシンでは自動的にスキップされるので、後から配置して `./bootstrap.zsh --skip-brew --skip-dotfiles --skip-emacs` のように private だけ個別に再実行すればよい(ステップ5も続けて実行され、private アーカイブに含まれる macOS 設定バックアップが復元される)。
+> **Note** ステップ4・5は**既定でスキップ**され、`--with-private` を付けたときだけ実行される。ステップ4は `private.tar.xz.enc` が **`dotfiles` リポジトリの親ディレクトリ**(上記の例では `cd dotfiles` する前にいた場所)に存在する場合のみ実行される。リポジトリの中には置かない([プライベートファイルの管理](#プライベートファイルの管理)参照)。iCloud Drive / NAS 等からまだ配置していない新規マシンでは自動的にスキップされるので、後から配置して `./bootstrap.zsh --with-private --skip-brew --skip-dotfiles --skip-emacs` のように private だけ個別に再実行すればよい(ステップ5も続けて実行され、private アーカイブに含まれる macOS 設定バックアップが復元される)。
 
 > **Note** ステップ5はステップ4で `~/.local/state/mac-defaults-backup/` にバックアップが実際に配置された場合のみ実行される(private 未配置・復号失敗時は中断せず自動スキップ)。詳細は[macOS システム環境設定(defaults)の永続化](#macos-システム環境設定defaultsの永続化)参照。
 
-> **Note** `-n`/`--dry-run` で副作用のあるコマンドを実行せず対象を確認できる。個別のステップを飛ばしたい場合は `--skip-brew` / `--skip-dotfiles` / `--skip-private` / `--skip-defaults` / `--skip-emacs` を組み合わせる(`-h`/`--help` で一覧表示)。`brew bundle` は mas(App Store)未サインイン等で一部パッケージが失敗しても、後続のステップは続行する。
+> **Note** `-n`/`--dry-run` で副作用のあるコマンドを実行せず対象を確認できる。個別のステップを飛ばしたい場合は `--skip-brew` / `--skip-dotfiles` / `--skip-defaults` / `--skip-emacs` を組み合わせる(`-h`/`--help` で一覧表示)。`brew bundle` は mas(App Store)未サインイン等で一部パッケージが失敗しても、後続のステップは続行する。
 
 ---
 
@@ -278,7 +278,7 @@ gen-commit-msg.sh --model sonnet   # 精度優先(既定は haiku)
 > zsh .local/bin/keychain_store.sh private-archive
 > ```
 >
-> 登録後、`bootstrap.zsh --skip-brew --skip-dotfiles --skip-emacs` のように該当ステップだけ再実行するか、下記コマンドを直接実行する。
+> 登録後、`bootstrap.zsh --with-private --skip-brew --skip-dotfiles --skip-emacs` のように該当ステップだけ再実行するか、下記コマンドを直接実行する。
 
 **復号して展開 → 配置**
 

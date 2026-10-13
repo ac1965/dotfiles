@@ -15,25 +15,29 @@
 # は git 管理外かつリポジトリのディレクトリツリーにも置かない方針のため、
 # iCloud Drive / NAS 等からリポジトリの「親ディレクトリ」(dotfiles/ の
 # 隣)に配置してから実行すること(README.md「プライベートファイルの管理」
-# 参照)。未配置なら 4)・5) は自動的にスキップする。
+# 参照)。4)・5) は既定でスキップされ、--with-private を付けたときだけ
+# 実行する(その場合も未配置なら自動的にスキップする)。
 #
 # private アーカイブの復号パスフレーズは macOS Keychain 管理(README.md
 # 「プライベートファイルの管理」参照)のため、クリーンインストール後の
 # Keychain には存在しない。アーカイブは配置したがパスフレーズが未登録の
 # 場合も 4)・5) は中断せず自動的にスキップするので、`zsh .local/bin/
-# keychain_store.sh private-archive` で登録してから再実行すること。
+# keychain_store.sh private-archive` で登録してから --with-private 付きで
+# 再実行すること。
 set -euo pipefail
 
 readonly REPO_ROOT="$(git rev-parse --show-toplevel)"
-readonly USAGE="usage: ${0:t} [-n|--dry-run] [--skip-brew] [--skip-dotfiles] [--skip-private] [--skip-defaults] [--skip-emacs] [-h|--help]"
+readonly USAGE="usage: ${0:t} [-n|--dry-run] [--skip-brew] [--skip-dotfiles] [--with-private] [--skip-defaults] [--skip-emacs] [-h|--help]"
 
-integer DRYRUN=0 SKIP_BREW=0 SKIP_DOTFILES=0 SKIP_PRIVATE=0 SKIP_DEFAULTS=0 SKIP_EMACS=0
+# private アーカイブ(4)・defaults 復元(5)は既定でスキップし、--with-private で有効化する。
+integer DRYRUN=0 SKIP_BREW=0 SKIP_DOTFILES=0 SKIP_PRIVATE=1 SKIP_DEFAULTS=0 SKIP_EMACS=0
 for arg in "$@"; do
   case $arg in
     -n|--dry-run)     DRYRUN=1 ;;
     --skip-brew)      SKIP_BREW=1 ;;
     --skip-dotfiles)  SKIP_DOTFILES=1 ;;
-    --skip-private)   SKIP_PRIVATE=1 ;;
+    --with-private)   SKIP_PRIVATE=0 ;;
+    --skip-private)   SKIP_PRIVATE=1 ;;  # 既定と同じ(後方互換)
     --skip-defaults)  SKIP_DEFAULTS=1 ;;
     --skip-emacs)     SKIP_EMACS=1 ;;
     -h|--help)        print -- "$USAGE"; exit 0 ;;
@@ -84,7 +88,7 @@ readonly ARCHIVE="${ARCHIVE_DIR}/private.tar.xz.enc"
 readonly PRIVATE_DIR="${ARCHIVE_DIR}/private"
 integer PRIVATE_DEPLOYED=0
 if (( SKIP_PRIVATE )); then
-  print -- "  skip (--skip-private)"
+  print -- "  skip (既定。実行するには --with-private)"
 elif [[ ! -f "$ARCHIVE" ]]; then
   print -- "  skip (${ARCHIVE} が見つかりません。iCloud Drive / NAS 等から配置してから再実行してください)"
 elif (( DRYRUN )); then
@@ -97,7 +101,7 @@ elif ! ( cd -- "$ARCHIVE_DIR" && decrypt "$ARCHIVE" | tar -xJ ); then
   # 全体を中断せずスキップし、後で該当ステップだけ再実行できるようにする。
   print -u2 -- "  skip (復号に失敗しました。Keychain にパスフレーズが未登録の可能性があります。"
   print -u2 -- "        'zsh ${REPO_ROOT}/.local/bin/keychain_store.sh private-archive' で登録してから、"
-  print -u2 -- "        ${0:t} --skip-brew --skip-dotfiles --skip-emacs で該当ステップのみ再実行してください)"
+  print -u2 -- "        ${0:t} --with-private --skip-brew --skip-dotfiles --skip-emacs で該当ステップのみ再実行してください)"
 else
   # private/dotfiles.zsh は $(pwd) を基準に相対解決するため、展開先
   # ディレクトリ自身に cd してから呼び出す必要がある。

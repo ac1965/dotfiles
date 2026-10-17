@@ -92,12 +92,12 @@ brew "git-filter-repo"
 brew "git-lfs"
 # Audit git repos for secrets
 brew "gitleaks"
-# GNU implementation of the famous stream editor
-brew "gnu-sed"
 # GNU Transport Layer Security (TLS) Library
 brew "gnutls"
 # GNU Privacy Guard (OpenPGP)
 brew "gnupg"
+# GNU implementation of the famous stream editor
+brew "gnu-sed"
 # Open source programming language to build simple/reliable/efficient software
 brew "go"
 # Language server for the Go language
@@ -116,6 +116,8 @@ brew "hadolint"
 brew "hugo"
 # Tools and libraries to manipulate images in select formats
 brew "imagemagick"
+# Synchronize a maildir with an IMAP server
+brew "isync"
 # C library for encoding, decoding, and manipulating JSON
 brew "jansson"
 # Run local Kubernetes cluster in Docker
@@ -158,6 +160,10 @@ brew "meson"
 brew "yt-dlp"
 # Media player based on MPlayer and mplayer2
 brew "mpv"
+# SMTP client that can be used as an SMTP plugin for Mutt
+brew "msmtp"
+# Tool for searching e-mail messages stored in the maildir-format
+brew "mu"
 # Lightweight PDF and XPS viewer
 brew "mupdf"
 # Text-based UI library
@@ -210,6 +216,8 @@ brew "tcl-tk"
 brew "python-tk@3.14"
 # Cross-platform application and UI framework
 brew "qt"
+# Reverse engineering framework
+brew "radare2"
 # Ruby version manager
 brew "rbenv"
 # Search tool like grep and The Silver Searcher

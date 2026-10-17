@@ -91,6 +91,7 @@ alias enablesleep='sudo  pmset -a disablesleep 0'
 alias dev='rm -f ~/.emacs.d && ln -s ~/.emacs.d-develop ~/.emacs.d'
 alias prd='rm -f ~/.emacs.d && ln -s ~/.emacs.d-stable ~/.emacs.d'
 alias em='open -a Emacs.app'
+alias e='emacsclient'
 
 # --- Git short hands --------------------------------------------------------
 alias g='git'

@@ -1,4 +1,3 @@
-tap "akicho8/shogi", trusted: { casks: ["shogi-hom"] }
 tap "anomalyco/tap"
 tap "jorgelbg/tap"
 tap "laishulu/homebrew"
@@ -38,10 +37,6 @@ brew "libmpc"
 brew "gcc"
 # Package compiler and linker metadata toolkit
 brew "pkgconf"
-# Cryptography and SSL/TLS Toolkit
-brew "openssl@3"
-# Interpreted, interactive, object-oriented programming language
-brew "python@3.14"
 # Prevent cloud misconfigurations during build-time for IaC tools
 brew "checkov"
 # Cross-platform make
@@ -82,6 +77,8 @@ brew "fzf"
 brew "gawk"
 # GitHub command-line tool
 brew "gh"
+# Multi-platform software reverse engineering framework
+brew "ghidra"
 # OCR (Optical Character Recognition) engine
 brew "tesseract"
 # Distributed revision control system
@@ -116,6 +113,10 @@ brew "hadolint"
 brew "hugo"
 # Tools and libraries to manipulate images in select formats
 brew "imagemagick"
+# Cryptography and SSL/TLS Toolkit
+brew "openssl@3"
+# Interpreted, interactive, object-oriented programming language
+brew "python@3.14"
 # Synchronize a maildir with an IMAP server
 brew "isync"
 # C library for encoding, decoding, and manipulating JSON
@@ -140,6 +141,14 @@ brew "libxml2"
 brew "libxt"
 # Music engraving system
 brew "lilypond"
+# Linux virtual machines
+brew "lima"
+# Text-based UI library
+brew "ncurses"
+# Generic machine emulator and virtualizer
+brew "qemu"
+# Additional guest agents for Lima
+brew "lima-additional-guestagents"
 # Access large language models from the command-line
 brew "llm"
 # Next-gen compiler infrastructure
@@ -166,8 +175,6 @@ brew "msmtp"
 brew "mu"
 # Lightweight PDF and XPS viewer
 brew "mupdf"
-# Text-based UI library
-brew "ncurses"
 # Incremental parsing library
 brew "tree-sitter"
 # Ambitious Vim-fork focused on extensibility and agility
@@ -184,6 +191,8 @@ brew "ocrmypdf"
 brew "opencv"
 # Development kit for the Java programming language
 brew "openjdk"
+# Development kit for the Java programming language
+brew "openjdk@21"
 # Swiss-army knife of markup format conversion
 brew "pandoc"
 # Pinentry for GPG on Mac
@@ -202,6 +211,8 @@ brew "pv"
 brew "pyenv"
 # Pyenv plugin to manage virtualenv
 brew "pyenv-virtualenv"
+# Static type checker for Python
+brew "pyright"
 # Python Language Server for the Language Server Protocol
 brew "python-lsp-server"
 # Python interface to Tcl/Tk
@@ -274,6 +285,7 @@ brew "zlib"
 cask "caffeine"
 cask "font-cascadia-code-nf"
 cask "font-fira-code"
+cask "font-hackgen-nerd"
 cask "font-iosevka-nerd-font"
 cask "font-jetbrains-mono"
 cask "font-jolly-lodger"
@@ -284,7 +296,6 @@ cask "font-noto-sans-jp"
 cask "font-noto-sans-symbols-2"
 cask "font-roboto-mono-nerd-font"
 cask "font-source-code-pro"
-cask "ghidra"
 # Terminal emulator as alternative to Apple's Terminal app
 cask "iterm2"
 # Free cross-platform office suite, fresh version
@@ -293,8 +304,6 @@ cask "libreoffice"
 cask "mactex-no-gui"
 # Limitless clipboard
 cask "paste"
-# ShogiHome は Windows・macOS・Linux で動作する次世代のGUI将棋アプリです。
-cask "akicho8/shogi/shogi-home", trusted: true
 # Quicklook extension for source files
 cask "syntax-highlight"
 # Multimedia player

@@ -18,6 +18,8 @@ Safari の Bookmarks.plist から重複・死活チェックを行い整理す�
   # 既存フォルダ内も含めて全て再分類 / 独自ルール使用
   python safari_bookmark_cleaner.py --dedup-only --categorize-all --category-rules rules.json
   #   rules.json: [{"name": "開発", "domains": ["github.com"], "keywords": ["api"]}, ...]
+  # URL 先のページ内容（title / description / keywords）を取得して分類精度を上げる
+  python safari_bookmark_cleaner.py --dedup-only --categorize --fetch-content --dry-run
 
   # 出力先を明示
   python safari_bookmark_cleaner.py --input ~/Library/Safari/Bookmarks.plist \
@@ -33,12 +35,14 @@ import copy
 import json
 import logging
 import plistlib
+import re
 import shutil
 import sys
 import time
 import uuid
 from collections import defaultdict
 from datetime import datetime
+from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -280,6 +284,111 @@ async def check_all_urls(
 
 
 # ---------------------------------------------------------------------------
+# ページ内容の取得（カテゴリ分類の補助）
+# ---------------------------------------------------------------------------
+
+MAX_BODY_BYTES = 128 * 1024  # <head> と冒頭だけ読めれば十分
+
+
+class _MetaParser(HTMLParser):
+    """<title> と description / keywords / og:* の meta を集める。"""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.title = ""
+        self.metas: list[str] = []
+        self._in_title = False
+
+    def handle_starttag(self, tag: str, attrs: list) -> None:
+        if tag == "title":
+            self._in_title = True
+        elif tag == "meta":
+            a = {k.lower(): (v or "") for k, v in attrs}
+            key = (a.get("name") or a.get("property") or "").lower()
+            if key in ("description", "keywords", "og:title", "og:description",
+                       "og:site_name", "twitter:description"):
+                self.metas.append(a.get("content", ""))
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag == "title":
+            self._in_title = False
+
+    def handle_data(self, data: str) -> None:
+        if self._in_title:
+            self.title += data
+
+
+def extract_page_text(body: bytes, content_type: str) -> str:
+    """HTML バイト列から分類用テキスト（title + meta）を作る。"""
+    m = re.search(r"charset=([\w-]+)", content_type, re.I) or \
+        re.search(rb"<meta[^>]+charset=[\"']?([\w-]+)", body[:4096], re.I)
+    enc = m.group(1) if m else "utf-8"
+    if isinstance(enc, bytes):
+        enc = enc.decode("ascii", "ignore")
+    try:
+        html = body.decode(enc, errors="replace")
+    except LookupError:
+        html = body.decode("utf-8", errors="replace")
+    parser = _MetaParser()
+    try:
+        parser.feed(html)
+    except Exception:
+        pass  # 壊れた HTML は取れた分だけ使う
+    return " ".join([parser.title.strip(), *parser.metas]).strip()
+
+
+async def fetch_page_text(
+    session: aiohttp.ClientSession,
+    url: str,
+    semaphore: asyncio.Semaphore,
+) -> tuple[str, str]:
+    """(url, ページ内容テキスト)。取得できなければ空文字。"""
+    if urlparse(url).scheme.lower() not in ("http", "https"):
+        return (url, "")
+    async with semaphore:
+        try:
+            async with session.get(
+                url,
+                allow_redirects=True,
+                max_redirects=MAX_REDIRECTS,
+                timeout=aiohttp.ClientTimeout(total=TIMEOUT_SEC),
+                ssl=False,
+            ) as resp:
+                ctype = resp.headers.get("Content-Type", "")
+                if resp.status >= 400 or "html" not in ctype.lower():
+                    return (url, "")
+                body = await resp.content.read(MAX_BODY_BYTES)
+                return (url, extract_page_text(body, ctype))
+        except Exception:
+            return (url, "")
+
+
+async def fetch_all_page_texts(urls: list[str], concurrency: int) -> dict[str, str]:
+    """url → ページ内容テキスト。"""
+    semaphore = asyncio.Semaphore(concurrency)
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+            "AppleWebKit/605.1.15 (KHTML, like Gecko) "
+            "Version/17.0 Safari/605.1.15"
+        ),
+        "Accept-Language": "ja,en;q=0.8",
+    }
+    connector = aiohttp.TCPConnector(limit=concurrency, force_close=True)
+    results: dict[str, str] = {}
+    total, done, start = len(urls), 0, time.time()
+    async with aiohttp.ClientSession(headers=headers, connector=connector) as session:
+        tasks = [fetch_page_text(session, u, semaphore) for u in urls]
+        for coro in asyncio.as_completed(tasks):
+            url, text = await coro
+            results[url] = text
+            done += 1
+            if done % 50 == 0 or done == total:
+                log.info(f"  内容取得: {done}/{total}  経過 {time.time() - start:.0f}s")
+    return results
+
+
+# ---------------------------------------------------------------------------
 # カテゴリ分類（フォルダ作成 + 移動）
 # ---------------------------------------------------------------------------
 
@@ -337,12 +446,12 @@ def load_category_rules(path: str | None) -> list[dict]:
     return rules
 
 
-def classify_leaf(leaf: dict, rules: list[dict]) -> str:
-    """ドメイン一致 → キーワード一致の順でカテゴリ名を返す。"""
+def classify_leaf(leaf: dict, rules: list[dict], page_text: str = "") -> str:
+    """ドメイン一致 → キーワード一致の順でカテゴリ名を返す。page_text はページ内容（任意）。"""
     url = leaf.get("URLString", "")
     title = leaf.get("URIDictionary", {}).get("title", "") or ""
     host = (urlparse(url).hostname or "").lower()
-    haystack = f"{title} {url}".lower()
+    haystack = f"{title} {url} {page_text}".lower()
     for rule in rules:
         for d in rule.get("domains", []):
             d = d.lower()
@@ -380,12 +489,14 @@ def categorize_tree(
     rules: list[dict],
     target: str = "BookmarksMenu",
     move_all: bool = False,
+    page_texts: dict[str, str] | None = None,
 ) -> dict[str, list[dict]]:
     """
     BookmarksBar / BookmarksMenu 配下のブックマークをカテゴリ別フォルダへ移動する（root を直接変更）。
     - move_all=False: 各ルート直下に置かれたリーフのみ移動（既存フォルダの整理は尊重）
     - move_all=True : 既存サブフォルダ内のものも含めて全て移動
     - フォルダは target 直下に作成。同名フォルダが既にあれば再利用する。
+    - page_texts（url → ページ内容）があれば、キーワード判定にそのテキストも使う。
     戻り値: カテゴリ名 → 移動したリーフのリスト
     """
     target_node = _find_root(root, target)
@@ -408,7 +519,8 @@ def categorize_tree(
 
     moved: dict[str, list[dict]] = defaultdict(list)
     for leaf in leaves:
-        moved[classify_leaf(leaf, rules)].append(leaf)
+        text = (page_texts or {}).get(leaf.get("URLString", ""), "")
+        moved[classify_leaf(leaf, rules, text)].append(leaf)
 
     for name in sorted(moved, key=lambda n: (n == UNCATEGORIZED_NAME, n)):
         folder = existing.get(name)
@@ -546,6 +658,11 @@ def main() -> None:
         help="カテゴリフォルダの作成先（デフォルト: BookmarksMenu）",
     )
     parser.add_argument(
+        "--fetch-content",
+        action="store_true",
+        help="ドメイン/タイトルで分類できなかったURLのページ内容(title/meta)を取得して再判定する（要 --categorize）",
+    )
+    parser.add_argument(
         "--category-rules",
         default=None,
         help="カテゴリルール JSON（[{name, domains, keywords}, ...]）。省略時は内蔵ルール",
@@ -657,8 +774,22 @@ def main() -> None:
     if args.categorize:
         log.info("── カテゴリ分類 ──")
         rules = load_category_rules(args.category_rules)
+        page_texts: dict[str, str] = {}
+        if args.fetch_content:
+            # 試走して「その他」になる URL だけ内容を取得する（無駄な通信を避ける）
+            trial = categorize_tree(
+                copy.deepcopy(new_root), rules, args.category_target, args.categorize_all
+            )
+            fetch_urls = list(dict.fromkeys(
+                l.get("URLString", "") for l in trial.get(UNCATEGORIZED_NAME, [])
+                if l.get("URLString", "")
+            ))
+            log.info(f"ページ内容を取得: {len(fetch_urls)} URL, 並列数 {args.concurrency}")
+            page_texts = asyncio.run(fetch_all_page_texts(fetch_urls, args.concurrency))
+            got = sum(1 for t in page_texts.values() if t)
+            log.info(f"  取得成功: {got}/{len(fetch_urls)}")
         moved = categorize_tree(
-            new_root, rules, args.category_target, args.categorize_all
+            new_root, rules, args.category_target, args.categorize_all, page_texts
         )
         report["categorized"] = {
             name: [

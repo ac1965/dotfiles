@@ -1,6 +1,8 @@
 tap "anomalyco/tap"
+tap "asmvik/formulae", "https://github.com/asmvik/homebrew-formulae.git"
 tap "jorgelbg/tap"
 tap "laishulu/homebrew"
+tap "nikitabobko/tap"
 # Simple, modern, secure file encryption
 brew "age"
 # Asciicast to GIF converter
@@ -281,6 +283,8 @@ brew "wget"
 brew "xcodegen"
 # General-purpose lossless data-compression library
 brew "zlib"
+# AeroSpace is an i3-like tiling window manager for macOS
+cask "nikitabobko/tap/aerospace", trusted: true
 # Utility that prevents the system from going to sleep
 cask "caffeine"
 cask "font-cascadia-code-nf"

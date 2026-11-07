@@ -52,6 +52,7 @@ PROTECTED=(
   ".emacs.d" ".emacs.d-stable" ".emacs.d-develop" ".elisp"
   "Google Drive" "novel" "capture_session"
   "Library/Keychains" ".Trash"
+  ".cache/dein" ".cache/emacs"   # 利用中のキャッシュ
 )
 
 is_protected() {
@@ -191,10 +192,9 @@ if (( ! SKIP_A )); then
   safe_rm_contents "$HOME_DIR/Library/Developer/Xcode/DerivedData"
   safe_rm_contents "$HOME_DIR/Library/Developer/Xcode/Archives"
 
-  echo "[mypy / dein / emacs キャッシュ]"
+  echo "[mypy キャッシュ]"
   safe_rm "$HOME_DIR/.mypy_cache"
-  safe_rm_contents "$HOME_DIR/.cache/dein"
-  safe_rm_contents "$HOME_DIR/.cache/emacs"
+  # .cache/dein と .cache/emacs は利用中のため自動削除しない(D で保護)
 fi
 
 # ==================================================================
@@ -239,12 +239,26 @@ if (( ! SKIP_C )); then
   echo
   echo "■ Docker (Library/Containers/com.docker.docker 約51GB)"
   if have docker && docker info >/dev/null 2>&1; then
+    # Docker 動作中のみ実行。コンテナ(起動中・停止中とも)が使っているイメージ・
+    # ボリュームは残し、それ以外を削除する。コンテナ自体は削除しない。
     docker system df
-    echo "  警告: -a --volumes は未使用イメージと未使用ボリューム(DBデータ等)を消します。"
+    echo
+    echo "  [保持] コンテナが利用中のイメージ:"
+    docker ps -a --format '    {{.Names}}  ←  {{.Image}}  ({{.State}})'
+    echo "  [削除対象] どのコンテナからも使われていない:"
+    echo "    イメージ(タグ付き含む全て) / ボリューム(DBデータ等) / ネットワーク / ビルドキャッシュ"
+    echo "  警告: 未使用ボリュームのデータは復元できません。"
     if (( DRY_RUN )); then
-      echo "  [dry-run] docker system prune -a --volumes"
+      echo "  [dry-run] docker image prune -a -f"
+      echo "  [dry-run] docker volume prune -a -f"
+      echo "  [dry-run] docker network prune -f"
+      echo "  [dry-run] docker builder prune -a -f"
     elif confirm "docker:prune"; then
-      docker system prune -a --volumes -f
+      docker image prune -a -f
+      docker volume prune -a -f
+      docker network prune -f
+      docker builder prune -a -f
+      docker system df
     else
       echo "  スキップ"
     fi

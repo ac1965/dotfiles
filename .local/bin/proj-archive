@@ -1,10 +1,14 @@
 #!/usr/bin/env bash
 # proj-archive: git プロジェクトを「復元可能な情報」を残して削除/復元する。
 #
-#   proj-archive delete [-n] <name>...   安全確認 → 記録 → ディレクトリ削除 (-n: 確認のみ)
+#   proj-archive delete [-n|--dry-run] [-y|--yes] [<name>...]
+#                                        安全確認 → 記録 → ディレクトリ削除 (-n: 確認のみ)
+#                                        <name> 省略時は全フォルダを走査 (private/blog は除外)
+#                                        走査での実削除は確認プロンプトあり (-y で省略)
 #   proj-archive restore <name>...       記録から clone し、保存した無視ファイルを展開
+#                                        (記録は残す。再 delete 時に更新される)
 #   (サブコマンドは d / r に短縮可。名前も短縮可: 大文字小文字無視の前方一致。例: dot → dotfiles)
-#   proj-archive list                    記録済みプロジェクトの一覧
+#   proj-archive list                    記録済みプロジェクトの一覧 (削除済/復元済)
 #
 # 環境変数:
 #   PROJECTS_DIR  対象の親ディレクトリ (既定: ~/Projects)
@@ -72,18 +76,42 @@ extras_list() {
 }
 
 cmd_delete() {
-  local dry=0
-  [ "${1:-}" = "-n" ] && { dry=1; shift; }
-  [ $# -ge 1 ] || usage
-  local rc=0 name i=0 total=$#
-  for name in "$@"; do
+  local dry=0 yes=0 ans scan=0
+  local names=() skipped=() d arg
+  for arg in "$@"; do
+    case "$arg" in
+      -n|--dry-run) dry=1;;
+      -y|--yes)     yes=1;;
+      -*)           die "不明なオプション: $arg";;
+      *)            names+=("$arg");;
+    esac
+  done
+  if [ ${#names[@]} -eq 0 ]; then
+    scan=1
+    for d in "$PROJECTS_DIR"/*/; do
+      d=$(basename "$d")
+      case "$d" in private|blog) continue;; esac
+      if [ -e "$PROJECTS_DIR/$d/.git" ]; then names+=("$d"); else skipped+=("$d"); fi
+    done
+    [ ${#names[@]} -gt 0 ] || { echo "$PROJECTS_DIR に git リポジトリがありません"; return 0; }
+    echo "名前の指定なし: $PROJECTS_DIR 内の git リポジトリ ${#names[@]} 件を走査します (private / blog は除外)"
+    [ ${#skipped[@]} -gt 0 ] && echo "  git 管理外のため対象外: ${skipped[*]}"
+    if [ "$dry" = 0 ] && [ "$yes" = 0 ]; then
+      echo "  対象: ${names[*]}"
+      read -r -p "各リポジトリを検査し、条件を満たすものを削除します。続行しますか? [y/N] " ans || ans=""
+      [[ "$ans" =~ ^[Yy]$ ]] || { echo "中止しました"; return 1; }
+    fi
+  fi
+  local rc=0 name i=0 total=${#names[@]} okc=0 ngc=0
+  for name in "${names[@]}"; do
     i=$((i+1))
-    if ! name=$(resolve_name delete "$name"); then rc=1; continue; fi
+    if ! name=$(resolve_name delete "$name"); then rc=1; ngc=$((ngc+1)); continue; fi
     PFX="[$name]"; STEP=0; STEPS=5; [ "$dry" = 1 ] && STEPS=2
     header "$i" "$total" "$name"
-    delete_one "$name" "$dry" || rc=1
+    if delete_one "$name" "$dry"; then okc=$((okc+1)); else rc=1; ngc=$((ngc+1)); fi
   done
-  echo "完了: $total 件を処理 (SKIP があれば上記を確認)"
+  echo
+  echo "完了: ${total} 件中 ${okc} 件$([ "$dry" = 1 ] && echo " 削除可能" || echo " 削除")、${ngc} 件 SKIP/失敗 (理由は上記)"
   return $rc
 }
 
@@ -92,7 +120,7 @@ delete_one() {
   check_name "$name"
   [ -d "$dir" ] || { echo "$PFX ディレクトリがありません"; return 1; }
   [ -e "$dir/.git" ] || { echo "$PFX SKIP: git 管理外"; return 1; }
-  [ -e "$ARCHIVE_DIR/$name/manifest" ] && { echo "$PFX SKIP: 既に記録あり ($ARCHIVE_DIR/$name)。先に restore してください"; return 1; }
+  if [ -e "$ARCHIVE_DIR/$name/manifest" ]; then say "既存の記録 (復元済み) を最新の状態で更新します"; fi
 
   step "状態確認中 (fetch・未コミット・未push の検査)..."
   local g=(git -C "$dir")
@@ -124,13 +152,18 @@ delete_one() {
     rm -rf "$tmp"; return 0
   fi
 
-  mkdir -p "$ARCHIVE_DIR/$name"
-  if [ "$n" -eq 0 ]; then step "無視ファイルなし (圧縮スキップ)"; fi
-  if [ "$n" -gt 0 ]; then
+  local a="$ARCHIVE_DIR/$name"
+  mkdir -p "$a"
+  if [ "$n" -eq 0 ]; then
+    step "無視ファイルなし (圧縮スキップ)"
+    rm -f "$a/extras.tar.xz"
+  else
     step "無視ファイル ${n} 件を圧縮中 (xz)..."
-    (cd "$dir" && tar --null -T "$tmp/list" -cJf "$ARCHIVE_DIR/$name/extras.tar.xz")
-    tar -tJf "$ARCHIVE_DIR/$name/extras.tar.xz" >/dev/null || { echo "$PFX 中止: アーカイブ検証失敗"; rm -rf "$tmp"; return 1; }
+    (cd "$dir" && tar --null -T "$tmp/list" -cJf "$a/extras.tar.xz.new")
+    tar -tJf "$a/extras.tar.xz.new" >/dev/null || { echo "$PFX 中止: アーカイブ検証失敗"; rm -rf "$tmp" "$a/extras.tar.xz.new"; return 1; }
+    mv -f "$a/extras.tar.xz.new" "$a/extras.tar.xz"
   fi
+  step "復元用の記録を保存中..."
   {
     echo "name=$name"
     echo "remote=$remote"
@@ -138,9 +171,9 @@ delete_one() {
     echo "head=$head"
     echo "deleted_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
     echo "extras=$n"
-  } > "$ARCHIVE_DIR/$name/manifest"
-  step "復元用の記録を保存中..."
-  tr '\0' '\n' < "$tmp/list" > "$ARCHIVE_DIR/$name/extras.list"
+  } > "$a/manifest.new"
+  mv -f "$a/manifest.new" "$a/manifest"
+  tr '\0' '\n' < "$tmp/list" > "$a/extras.list"
 
   [ "$n" -gt 0 ] && say "    アーカイブ $(hsize "$ARCHIVE_DIR/$name/extras.tar.xz")"
   rm -rf "$tmp"
@@ -156,7 +189,7 @@ cmd_restore() {
   for name in "$@"; do
     i=$((i+1))
     if ! name=$(resolve_name restore "$name"); then rc=1; continue; fi
-    PFX="[$name]"; STEP=0; STEPS=3
+    PFX="[$name]"; STEP=0; STEPS=2
     header "$i" "$total" "$name"
     restore_one "$name" || rc=1
   done
@@ -189,9 +222,7 @@ restore_one() {
   else
     step "無視ファイルなし (展開スキップ)"
   fi
-  step "記録を整理中..."
-  mv -- "$a" "$a.restored-$(date +%Y%m%d%H%M%S)"
-  echo "$PFX 復元しました: $dir"
+  echo "$PFX 復元しました: $dir (記録は保持: $a)"
 }
 
 cmd_list() {
@@ -199,7 +230,10 @@ cmd_list() {
   local m
   for m in "$ARCHIVE_DIR"/*/manifest; do
     [ -f "$m" ] || continue
-    printf '%-28s %-24s %s\n' "$(mf_get "$m" name)" "$(mf_get "$m" branch)@$(mf_get "$m" head | cut -c1-9)" "$(mf_get "$m" remote)"
+    local nm st
+    nm=$(mf_get "$m" name)
+    if [ -d "$PROJECTS_DIR/$nm" ]; then st="復元済"; else st="削除済"; fi
+    printf '%-28s %-6s %-24s %s\n' "$nm" "$st" "$(mf_get "$m" branch)@$(mf_get "$m" head | cut -c1-9)" "$(mf_get "$m" remote)"
   done
 }
 

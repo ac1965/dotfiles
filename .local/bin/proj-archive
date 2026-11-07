@@ -1,0 +1,214 @@
+#!/usr/bin/env bash
+# proj-archive: git プロジェクトを「復元可能な情報」を残して削除/復元する。
+#
+#   proj-archive delete [-n] <name>...   安全確認 → 記録 → ディレクトリ削除 (-n: 確認のみ)
+#   proj-archive restore <name>...       記録から clone し、保存した無視ファイルを展開
+#   (サブコマンドは d / r に短縮可。名前も短縮可: 大文字小文字無視の前方一致。例: dot → dotfiles)
+#   proj-archive list                    記録済みプロジェクトの一覧
+#
+# 環境変数:
+#   PROJECTS_DIR  対象の親ディレクトリ (既定: ~/Projects)
+#   ARCHIVE_DIR   記録の保存先        (既定: ~/.local/share/proj-archive)
+set -euo pipefail
+
+PROJECTS_DIR="${PROJECTS_DIR:-$HOME/Projects}"
+ARCHIVE_DIR="${ARCHIVE_DIR:-$HOME/.local/share/proj-archive}"
+
+# 再生成できるため保存しない無視ファイルの basename パターン
+REGEN_RE='^(\.build|build|dist|node_modules|\.venv.*|venv|__pycache__|\.mypy_cache|\.pytest_cache|\.ruff_cache|\.astro|\.swiftpm|\.DS_Store|.*\.egg-info|\.cache|\.aider.*)$'
+
+PFX=""; STEP=0; STEPS=0
+say()  { printf '%s %s\n' "$PFX" "$*"; }                       # 補足行
+step() { STEP=$((STEP+1)); printf '%s (%d/%d) %s\n' "$PFX" "$STEP" "$STEPS" "$*"; }  # 工程行
+header() { [ "$2" -gt 1 ] && printf '\n== %s/%s: %s ==\n' "$1" "$2" "$3"; return 0; }
+hsize() { du -sh "$@" 2>/dev/null | awk '{print $1}' | tail -1; }
+
+die() { echo "エラー: $*" >&2; exit 1; }
+usage() { awk 'NR>1 && /^#/{sub(/^# ?/,"");print;next} NR>1{exit}' "$0"; exit "${1:-1}"; }
+
+check_name() {
+  case "$1" in ''|*/*|.|..|private|blog|private.tar.xz.enc)
+    die "不正または対象外の名前: '$1'";; esac
+}
+
+mf_get() { grep -m1 "^$2=" "$1" | cut -d= -f2-; }
+
+# 短縮名の解決: 完全一致 → 大文字小文字無視の完全一致 → 前方一致 (一意のときのみ)
+# $1=delete|restore  $2=入力  → 解決した名前を stdout へ
+resolve_name() {
+  local kind="$1" q="$2" cands=() d m
+  if [ "$kind" = delete ]; then
+    for d in "$PROJECTS_DIR"/*/; do d=$(basename "$d"); case "$d" in private|blog) continue;; esac
+      [ -e "$PROJECTS_DIR/$d/.git" ] && cands+=("$d"); done
+  else
+    for m in "$ARCHIVE_DIR"/*/manifest; do [ -f "$m" ] || continue; d=$(basename "$(dirname "$m")")
+      case "$d" in *.restored-*) ;; *) cands+=("$d");; esac; done
+  fi
+  local c ql hits=()
+  for c in "${cands[@]+"${cands[@]}"}"; do [ "$c" = "$q" ] && { echo "$c"; return 0; }; done
+  ql=$(printf '%s' "$q" | tr '[:upper:]' '[:lower:]')
+  for c in "${cands[@]+"${cands[@]}"}"; do
+    [ "$(printf '%s' "$c" | tr '[:upper:]' '[:lower:]')" = "$ql" ] && { echo "$c"; return 0; }; done
+  for c in "${cands[@]+"${cands[@]}"}"; do
+    case "$(printf '%s' "$c" | tr '[:upper:]' '[:lower:]')" in "$ql"*) hits+=("$c");; esac; done
+  if [ ${#hits[@]} -eq 1 ]; then echo "${hits[0]}"; return 0; fi
+  if [ ${#hits[@]} -gt 1 ]; then echo "'$q' は曖昧です: ${hits[*]}" >&2; return 1; fi
+  if [ "$kind" = restore ] && [ -d "$PROJECTS_DIR/$q" ]; then
+    echo "'$q': 記録はなく、$PROJECTS_DIR/$q は既に存在します (復元済みの可能性)" >&2; return 1
+  fi
+  if [ "$kind" = restore ]; then echo "'$q' に一致する記録がありません (proj-archive list で確認)" >&2
+  else echo "'$q' に一致する git プロジェクトがありません" >&2; fi
+  return 1
+}
+
+# 保存対象の無視ファイル一覧 (NUL 区切り) を stdout へ
+extras_list() {
+  git -C "$1" ls-files -o -i --exclude-standard --directory -z | while IFS= read -r -d '' p; do
+    local skip=0 c
+    IFS=/ read -ra parts <<< "${p%/}"
+    for c in "${parts[@]}"; do [[ "$c" =~ $REGEN_RE ]] && { skip=1; break; }; done
+    [ "$skip" = 1 ] || printf '%s\0' "$p"
+  done
+}
+
+cmd_delete() {
+  local dry=0
+  [ "${1:-}" = "-n" ] && { dry=1; shift; }
+  [ $# -ge 1 ] || usage
+  local rc=0 name i=0 total=$#
+  for name in "$@"; do
+    i=$((i+1))
+    if ! name=$(resolve_name delete "$name"); then rc=1; continue; fi
+    PFX="[$name]"; STEP=0; STEPS=5; [ "$dry" = 1 ] && STEPS=2
+    header "$i" "$total" "$name"
+    delete_one "$name" "$dry" || rc=1
+  done
+  echo "完了: $total 件を処理 (SKIP があれば上記を確認)"
+  return $rc
+}
+
+delete_one() {
+  local name="$1" dry="$2" dir="$PROJECTS_DIR/$1"
+  check_name "$name"
+  [ -d "$dir" ] || { echo "$PFX ディレクトリがありません"; return 1; }
+  [ -e "$dir/.git" ] || { echo "$PFX SKIP: git 管理外"; return 1; }
+  [ -e "$ARCHIVE_DIR/$name/manifest" ] && { echo "$PFX SKIP: 既に記録あり ($ARCHIVE_DIR/$name)。先に restore してください"; return 1; }
+
+  step "状態確認中 (fetch・未コミット・未push の検査)..."
+  local g=(git -C "$dir")
+  local remote branch up head
+  remote=$("${g[@]}" remote get-url origin 2>/dev/null) || { echo "$PFX SKIP: origin がありません"; return 1; }
+  "${g[@]}" fetch -q origin 2>/dev/null || { echo "$PFX SKIP: fetch 失敗"; return 1; }
+  [ -z "$("${g[@]}" status --porcelain)" ] || { echo "$PFX SKIP: 未コミット/未追跡の変更あり"; return 1; }
+  [ -z "$("${g[@]}" stash list)" ] || { echo "$PFX SKIP: stash あり"; return 1; }
+  [ ! -f "$dir/.gitmodules" ] || { echo "$PFX SKIP: サブモジュールあり"; return 1; }
+  branch=$("${g[@]}" symbolic-ref -q --short HEAD) || { echo "$PFX SKIP: detached HEAD"; return 1; }
+  up=$("${g[@]}" rev-parse --abbrev-ref '@{u}' 2>/dev/null) || { echo "$PFX SKIP: upstream 未設定"; return 1; }
+  # 全ローカルブランチが upstream と一致していること
+  local bad
+  bad=$("${g[@]}" for-each-ref --format='%(refname:short)|%(upstream:short)|%(upstream:track)' refs/heads \
+        | awk -F'|' '$2=="" || $3!=""{print $1}')
+  [ -z "$bad" ] || { echo "$PFX SKIP: リモートと不一致のブランチ: $(echo $bad)"; return 1; }
+  head=$("${g[@]}" rev-parse HEAD)
+  [ "$head" = "$("${g[@]}" rev-parse '@{u}')" ] || { echo "$PFX SKIP: HEAD がリモートと不一致"; return 1; }
+
+  say "    OK: $branch @ ${head:0:9} (リモートと一致)"
+  step "保存対象の無視ファイルを収集中..."
+  local tmp; tmp=$(mktemp -d)
+  extras_list "$dir" > "$tmp/list"
+  local n; n=$(tr -cd '\0' < "$tmp/list" | wc -c | tr -d ' ')
+
+  if [ "$dry" = 1 ]; then
+    echo "$PFX OK (dry-run): $branch @ ${head:0:9} = $up / 保存する無視ファイル ${n} 件"
+    [ "$n" -gt 0 ] && tr '\0' '\n' < "$tmp/list" | sed 's/^/    /'
+    rm -rf "$tmp"; return 0
+  fi
+
+  mkdir -p "$ARCHIVE_DIR/$name"
+  if [ "$n" -eq 0 ]; then step "無視ファイルなし (圧縮スキップ)"; fi
+  if [ "$n" -gt 0 ]; then
+    step "無視ファイル ${n} 件を圧縮中 (xz)..."
+    (cd "$dir" && tar --null -T "$tmp/list" -cJf "$ARCHIVE_DIR/$name/extras.tar.xz")
+    tar -tJf "$ARCHIVE_DIR/$name/extras.tar.xz" >/dev/null || { echo "$PFX 中止: アーカイブ検証失敗"; rm -rf "$tmp"; return 1; }
+  fi
+  {
+    echo "name=$name"
+    echo "remote=$remote"
+    echo "branch=$branch"
+    echo "head=$head"
+    echo "deleted_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    echo "extras=$n"
+  } > "$ARCHIVE_DIR/$name/manifest"
+  step "復元用の記録を保存中..."
+  tr '\0' '\n' < "$tmp/list" > "$ARCHIVE_DIR/$name/extras.list"
+
+  [ "$n" -gt 0 ] && say "    アーカイブ $(hsize "$ARCHIVE_DIR/$name/extras.tar.xz")"
+  rm -rf "$tmp"
+  step "ディレクトリ削除中 ($(hsize "$dir"))..."
+  rm -rf -- "$dir"
+  echo "$PFX 削除しました (記録: $ARCHIVE_DIR/$name)"
+}
+
+cmd_restore() {
+  [ $# -ge 1 ] || usage
+  local rc=0 name
+  local i=0 total=$#
+  for name in "$@"; do
+    i=$((i+1))
+    if ! name=$(resolve_name restore "$name"); then rc=1; continue; fi
+    PFX="[$name]"; STEP=0; STEPS=3
+    header "$i" "$total" "$name"
+    restore_one "$name" || rc=1
+  done
+  echo "完了: $total 件を処理"
+  return $rc
+}
+
+restore_one() {
+  local name="$1"; check_name "$name"
+  local a="$ARCHIVE_DIR/$name" dir="$PROJECTS_DIR/$name"
+  [ -f "$a/manifest" ] || { echo "$PFX 記録がありません"; return 1; }
+  [ ! -e "$dir" ] || { echo "$PFX SKIP: $dir が既に存在します"; return 1; }
+  local remote branch head
+  remote=$(mf_get "$a/manifest" remote); branch=$(mf_get "$a/manifest" branch); head=$(mf_get "$a/manifest" head)
+
+  step "clone 中: $remote ($branch)"
+  git clone --progress --branch "$branch" "$remote" "$dir" || { rm -rf -- "$dir"; echo "$PFX clone 失敗"; return 1; }
+  if [ "$(git -C "$dir" rev-parse HEAD)" != "$head" ]; then
+    # 記録時点のコミットへ (リモートが進んでいる場合)。履歴にあれば切り替える
+    if git -C "$dir" cat-file -e "$head^{commit}" 2>/dev/null; then
+      echo "$PFX 注意: リモートは記録時より進んでいます (最新を維持。記録 HEAD=${head:0:9})"
+    else
+      echo "$PFX 警告: 記録した HEAD ${head:0:9} がリモートに存在しません (force push の可能性)"
+    fi
+  fi
+  say "    clone 完了 (HEAD $(git -C "$dir" rev-parse --short=9 HEAD))"
+  if [ -f "$a/extras.tar.xz" ]; then
+    step "無視ファイルを展開中 ($(mf_get "$a/manifest" extras) 件)..."
+    tar -xJf "$a/extras.tar.xz" -C "$dir"
+  else
+    step "無視ファイルなし (展開スキップ)"
+  fi
+  step "記録を整理中..."
+  mv -- "$a" "$a.restored-$(date +%Y%m%d%H%M%S)"
+  echo "$PFX 復元しました: $dir"
+}
+
+cmd_list() {
+  [ -d "$ARCHIVE_DIR" ] || { echo "(記録なし)"; return 0; }
+  local m
+  for m in "$ARCHIVE_DIR"/*/manifest; do
+    [ -f "$m" ] || continue
+    printf '%-28s %-24s %s\n' "$(mf_get "$m" name)" "$(mf_get "$m" branch)@$(mf_get "$m" head | cut -c1-9)" "$(mf_get "$m" remote)"
+  done
+}
+
+[ $# -ge 1 ] || usage
+sub="$1"; shift
+case "$sub" in
+  d|de|del|dele|delet|delete|rm) cmd_delete "$@";;
+  r|re|res|rest|resto|restor|restore) cmd_restore "$@";;
+  list|ls)            cmd_list;;
+  -h|--help|help)     usage 0;;
+  *)                  usage;;
+esac

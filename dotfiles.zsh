@@ -150,9 +150,13 @@ if [[ $MODE == p || $MODE == prune ]]; then
   exit $?
 fi
 
+# reverse では --no-index を付け、追跡済みでも .gitignore の許可リスト外なら
+# コピーしない。`git add -f` で置いた固定ファイル(例: .local/bin/proj-archive)を
+# HOME 側の誤変更で上書きさせないため。deploy は従来どおり追跡済みならコピーする。
+local -a ci_opts=()
 case $MODE in
   d|deploy)  src_base="${REPO_ROOT}" dst_base="${HOME}"     ;;
-  r|reverse) src_base="${HOME}"      dst_base="${REPO_ROOT}" ;;
+  r|reverse) src_base="${HOME}"      dst_base="${REPO_ROOT}" ; ci_opts=(--no-index) ;;
   *) print -u2 "${USAGE}"; exit 1 ;;
 esac
 (( DRYRUN )) && print -- "-- DRY RUN: no files will be written (${src_base} -> ${dst_base}) --"
@@ -170,7 +174,7 @@ esac
 # .config/zsh/.antidote/.git/*) as matching the catch-all `*` pattern,
 # which this non-verbose call does not, and inflates the count.
 ignored_rels() {
-  git -C "${REPO_ROOT}" check-ignore -z --stdin < "$1" 2>/dev/null || true
+  git -C "${REPO_ROOT}" check-ignore "${ci_opts[@]}" -z --stdin < "$1" 2>/dev/null || true
 }
 
 copy_rel() {
@@ -223,7 +227,7 @@ for f in "${DOTFILES[@]}"; do
     fi
   else
     local -i rc
-    git -C "${REPO_ROOT}" check-ignore -q -- "${f}" && rc=0 || rc=$?
+    git -C "${REPO_ROOT}" check-ignore "${ci_opts[@]}" -q -- "${f}" && rc=0 || rc=$?
     # 0 = ignored, 1 = not ignored, >1 = check-ignore itself errored.
     # Only copy on a clean 1; everything else skips — fail safe, not open.
     if (( rc != 1 )); then

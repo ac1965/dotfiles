@@ -126,7 +126,9 @@ delete_one() {
   local g=(git -C "$dir")
   local remote branch up head
   remote=$("${g[@]}" remote get-url origin 2>/dev/null) || { echo "$PFX SKIP: origin がありません"; return 1; }
-  "${g[@]}" fetch -q origin 2>/dev/null || { echo "$PFX SKIP: fetch 失敗"; return 1; }
+  # 対話入力で止まらないようにする (認証が必要なら fetch 失敗として SKIP)
+  GIT_TERMINAL_PROMPT=0 GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-ssh} -o BatchMode=yes -o ConnectTimeout=20" \
+    "${g[@]}" fetch -q origin </dev/null 2>/dev/null || { echo "$PFX SKIP: fetch 失敗 (認証が必要・ネットワーク不通など)"; return 1; }
   [ -z "$("${g[@]}" status --porcelain)" ] || { echo "$PFX SKIP: 未コミット/未追跡の変更あり"; return 1; }
   [ -z "$("${g[@]}" stash list)" ] || { echo "$PFX SKIP: stash あり"; return 1; }
   [ ! -f "$dir/.gitmodules" ] || { echo "$PFX SKIP: サブモジュールあり"; return 1; }

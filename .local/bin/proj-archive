@@ -3,7 +3,8 @@
 #
 #   proj-archive delete [-n|--dry-run] [-y|--yes] [<name>...]
 #                                        安全確認 → 記録 → ディレクトリ削除 (-n: 確認のみ)
-#                                        <name> 省略時は全フォルダを走査 (private/blog は除外)
+#                                        <name> 省略時は全フォルダを走査 (private/blog と
+#                                        $ARCHIVE_DIR/exclude 記載の名前は除外)
 #                                        走査での実削除は確認プロンプトあり (-y で省略)
 #   proj-archive restore <name>...       記録から clone し、保存した無視ファイルを展開
 #                                        (記録は残す。再 delete 時に更新される)
@@ -35,6 +36,13 @@ check_name() {
     die "不正または対象外の名前: '$1'";; esac
 }
 
+# 除外対象か: private/blog、または $ARCHIVE_DIR/exclude (1行1名、# 以降はコメント) に記載
+is_excluded() {
+  case "$1" in private|blog) return 0;; esac
+  [ -f "$ARCHIVE_DIR/exclude" ] || return 1
+  awk -v n="$1" '{sub(/#.*/,""); gsub(/^[ \t]+|[ \t]+$/,"")} $0==n{f=1} END{exit !f}' "$ARCHIVE_DIR/exclude"
+}
+
 mf_get() { grep -m1 "^$2=" "$1" | cut -d= -f2-; }
 
 # 短縮名の解決: 完全一致 → 大文字小文字無視の完全一致 → 前方一致 (一意のときのみ)
@@ -42,7 +50,7 @@ mf_get() { grep -m1 "^$2=" "$1" | cut -d= -f2-; }
 resolve_name() {
   local kind="$1" q="$2" cands=() d m
   if [ "$kind" = delete ]; then
-    for d in "$PROJECTS_DIR"/*/; do d=$(basename "$d"); case "$d" in private|blog) continue;; esac
+    for d in "$PROJECTS_DIR"/*/; do d=$(basename "$d"); is_excluded "$d" && continue
       [ -e "$PROJECTS_DIR/$d/.git" ] && cands+=("$d"); done
   else
     for m in "$ARCHIVE_DIR"/*/manifest; do [ -f "$m" ] || continue; d=$(basename "$(dirname "$m")")
@@ -61,7 +69,7 @@ resolve_name() {
     echo "'$q': 記録はなく、$PROJECTS_DIR/$q は既に存在します (復元済みの可能性)" >&2; return 1
   fi
   if [ "$kind" = restore ]; then echo "'$q' に一致する記録がありません (proj-archive list で確認)" >&2
-  else echo "'$q' に一致する git プロジェクトがありません" >&2; fi
+  else echo "'$q' に一致する管理対象の git リポジトリがありません" >&2; fi
   return 1
 }
 
@@ -77,7 +85,7 @@ extras_list() {
 
 cmd_delete() {
   local dry=0 yes=0 ans scan=0
-  local names=() skipped=() d arg
+  local names=() skipped=() excluded=() d arg
   for arg in "$@"; do
     case "$arg" in
       -n|--dry-run) dry=1;;
@@ -90,11 +98,12 @@ cmd_delete() {
     scan=1
     for d in "$PROJECTS_DIR"/*/; do
       d=$(basename "$d")
-      case "$d" in private|blog) continue;; esac
+      if is_excluded "$d"; then excluded+=("$d"); continue; fi
       if [ -e "$PROJECTS_DIR/$d/.git" ]; then names+=("$d"); else skipped+=("$d"); fi
     done
-    [ ${#names[@]} -gt 0 ] || { echo "$PROJECTS_DIR に git リポジトリがありません"; return 0; }
-    echo "名前の指定なし: $PROJECTS_DIR 内の git リポジトリ ${#names[@]} 件を走査します (private / blog は除外)"
+    [ ${#names[@]} -gt 0 ] || { echo "$PROJECTS_DIR に管理対象の git リポジトリがありません"; return 0; }
+    echo "名前の指定なし: $PROJECTS_DIR 内の管理対象の git リポジトリ ${#names[@]} 件を走査します"
+    [ ${#excluded[@]} -gt 0 ] && echo "  除外対象: ${excluded[*]}"
     [ ${#skipped[@]} -gt 0 ] && echo "  git 管理外のため対象外: ${skipped[*]}"
     if [ "$dry" = 0 ] && [ "$yes" = 0 ]; then
       echo "  対象: ${names[*]}"
@@ -118,6 +127,7 @@ cmd_delete() {
 delete_one() {
   local name="$1" dry="$2" dir="$PROJECTS_DIR/$1"
   check_name "$name"
+  is_excluded "$name" && { echo "$PFX SKIP: 除外対象 ($ARCHIVE_DIR/exclude)"; return 1; }
   [ -d "$dir" ] || { echo "$PFX ディレクトリがありません"; return 1; }
   [ -e "$dir/.git" ] || { echo "$PFX SKIP: git 管理外"; return 1; }
   if [ -e "$ARCHIVE_DIR/$name/manifest" ]; then say "既存の記録 (復元済み) を最新の状態で更新します"; fi

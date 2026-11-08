@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # ~/.local/bin/open-emacs-client.sh
 #
 # emacsclient -c でGUIフレームを開く。
@@ -19,7 +19,7 @@
 # `-a ""` で内部的に daemon を自動起動しようとして `emacs` コマンドを
 # execvp で探す際に見つからず失敗する。~/.local/bin を明示的に
 # PATH へ追加して回避する。
-set -o errexit -o nounset
+set -euo pipefail
 
 export PATH="$HOME/.local/bin:$PATH"
 

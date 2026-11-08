@@ -1,4 +1,9 @@
-#!/bin/zsh
+#!/usr/bin/env zsh
+
+# 厳格モード(zsh): 未定義変数とパイプ失敗は検出するが、errexit は意図的に付けない。
+# 複数ドメインの backup/restore で 1 件失敗しても残りを続行し、失敗件数を集計して
+# 終了コードに反映する設計のため(各関数が明示的に return コードを返す)。
+set -o nounset -o pipefail
 
 # zsh は関数内で $0 が関数名に化ける(FUNCTION_ARGZERO)ため、スクリプト名
 # はトップレベルで一度だけ変数に控えておく。
@@ -17,7 +22,9 @@ BACKUP_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/mac-defaults-backup"
 DOMAINS_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/macos-defaults/domains.txt"
 
 # ヘルプ表示
+# 終了コード: -h/--help は 99、引数エラーは 1
 function show_help() {
+    local code="${1:-1}"
     cat <<EOF
 Usage: $SCRIPT_NAME [backup|restore|migrate] <domain>
        $SCRIPT_NAME [backup-all|restore-all]
@@ -33,7 +40,7 @@ Usage: $SCRIPT_NAME [backup|restore|migrate] <domain>
   domain      : 対象のドメイン名（例: com.apple.finder）
 
 EOF
-    exit 1
+    exit "$code"
 }
 
 # バックアップ関数
@@ -165,6 +172,7 @@ if [[ $# -eq 1 ]]; then
     case "$1" in
         backup-all)  backup_all;  exit $? ;;
         restore-all) restore_all; exit $? ;;
+        -h|--help)   show_help 99 ;;
         *)           show_help ;;
     esac
 fi

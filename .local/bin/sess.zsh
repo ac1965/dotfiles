@@ -1,13 +1,15 @@
-#!/bin/zsh
+#!/usr/bin/env zsh
 #
-# sess.zh - ファイルを指定単位ごとにディレクトリへ振り分ける
+# sess.zsh - ファイルを指定単位ごとにディレクトリへ振り分ける
 #
 # 元のファイル名は変更せず、count個ごとに 001, 002, ... という
 # 連番ディレクトリを作成して移動するのみ。
 #
-# Usage: ./sess.zh [group_size]
+# Usage: ./sess.zsh [group_size]
 #   group_size : 1ディレクトリあたりのファイル数（デフォルト: 20）
 
+# 厳格モード(zsh): 失敗したら止める。mv の失敗で処理を続けない。
+set -o errexit -o nounset -o pipefail
 setopt nullglob
 
 group_size=${1:-20}
@@ -20,7 +22,9 @@ fi
 count=0
 
 for f in *(.N); do
-    ((count++))
+    # ((count++)) は count が 0 のとき終了ステータス 1 になり errexit で落ちるため、
+    # 評価値が常に非ゼロになる前置インクリメントを使う。
+    (( ++count ))
     group=$(( (count - 1) / group_size + 1 ))
     dir=$(printf '%03d' $group)
     mkdir -p "$dir"

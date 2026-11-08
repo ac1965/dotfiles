@@ -75,10 +75,12 @@
 !.local/bin/*.sh
 !.local/bin/*.zsh
 !.local/bin/*.py
-!.local/bin/*.zh
-# ===== .local/share (favorite-repos.json のみ) =====
+# ===== .local/share (favorite-repos.json と commit-rewrite/ のみ) =====
 .local/share/*
 !.local/share/favorite-repos.json
+# コミット履歴書き換え用の一回限りのパイプライン(PATH に置かない)
+!.local/share/commit-rewrite/
+!.local/share/commit-rewrite/*
 
 # ===== .docs =====
 !.docs/

@@ -19,7 +19,10 @@
 # ホームからの相対パスを 1 行 1 件で書いたファイルを作り、EXTRA_ASK_RM=<そのファイル> を
 # 付けて実行する(公開リポジトリのスクリプト本体には書かない)。
 
-set -u
+# 厳格モード(bash): 未定義変数と pipefail は有効にするが、errexit は意図的に付けない。
+# safe_rm の拒否(return 1)や confirm の「n」など、非ゼロ終了を通常の分岐として扱い、
+# 1 件の失敗で全体の掃除を止めない設計のため。
+set -uo pipefail
 HOME_DIR="$HOME"
 DRY_RUN=0; SKIP_A=0; SKIP_B=0; SKIP_C=0
 for arg in "$@"; do

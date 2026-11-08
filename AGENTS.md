@@ -33,7 +33,7 @@ macOS クリーンインストール直後のフルセットアップは `bootst
 
 - ルート直下の設定ファイルは `!/foo` の形（先頭の `/` 必須。無いと `.config/emacs/README.md` のような同名ファイルにも誤爆する）。
 - `.local/bin` はスクリプト拡張子ごとに許可（`!.local/bin/*.sh` など）。
-- `.local/share` はデフォルトで丸ごと無視した上で、`.local/share/favorite-repos.json` のように **ファイル単位で個別に許可**している。ディレクトリパターン（`dir/`）で一度無視されたディレクトリは、後から `!dir/file` を書いても再度追跡対象にはできない（git の仕様）。許可したい場合は該当ディレクトリの無視パターンを `dir/*`（グロブ）にした上で個別ファイルを否定する。
+- `.local/share` はデフォルトで丸ごと無視した上で、`.local/share/favorite-repos.json` のように **ファイル単位で個別に許可**している（`.local/share/commit-rewrite/` はコミット履歴書き換え用の一回限りのスクリプト一式で、PATH に置かないためディレクトリごと許可）。ディレクトリパターン（`dir/`）で一度無視されたディレクトリは、後から `!dir/file` を書いても再度追跡対象にはできない（git の仕様）。許可したい場合は該当ディレクトリの無視パターンを `dir/*`（グロブ）にした上で個別ファイルを否定する。
 - ファイル末尾付近の「明示的に除外」セクションは、allow-list を通り抜けてしまう可能性のあるパスへの二重ブロック（`.zsh_history` や機種固有バイナリなど）。
 
 新規ファイルを追加したら、`git status --short` と `git check-ignore -v <path>` で意図通りに allow/deny されているか必ず確認する。
@@ -44,7 +44,8 @@ macOS クリーンインストール直後のフルセットアップは `bootst
 
 - shebang は `#!/usr/bin/env zsh`。zsh は関数内で `$0` が関数名に化ける（`FUNCTION_ARGZERO`）、`read -p` はプロンプト表示ではなくコプロセス読み込みを意味する、bash の `PIPESTATUS` 配列が無く `pipestatus`（小文字・1-indexed）を使う、といった bash との違いがあるので、bash から移植する際は要注意。
 - **`echo "$var"` は使わない。** zsh の組み込み `echo` はデフォルトで `\n` 等のバックスラッシュエスケープを解釈してしまう（bash の `echo` は解釈しない）。JSON レスポンスや LLM の出力など、変数の中身に `\n`/`\"`/`\\` が含まれ得る場合、`echo "$var" | jq ...` や `echo "$var" | python3 -c 'json.load(...)'` のようにパーサへ渡すと、パース対象の文字列そのものが壊れて `Invalid control character` 等のエラーになる（実際に踏んだ不具合）。`printf '%s\n' "$var"` を使うか、可能なら変数を経由せずファイル/`jq`の引数に直接読ませる。
-- `set -o errexit / -o nounset / -o pipefail`。
+- 厳格モードはシェルに合わせる: zsh は `set -o errexit -o nounset -o pipefail`、bash は `set -euo pipefail`。意図的に外す場合（例: `cleanup_home.sh` と `defaults.zsh` は失敗しても続行する設計のため errexit なし、`makepass.sh` は SIGPIPE のため pipefail なし）は理由をコメントに書く。shebang は `#!/usr/bin/env zsh` / `#!/usr/bin/env bash`、拡張子は実際のシェルに合わせる（zsh は `.zsh`）。
+- ヘルプ（`-h`）の終了コードは `sync2org-roam.sh` / `defaults.zsh` / `dotfiles-autosync.zsh` で 99（引数エラーは 1）。
 - ファイル先頭に日本語コメントで用途・使い方・必須/任意環境変数を書く。
 - `log_info()` / `log_error()` / `usage()` / `require_command()` のような小さなヘルパーを定義し、標準エラーへのログは `❌ [${SCRIPT_NAME}] ...` の形式。
 - 引数パースは `case` ベース、`-h/--help` と `-n/--dry-run` を用意するものが多い。

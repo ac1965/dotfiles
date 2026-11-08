@@ -44,7 +44,9 @@ PLIST_PATH="${HOME}/Library/LaunchAgents/${LABEL}.plist"
 log_info()  { print -- "→ $*" }
 log_error() { print -u2 -- "❌ [${SCRIPT_NAME}] $*" }
 
+# 終了コード: -h/--help は 99、引数エラーは 1
 usage() {
+  local code="${1:-1}"
   cat <<EOF
 Usage: ${SCRIPT_NAME} run [-n|--dry-run]
        ${SCRIPT_NAME} install|uninstall|status
@@ -57,7 +59,7 @@ Usage: ${SCRIPT_NAME} run [-n|--dry-run]
   対象リポジトリ: ${DOTFILES_REPO}(DOTFILES_REPO で上書き可)
   ログ          : ${LOG_FILE}
 EOF
-  exit 1
+  exit "$code"
 }
 
 # ログは 1MiB を超えたら 1 世代だけ退避する(launchd の stdout/stderr も同じファイルに
@@ -293,6 +295,6 @@ case "$1" in
   install)   do_install ;;
   uninstall) do_uninstall ;;
   status)    do_status ;;
-  -h|--help) usage ;;
+  -h|--help) usage 99 ;;
   *)         usage ;;
 esac

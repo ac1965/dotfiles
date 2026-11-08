@@ -5,22 +5,24 @@
 # 同期先にしか存在しないファイルは削除しない（安全側の一方向コピー）。
 #
 # 使い方:
-#   sync-to-org-roam.zsh [-n] <同期元ディレクトリ> [同期先ディレクトリ]
+#   sync2org-roam.sh [-n] <同期元ディレクトリ> [同期先ディレクトリ]
 #
 #   -n, --dry-run   実際にはコピーせず、実行結果のプレビューのみ表示
 #   -h, --help      このヘルプを表示
 #
 # 例:
-#   sync-to-org-roam.zsh ~/Downloads/org-notes
-#   sync-to-org-roam.zsh -n ~/Downloads/org-notes ~/Documents/org/org-roam
+#   sync2org-roam.sh ~/Downloads/org-notes
+#   sync2org-roam.sh -n ~/Downloads/org-notes ~/Documents/org/org-roam
 
-set -euo pipefail
+set -o errexit -o nounset -o pipefail
 
 TARGET_DEFAULT="$HOME/Documents/org/org-roam"
 SCRIPT_NAME="${0:t}"
 DRY_RUN=0
 
+# 終了コード: -h/--help は 99、引数エラーは 1(ヘルプ表示と誤用を呼び出し側が区別できるように)
 usage() {
+  local code="${1:-1}"
   cat >&2 <<EOF
 使い方: $SCRIPT_NAME [-n] <同期元ディレクトリ> [同期先ディレクトリ]
 
@@ -32,14 +34,14 @@ usage() {
 挙動: rsync --update による追加コピーのみ。同期先にしか存在しない
       ファイルは削除しない（ミラーリングは行わない）。
 EOF
-  exit 1
+  exit "$code"
 }
 
 args=()
 for arg in "$@"; do
   case "$arg" in
     -n|--dry-run) DRY_RUN=1 ;;
-    -h|--help) usage ;;
+    -h|--help) usage 99 ;;
     -*)
       echo "エラー: 不明なオプション: $arg" >&2
       usage

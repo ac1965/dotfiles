@@ -7,7 +7,7 @@
 # 素の `security` コマンドで登録する(自前バイナリでのアクセス制限は
 # ビルドのたびに信頼関係が壊れ無人実行がハングする問題があったため撤回
 # 済み。詳細は encrypt 冒頭のコメントを参照)。
-set -euo pipefail
+set -o errexit -o nounset -o pipefail
 
 SERVICE="com.encrypt.aes256gcm"
 

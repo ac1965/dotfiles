@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Decrypt to STDOUT for piping (e.g., `decrypt file.enc | tar -xvJ`).
 # Cipher: AES-256-CBC + PBKDF2 (default 210k iterations).
 # No messages on STDOUT (binary only). All prompts/errors go to STDERR.

@@ -60,7 +60,7 @@
 #   ./gen-commit-msg.sh --oauth             # OAuthログインで実行(API key不要)
 #   ./gen-commit-msg.sh --model haiku       # モデル指定(既定: API key認証=Sonnet 5.5 / OAuth=haiku)
 #
-set -euo pipefail
+set -o errexit -o nounset -o pipefail
 zmodload zsh/system
 
 MODEL=""   # 空なら認証方式に応じて後段で決定(API key: Sonnet 5.5 / OAuth: haiku)

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # ~/.local/bin/toggle-emacs-daemon.sh
 #
 # com.ac1965.emacs-daemon.plist と対で使う launchd トグルスクリプト。

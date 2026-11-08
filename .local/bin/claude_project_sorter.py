@@ -380,7 +380,7 @@ def list_conversations(session: requests.Session, org_id: str, limit: int, starr
         name = c.get("name") or "(無題)"
         print(f"{c.get('uuid'):<38} {name}")
     if isinstance(payload, dict) and payload.get("has_more"):
-        print(f"\n[INFO] 他にも会話があります(has_more=true)。--limit を増やして確認してください。")
+        print("\n[INFO] 他にも会話があります(has_more=true)。--limit を増やして確認してください。")
 
 
 MOVE_MANY_MAX_PER_REQUEST = 50  # API制限: 1回のmove_manyで送れるのは最大50件

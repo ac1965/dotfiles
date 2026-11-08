@@ -1,6 +1,6 @@
 #!/usr/bin/env zsh
 
-set -e
+set -o errexit -o nounset -o pipefail
 
 # ===== 設定 =====
 OPENWEBUI_IMAGE="ghcr.io/open-webui/open-webui:main"

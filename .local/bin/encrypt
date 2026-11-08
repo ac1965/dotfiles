@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Since OpenSSL enc parsing can be brittle, call the cipher subcommand directly.
 # AES-256-CBC + PBKDF2 (210k iterations), output perms via umask 077,
 # then remove the source in order: gshred > shred > rm.

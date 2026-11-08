@@ -242,7 +242,7 @@ async def check_url(
             return (url, "dead", None)
         except asyncio.TimeoutError:
             return (url, "timeout", None)
-        except Exception as e:
+        except Exception:
             return (url, "error", None)
 
 

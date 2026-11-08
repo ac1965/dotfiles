@@ -425,6 +425,72 @@ feat: APIエンドポイントの認証を追加
 | リモート追加          | M a               | git remote add <name> <url>            |
 | リモートURL変更       | M C               | git remote set-url <name> <new-url>    |
 
+*** 3.6 公開済みの履歴から機密情報を取り除く
+:PROPERTIES:
+:CUSTOM_ID: 公開履歴からの機密情報除去
+:END:
+誤って機密情報をコミットし、公開リポジトリへ push してしまったときの対処を、実際に行った作業（2026-11-08）にもとづいて記録します。Magit の操作ではなく `git filter-repo` による履歴の書き換えが中心なので、端末で行います。
+
+**** 3.6.1 まず「何が漏れたか」で対応を決める
+- トークン・パスワード・鍵が含まれていた場合は、履歴を書き換える前に、まず発行元で失効（ローテーション）させてください。履歴から消しても、すでに取得された値は無効になりません。
+- ファイル名や案件名のように、失効させられない情報の場合は、履歴の書き換えで公開範囲を狭めます。ただし完全には消せません（3.6.3 参照）。
+- 書き換える前に影響範囲を調べます。`git log --all --format=%h -S'<文字列>'` で該当コミットを洗い出し（`-S` は文字列の増減を検出する）、`gh repo view --json visibility,forkCount` で公開状態とフォークの有無を確認します。フォークがあると、そちらには書き換えが及びません。
+
+**** 3.6.2 手順
+書き換えは必ず作業用の別クローンで行い、元のリポジトリと履歴全体のバックアップを残したまま進めます。
+
+| 順 | 作業 | 目的 |
+|----+------+------|
+| 1 | 自動同期（launchd など）を止める | 書き換え中・push 中に自動 push と競合させない |
+| 2 | `git bundle create ... --all` で履歴全体を退避し `git bundle verify` で検証する | 失敗しても元に戻せるようにする |
+| 3 | 別ディレクトリへクローンする（`--no-hardlinks`） | 元のリポジトリに手を付けない |
+| 4 | `git filter-repo --replace-text` で該当文字列を置換する | 履歴内のすべての版から取り除く |
+| 5 | 結果を検証する（下記） | 意図しない変更がないことを確認する |
+| 6 | `--force-with-lease` で push する | 想定外にリモートが進んでいたら失敗させる |
+| 7 | 元のリポジトリを新しい履歴に揃え、古いオブジェクトを消す | ローカルにも残さない |
+| 8 | バックアップとクローンを削除し、自動同期を再開する | バックアップ自体に機密が残らないようにする |
+
+#+begin_src bash
+# 2. バックアップ（履歴全体）
+git bundle create ../repo-before-rewrite.bundle --all
+git bundle verify ../repo-before-rewrite.bundle
+
+# 3. 作業用クローン
+git clone --no-hardlinks /path/to/repo ../repo-rewrite
+
+# 4. 置換ルールを書いたファイル（1行1ルール: 元の文字列==>置換後）
+printf '%s\n' 'SECRET-OR-NAME==>REMOVED' > /tmp/replace.txt
+cd ../repo-rewrite
+git filter-repo --replace-text /tmp/replace.txt --force
+
+# 6. push（期待する旧 SHA を指定して、想定外の更新を検出する）
+git remote add origin <URL>      # filter-repo は origin を外す
+git push --force-with-lease=master:<旧のSHA> origin master
+
+# 7. 元のリポジトリ側（未コミットの変更がないことを確認してから）
+git fetch origin && git reset --hard origin/master
+git reflog expire --expire=now --all && git gc --prune=now
+#+end_src
+
+検証で確認した項目は次のとおりです。
+- `git log --all -S'<文字列>'` の結果が0件であること（履歴全体から消えている）。
+- 書き換え前後で `HEAD` のツリー ID が一致すること（内容は変わっていない）。置換対象が最新版に残っていない場合は一致します。
+- ハッシュが変わったコミットが、対象を含むコミット以降だけであること（今回は 405 件中 11 件）。それ以前の履歴とタグは変わりません。
+- 手元のリポジトリを揃えたあと、`git cat-file -e <旧コミットのハッシュ>` が「Not a valid object name」になること（旧履歴がローカルから消えている）。
+
+Magit の push メニュー（`P`）にも `--force-with-lease` のスイッチがあるはずですが、この環境では実機で確認していません。期待する旧 SHA まで指定できる上のコマンドを使いました。
+
+**** 3.6.3 注意点（書き換えても残るもの）
+- GitHub 側には、旧コミットのハッシュを直接指定した URL で、しばらく閲覧できる場合があります。確実に消すには GitHub サポートへの依頼が必要です。
+- フォークや第三者がすでに取得したコピー、他のマシンの clone には残ります。他のマシンでは `git fetch && git reset --hard origin/master` が必要です。
+- バックアップの bundle には機密が残っているため、同期を確認したら削除します。
+- 書き換えると、対象コミット以降のハッシュがすべて変わります。
+
+**** 3.6.4 再発防止
+- 公開リポジトリのスクリプトに、案件名・社名・個人のファイル名を直書きしません。必要なら環境変数や、リポジトリ外のファイルから読み込む形にします（今回の `cleanup_home.sh` は `EXTRA_ASK_RM` に変更）。
+- dotfiles の自動同期（`$HOME` からリポジトリへの `reverse`）は、リポジトリ側で削除したファイルでも、ホーム側にコピーが残っていると復活させます。ファイルを削除・改名するときは、先にホーム側のコピーを消してください。
+- 履歴を書き換えるスクリプト（`.local/share/commit-rewrite/`）は、コミットメッセージの書き換え用です。ファイル内容の置換には使えません（作業用クローンを作る `0_backup_clone.sh` だけは流用できます）。
+
 ** 4. Org modeとMagitを組み合わせて使う
 :PROPERTIES:
 :CUSTOM_ID: 統合的な活用方法

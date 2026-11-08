@@ -156,6 +156,19 @@ mkdir -p "$(dirname "$OBJ_DIR")"
 OBJ_PARENT="$(cd "$(dirname "$OBJ_DIR")" && pwd)"
 OBJ_DIR="$OBJ_PARENT/$(basename "$OBJ_DIR")"
 
+# OBJ_DIR は後段で無条件に rm -rf される。--obj-dir に $HOME・/・ソースツリー・
+# インストール先などを指定すると、それらを丸ごと消してしまうため、
+# 「消してはいけないパス自身、またはその祖先」を事前に拒否する。
+# ("$p/" が "$OBJ_DIR/" で始まる ⇔ OBJ_DIR は p 自身か p の祖先)
+for _protected in "/" "$HOME" "$REPO_DIR" "$BUILD_DIR" "/Applications" "/Applications/Emacs.app"; do
+	[[ "${_protected%/}/" == "${OBJ_DIR%/}/"* ]] && {
+		echo "❌ --obj-dir が危険なパスです (毎回 rm -rf されます): $OBJ_DIR" >&2
+		echo "   $_protected を含む/一致するパスは指定できません。専用の空きディレクトリを指定してください。" >&2
+		exit 1
+	}
+done
+unset _protected
+
 # ビルドログは OBJ_DIR とは独立した永続ディレクトリに保存する。
 # OBJ_DIR は毎回 rm -rf して作り直すため、OBJ_DIR 配下に置くと
 # 失敗時のログが次回実行時に失われてしまうことを避けるため。

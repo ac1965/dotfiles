@@ -55,12 +55,17 @@ else
 fi
 
 # Keychainに保存（既存エントリは上書き）
-security add-generic-password \
-  -s "$SERVICE" \
-  -a "$ACCOUNT" \
-  -l "$LABEL" \
-  -w "$pp" \
-  -U                             # -U: update if exists
+# パスフレーズを引数(-w "$pp")で渡すと ps で平文が見えるため、`security -i` で標準入力から渡す。
+# -i は失敗しても終了コード 0 になりうるので、登録後に読み戻して検証する。
+# service/account/label に二重引用符は使えない前提。
+esc=${pp//\\/\\\\}
+esc=${esc//\"/\\\"}
+printf 'add-generic-password -s "%s" -a "%s" -l "%s" -w "%s" -U\n' "$SERVICE" "$ACCOUNT" "$LABEL" "$esc" \
+  | security -i >/dev/null 2>&1 || true
+unset esc
+if [[ "$(security find-generic-password -s "$SERVICE" -a "$ACCOUNT" -w 2>/dev/null)" != "$pp" ]]; then
+  echo "❌ Keychain への登録に失敗しました" >&2; exit 1
+fi
 
 if (( generate )); then
   echo "⚠️  このパスフレーズはこのMacにしか存在しません(iCloud同期なし)。今のうちにパスワードマネージャーへ保存してください:" >&2

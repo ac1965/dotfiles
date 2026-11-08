@@ -14,6 +14,10 @@
 # B/C の確認は y か n のみ受け付け、回答は ~/.cleanup_home.answers に保存され、
 # 次回実行時の既定値になります(Enter だけで前回の回答を採用)。
 # 既定値をリセットするには上記ファイルを削除してください。dry-run では保存しません。
+#
+# 個人・案件固有のファイル(業務文書など)を B の確認対象に加えたいときは、
+# ホームからの相対パスを 1 行 1 件で書いたファイルを作り、EXTRA_ASK_RM=<そのファイル> を
+# 付けて実行する(公開リポジトリのスクリプト本体には書かない)。
 
 set -u
 HOME_DIR="$HOME"
@@ -24,7 +28,7 @@ for arg in "$@"; do
     --skip-a)  SKIP_A=1 ;;
     --skip-b)  SKIP_B=1 ;;
     --skip-c)  SKIP_C=1 ;;
-    -h|--help) sed -n "2,20p" "$0"; exit 0 ;;
+    -h|--help) sed -n "2,24p" "$0"; exit 0 ;;
     *) echo "不明なオプション: $arg"; exit 1 ;;
   esac
 done
@@ -190,7 +194,8 @@ if (( ! SKIP_A )); then
 
   echo "[Xcode ビルド成果物]"
   safe_rm_contents "$HOME_DIR/Library/Developer/Xcode/DerivedData"
-  safe_rm_contents "$HOME_DIR/Library/Developer/Xcode/Archives"
+  # Archives は再生成できない(配布済みビルドの dSYM・シンボル情報を含む)ため、
+  # ここでは消さず C で 1 件ずつ確認する。
 
   echo "[mypy キャッシュ]"
   safe_rm "$HOME_DIR/.mypy_cache"
@@ -215,8 +220,14 @@ if (( ! SKIP_B )); then
   ask_rm "$DL/archive.zip"         "内容を確認してから。"
   ask_rm "$DL/チャット索引-Emacs・Lisp-全文.md"  "同内容の .org と重複。"
   ask_rm "$DL/チャット索引-Emacs・Lisp-全文.org" "同内容の .md と重複。どちらか一方を残す。"
-  ask_rm "$DL/REMOVED-DOCUMENT.pptx" \
-         "古い版の可能性。最新版は別ファイル。内容を確認。"
+  # 業務文書など個人・案件固有のファイルは、公開リポジトリのこのスクリプトに直書きしない。
+  # 追加したい場合は EXTRA_ASK_RM (ホームからの相対パスを 1 行 1 件) に書く。
+  if [[ -n "${EXTRA_ASK_RM:-}" && -f "$EXTRA_ASK_RM" ]]; then
+    while IFS= read -r rel || [[ -n "$rel" ]]; do
+      [[ -z "$rel" || "$rel" == \#* ]] && continue
+      ask_rm "$HOME_DIR/$rel" "EXTRA_ASK_RM で指定された項目。内容を確認。"
+    done < "$EXTRA_ASK_RM"
+  fi
 
   echo
   echo "--- 使っていないツールの残骸(小容量) ---"
@@ -294,6 +305,8 @@ if (( ! SKIP_C )); then
   ask_rm "$HOME_DIR/nuclei-templates" "nuclei を使わなければ削除可(再取得可)。"
   ask_rm "$HOME_DIR/AozoraEpub3"      "使わなければ削除可。"
   ask_rm "$HOME_DIR/node_modules"     "ホーム直下の node_modules。通常は不要(誤って作られたもの)。"
+  ask_rm "$HOME_DIR/Library/Developer/Xcode/Archives" \
+         "Xcode Archives。再生成不可。配布済みビルドの dSYM が必要なら残す。"
 fi
 
 # ==================================================================

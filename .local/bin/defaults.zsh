@@ -27,7 +27,7 @@ Usage: $SCRIPT_NAME [backup|restore|migrate] <domain>
 
   backup      : 指定したドメインの設定をバックアップします
   restore     : バックアップした設定をリストアします
-  migrate     : バックアップを別の Mac に SCP で移行します
+  migrate     : バックアップを別の Mac に SCP で移行します(宛先は環境変数 MIGRATE_HOST=user@host で指定)
   backup-all  : ドメイン一覧ファイルに列挙された全ドメインをバックアップします
   restore-all : ドメイン一覧ファイルに列挙された全ドメインをリストアし、関連プロセスを再起動します
   domain      : 対象のドメイン名（例: com.apple.finder）
@@ -50,6 +50,14 @@ function backup() {
 
     mkdir -p -- "${backup_file:h}"
     echo "📦 バックアップ中: ${domain} → ${backup_file}"
+    # `defaults export` は存在しない/読めないドメインでも終了コード 0 で「空の plist(42バイト)」を
+    # 書いてしまう。サンドボックス化アプリ(例: com.apple.Safari)は実体がコンテナ内にあり、
+    # 通常は読めないため、事前に読み取れるかを確認して空のバックアップを作らない。
+    if ! defaults read "$domain" >/dev/null 2>&1; then
+        echo "❌ ドメインを読み取れません(存在しない、またはサンドボックス/権限により参照不可): ${domain}"
+        rm -f -- "$backup_file"
+        return 1
+    fi
     if defaults export "$domain" "$backup_file" && [[ -f "$backup_file" ]]; then
         echo "✅ バックアップ完了: ${backup_file}"
         return 0
@@ -100,9 +108,12 @@ function backup_all() {
     local -a domains_out
     read_domains || exit 1
     local domain
+    local -i ok=0 ng=0
     for domain in "${domains_out[@]}"; do
-        backup "$domain"
+        if backup "$domain"; then (( ++ok )); else (( ++ng )); fi
     done
+    echo "📊 バックアップ: 成功 ${ok} 件 / 失敗 ${ng} 件"
+    (( ng == 0 ))
 }
 
 # ドメイン一覧を一括リストアし、反映のため関連プロセスを再起動する
@@ -110,42 +121,50 @@ function restore_all() {
     local -a domains_out
     read_domains || exit 1
     local domain
-    local -i restored=0
+    local -i restored=0 failed=0
     for domain in "${domains_out[@]}"; do
-        restore "$domain" && (( restored++ ))
+        if restore "$domain"; then (( ++restored )); else (( ++failed )); fi
     done
     if (( restored > 0 )); then
         echo "🔄 反映のため関連プロセスを再起動します(Dock/Finder/SystemUIServer/cfprefsd)..."
         killall Dock Finder SystemUIServer cfprefsd 2>/dev/null
-        echo "✅ ${restored} 件のドメインをリストアしました"
+        echo "✅ ${restored} 件のドメインをリストアしました(失敗 ${failed} 件)"
     else
-        echo "⚠️ リストアされたドメインはありませんでした"
+        echo "⚠️ リストアされたドメインはありませんでした(失敗 ${failed} 件)"
     fi
+    (( failed == 0 ))
 }
 
 # 移行関数
 function migrate() {
     local domain=$1
     local backup_file="${BACKUP_DIR}/${domain}.plist"
-    local remote_host="user@remote-mac.local"
+    local remote_host="${MIGRATE_HOST:-}"
 
-    if [[ -f "$backup_file" ]]; then
-        echo "🚚 移行中: ${backup_file} → ${remote_host}:${BACKUP_DIR}/"
-        if scp "$backup_file" "${remote_host}:${BACKUP_DIR}/"; then
-            echo "✅ 移行完了"
-        else
-            echo "❌ 移行失敗"
-        fi
-    else
+    if [[ -z "$remote_host" ]]; then
+        echo "❌ 移行先が未指定です。MIGRATE_HOST=user@host を指定してください" >&2
+        return 1
+    fi
+    if [[ ! -f "$backup_file" ]]; then
         echo "⚠️ バックアップファイルが見つかりません: ${backup_file}"
+        return 1
+    fi
+    local remote_file="${BACKUP_DIR}/${domain}.plist"
+    echo "🚚 移行中: ${backup_file} → ${remote_host}:${remote_file}"
+    # 宛先ディレクトリが無いと scp が失敗する(ドメイン名に / を含む場合は階層も必要)
+    if ssh "$remote_host" mkdir -p -- "${remote_file:h}" && scp "$backup_file" "${remote_host}:${remote_file}"; then
+        echo "✅ 移行完了"
+    else
+        echo "❌ 移行失敗"
+        return 1
     fi
 }
 
 # メインロジック
 if [[ $# -eq 1 ]]; then
     case "$1" in
-        backup-all)  backup_all;  exit 0 ;;
-        restore-all) restore_all; exit 0 ;;
+        backup-all)  backup_all;  exit $? ;;
+        restore-all) restore_all; exit $? ;;
         *)           show_help ;;
     esac
 fi
@@ -158,8 +177,8 @@ action=$1
 domain=$2
 
 case "$action" in
-    backup)  backup "$domain" ;;
-    restore) restore "$domain" ;;
-    migrate) migrate "$domain" ;;
+    backup)  backup "$domain"; exit $? ;;
+    restore) restore "$domain"; exit $? ;;
+    migrate) migrate "$domain"; exit $? ;;
     *)       show_help ;;
 esac

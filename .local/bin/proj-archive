@@ -15,6 +15,8 @@
 #   PROJECTS_DIR  対象の親ディレクトリ (既定: ~/Projects)
 #   ARCHIVE_DIR   記録の保存先        (既定: ~/.local/share/proj-archive)
 set -euo pipefail
+# 記録(無視ファイルのアーカイブには .env など秘密が含まれうる)を他ユーザーに読ませない
+umask 077
 
 PROJECTS_DIR="${PROJECTS_DIR:-$HOME/Projects}"
 ARCHIVE_DIR="${ARCHIVE_DIR:-$HOME/.local/share/proj-archive}"
@@ -155,7 +157,9 @@ delete_one() {
   say "    OK: $branch @ ${head:0:9} (リモートと一致)"
   step "保存対象の無視ファイルを収集中..."
   local tmp; tmp=$(mktemp -d)
-  extras_list "$dir" > "$tmp/list"
+  # 注意: delete_one は `if delete_one ...` の中で呼ばれるため set -e が効かない。
+  # 失敗しうるコマンドは必ず自分で終了コードを検査し、削除(rm -rf)の前に止めること。
+  extras_list "$dir" > "$tmp/list" || { echo "$PFX 中止: 無視ファイルの列挙に失敗"; rm -rf "$tmp"; return 1; }
   local n; n=$(tr -cd '\0' < "$tmp/list" | wc -c | tr -d ' ')
 
   if [ "$dry" = 1 ]; then
@@ -165,15 +169,18 @@ delete_one() {
   fi
 
   local a="$ARCHIVE_DIR/$name"
-  mkdir -p "$a"
+  mkdir -p "$a" && chmod 700 "$ARCHIVE_DIR" "$a" || { echo "$PFX 中止: 記録ディレクトリを作成できません"; rm -rf "$tmp"; return 1; }
   if [ "$n" -eq 0 ]; then
     step "無視ファイルなし (圧縮スキップ)"
     rm -f "$a/extras.tar.xz"
   else
     step "無視ファイル ${n} 件を圧縮中 (xz)..."
-    (cd "$dir" && tar --null -T "$tmp/list" -cJf "$a/extras.tar.xz.new")
+    # tar が途中で失敗(読めないファイル等)しても、できかけのアーカイブは tar -t を通ってしまう。
+    # 作成時の終了コードを必ず検査し、不完全なまま元ディレクトリを消さない。
+    (cd "$dir" && tar --null -T "$tmp/list" -cJf "$a/extras.tar.xz.new") \
+      || { echo "$PFX 中止: 無視ファイルの圧縮に失敗 (元ディレクトリは削除しません)"; rm -rf "$tmp" "$a/extras.tar.xz.new"; return 1; }
     tar -tJf "$a/extras.tar.xz.new" >/dev/null || { echo "$PFX 中止: アーカイブ検証失敗"; rm -rf "$tmp" "$a/extras.tar.xz.new"; return 1; }
-    mv -f "$a/extras.tar.xz.new" "$a/extras.tar.xz"
+    mv -f "$a/extras.tar.xz.new" "$a/extras.tar.xz" || { echo "$PFX 中止: アーカイブの確定に失敗"; rm -rf "$tmp"; return 1; }
   fi
   step "復元用の記録を保存中..."
   {
@@ -183,9 +190,9 @@ delete_one() {
     echo "head=$head"
     echo "deleted_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
     echo "extras=$n"
-  } > "$a/manifest.new"
-  mv -f "$a/manifest.new" "$a/manifest"
-  tr '\0' '\n' < "$tmp/list" > "$a/extras.list"
+  } > "$a/manifest.new" && mv -f "$a/manifest.new" "$a/manifest" \
+    && tr '\0' '\n' < "$tmp/list" > "$a/extras.list" \
+    || { echo "$PFX 中止: 記録の保存に失敗 (元ディレクトリは削除しません)"; rm -rf "$tmp"; return 1; }
 
   [ "$n" -gt 0 ] && say "    アーカイブ $(hsize "$ARCHIVE_DIR/$name/extras.tar.xz")"
   rm -rf "$tmp"

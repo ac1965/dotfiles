@@ -30,7 +30,9 @@ com.apple.LaunchServices/com.apple.launchservices.secure
 
 # Safari(ホームページ・ダウンロード先・検索エンジン・AutoFill 等。
 # ブックマーク/履歴/拡張機能の有効化状態は plist 管理外(~/Library/Safari/ の
-# SQLite)のためここではカバーされない)
+# SQLite)のためここではカバーされない)。
+# 注意: Safari はサンドボックス化されており、macOS 27.2 では `defaults read com.apple.Safari`
+# が「ドメインなし」になる。この場合 backup は失敗として報告される(空の plist は作らない)。
 com.apple.Safari
 
 # メニューバーのアイコン表示/非表示・並び順

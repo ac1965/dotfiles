@@ -31,8 +31,9 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --save) SAVE=true; shift ;;
     --text-only) TEXT_ONLY=true; shift ;;
-    --voice) VOICE="$2"; shift 2 ;;
-    --rate) RATE="$2"; shift 2 ;;
+    --voice) VOICE="${2:?--voice には声の名前が必要です}"; shift 2 ;;
+    --rate) RATE="${2:?--rate には語/分の数値が必要です}"; shift 2 ;;
+    -*) echo "不明なオプション: $1" >&2; exit 1 ;;
     *) EPUB="$1"; shift ;;
   esac
 done
@@ -67,7 +68,8 @@ echo "読む順序（spine）を解析中..." >&2
 
 # --- spine順にファイル一覧を取得し、テキストを抽出して連結 ---
 python3 - "$OPF_FULL" "$OPF_DIR" > "$WORKDIR/$BASENAME.txt" <<'PY'
-import sys, re, html
+import sys, re, html, os
+from urllib.parse import unquote
 import xml.etree.ElementTree as ET
 
 opf_path, opf_dir = sys.argv[1], sys.argv[2]
@@ -81,35 +83,51 @@ ns = {"opf": ns_uri}
 # manifest: id -> href
 manifest = {}
 for item in root.find("opf:manifest", ns):
-    manifest[item.attrib["id"]] = item.attrib["href"]
+    # href は URL エンコードされている(空白→%20、日本語→%E3...)ため、ファイル名に戻す
+    manifest[item.attrib["id"]] = unquote(item.attrib["href"].split("#")[0])
 
 # spine: 読む順序のidref一覧
 spine = root.find("opf:spine", ns)
 order = [itemref.attrib["idref"] for itemref in spine]
 
 tag_re = re.compile(r"<[^>]+>")
+# ルビ(振り仮名)は <rt>…</rt> / <rp>…</rp>。タグだけ消すと「漢字かんじ」と二重に読まれる
+ruby_re = re.compile(r"<(rt|rp)\b[^>]*>.*?</\1>", re.DOTALL | re.IGNORECASE)
+missing = []
 script_style_re = re.compile(r"<(script|style)[^>]*>.*?</\1>", re.DOTALL | re.IGNORECASE)
 
 for idref in order:
     href = manifest.get(idref)
     if not href:
         continue
-    filepath = f"{opf_dir}/{href}"
+    filepath = os.path.normpath(os.path.join(opf_dir, href))
+    # epub 内の相対パス "../" で展開先の外を読まないようにする
+    if not filepath.startswith(os.path.normpath(opf_dir) + os.sep):
+        missing.append(href)
+        continue
     try:
         with open(filepath, encoding="utf-8", errors="ignore") as f:
             content = f.read()
     except FileNotFoundError:
+        missing.append(href)
         continue
 
     content = script_style_re.sub(" ", content)
+    content = ruby_re.sub("", content)
     # ブロック要素の終わりを改行に変換してから残りのタグを除去
-    content = re.sub(r"</(p|div|h[1-6]|li|br)\s*>", "\n", content, flags=re.IGNORECASE)
-    text = tag_re.sub(" ", content)
+    content = re.sub(r"<br\s*/?>", "\n", content, flags=re.IGNORECASE)
+    content = re.sub(r"</(p|div|h[1-6]|li)\s*>", "\n", content, flags=re.IGNORECASE)
+    # 行内タグは空文字に置換する(空白にすると日本語の語の間に不要な隙間ができる)
+    text = tag_re.sub("", content)
     text = html.unescape(text)
     text = re.sub(r"[ \t]+", " ", text)
     text = re.sub(r"\n{2,}", "\n\n", text)
     print(text.strip())
     print()  # 章の区切りに空行
+
+# 読めなかった章を黙って捨てない(標準エラーに出す)
+if missing:
+    print(f"[WARN] 本文ファイルを読めませんでした({len(missing)} 件): {', '.join(missing[:5])}", file=sys.stderr)
 PY
 
 WORDCOUNT=$(wc -m < "$WORKDIR/$BASENAME.txt" | tr -d ' ')

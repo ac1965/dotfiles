@@ -60,8 +60,19 @@ EOF
   exit 1
 }
 
+# ログは 1MiB を超えたら 1 世代だけ退避する(launchd の stdout/stderr も同じファイルに
+# 追記されるため、放置すると増え続ける)。
+rotate_log() {
+  local -i max=1048576 size=0
+  [[ -f "${LOG_FILE}" ]] || return 0
+  size=$(stat -f%z -- "${LOG_FILE}" 2>/dev/null || print 0)
+  (( size > max )) && command mv -f -- "${LOG_FILE}" "${LOG_FILE}.1"
+  return 0
+}
+
 append_log() {
   mkdir -p -- "${STATE_DIR}"
+  rotate_log
   print -- "[$(date '+%Y-%m-%d %H:%M:%S')] $*" >> "${LOG_FILE}"
 }
 
@@ -175,15 +186,21 @@ do_run() {
   for e in "${entries[@]}"; do
     [[ -e "${DOTFILES_REPO}/${e}" ]] && existing+=("$e")
   done
-  (( ${#existing} > 0 )) && git add -- "${existing[@]}"
+  if (( ${#existing} == 0 )); then
+    append_log "no tracked entries"
+    return 0
+  fi
+  git add -- "${existing[@]}"
 
-  if git diff --cached --quiet; then
+  # 判定もコミットも DOTFILES の範囲(pathspec)に限定する。インデックス全体を対象にすると、
+  # 範囲外でステージ済みの作業中ファイルまで汎用メッセージで自動コミット・push してしまう。
+  if git diff --cached --quiet -- "${existing[@]}"; then
     append_log "no changes"
     return 0
   fi
 
   local host="$(scutil --get ComputerName 2>/dev/null || hostname -s)"
-  git commit -q -m "chore(autosync): ${host} $(date '+%Y-%m-%d %H:%M') の自動同期"
+  git commit -q -m "chore(autosync): ${host} $(date '+%Y-%m-%d %H:%M') の自動同期" -- "${existing[@]}"
 
   if ! git rev-parse --abbrev-ref --symbolic-full-name '@{u}' >/dev/null 2>&1; then
     log_info "upstream 未設定のため push はスキップします"

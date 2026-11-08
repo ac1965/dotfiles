@@ -1,0 +1,572 @@
+#+TITLE: macOS Safari 使いこなしガイド
+#+AUTHOR: たかお
+#+DATE: 2026-04-28
+#+STARTUP: overview
+#+OPTIONS: toc:3 num:t
+#+PROPERTY: header-args :results output
+
+* macOS Safari 使いこなしガイド
+:PROPERTIES:
+:CREATED:  2026-04-28
+:DESCRIPTION: Safari（macOS）の機能を深掘りし、生産性・セキュリティ・プライバシーを最大化するリファレンス
+:END:
+
+** 概要
+
+Safari は macOS に標準搭載された Apple 製ブラウザ。単なる「デフォルトブラウザ」にとどまらず、
+プライバシー保護・省電力・Apple エコシステム連携において Chrome / Firefox にはない固有の優位性を持つ。
+
+本ドキュメントは以下を対象とする：
+- macOS Sequoia 15.x 対応（2026年4月時点）
+- Safari 18.x 系の機能を網羅
+- キーボードショートカットは US / JIS 両配列を考慮
+
+** ナビゲーション＆タブ管理
+:PROPERTIES:
+:CUSTOM_ID: navigation
+:END:
+
+*** 基本ナビゲーション
+
+| 操作                   | ショートカット         | 備考                            |
+|------------------------+------------------------+---------------------------------|
+| 新規タブ               | =Cmd+T=                |                                 |
+| タブを閉じる           | =Cmd+W=                |                                 |
+| 最後に閉じたタブを復元 | =Cmd+Z=                | Undo で復元可                   |
+| タブ切り替え（次）     | =Ctrl+Tab=             | =Cmd+Shift+}= でも可            |
+| タブ切り替え（前）     | =Ctrl+Shift+Tab=       |                                 |
+| タブをピン留め         | 右クリック → Pin Tab   | 固定タブはセッション跨ぎで保持  |
+| タブをミュート         | タブのスピーカーアイコン | ページ内音声個別制御            |
+| タブグループ作成       | =File > New Tab Group= | タブをグループ化して切り替え可  |
+
+*** タブグループ活用
+:PROPERTIES:
+:CUSTOM_ID: tab-group
+:END:
+
+タブグループは Safari の強力な整理機能。用途別にプロジェクト・調査・プライベートを分離できる。
+
+- *作成*: タブバー右クリック → "Add Tabs to New Tab Group"
+- *同期*: iCloud 経由で iPhone / iPad と共有（同一 Apple ID）
+- *命名*: グループ名をダブルクリックして変更
+- *スタートページ*: グループごとに独立したスタートページを設定可
+
+*活用例（コンサル業務）:*
+
+#+BEGIN_EXAMPLE
+タブグループ構成例：
+├── [調達審査]      DS-110/DS-910 参照用タブ
+├── [省庁ポータル]  e-Gov, デジタル庁, 各省 IT 調達ページ
+├── [開発]          GitHub, PyPI, Emacs 設定参照
+└── [プライベート]  音楽, ウィスキー情報
+#+END_EXAMPLE
+
+*** Smart Tab Bar
+
+- タブ数が多い場合、タブバーは自動でスクロール可能に
+- =Cmd+数字= でタブ番号指定ジャンプ（1〜9）
+- タブのドラッグ＆ドロップによる並び替え
+- タブを別ウィンドウへドラッグして分割
+
+** アドレスバー（Smart Search Field）
+:PROPERTIES:
+:CUSTOM_ID: address-bar
+:END:
+
+*** URL 入力と検索
+
+| 操作                     | 方法                              |
+|--------------------------+-----------------------------------|
+| アドレスバーフォーカス   | =Cmd+L=                           |
+| 検索エンジン切り替え     | 環境設定 → Search → Search Engine |
+| サイト内検索             | アドレスバーに =site:example.com= |
+| 検索キーワード補完       | 入力中に候補表示（履歴・ブックマーク・サジェスト） |
+
+*** デフォルト検索エンジン設定
+
+=Safari > Settings > Search= から変更可：
+- Google（デフォルト）
+- DuckDuckGo（プライバシー重視）
+- Bing / Yahoo / Ecosia
+
+*** Spotlight との連携
+
+macOS Spotlight（=Cmd+Space=）から直接 Web 検索が可能。
+Safari をデフォルトブラウザに設定していれば Spotlight 経由の検索も Safari で開く。
+
+** リーダーモード（Reader View）
+:PROPERTIES:
+:CUSTOM_ID: reader-view
+:END:
+
+*** 基本操作
+
+| 操作               | 方法                   |
+|--------------------+------------------------|
+| リーダーモード切替 | =Cmd+Shift+R=          |
+| 自動有効化         | サイトごとに "Use Reader Automatically" を設定 |
+| フォント変更       | =Aa= ボタン → Font 選択 |
+| 背景色変更         | =Aa= ボタン → White / Beige / Gray / Black |
+| フォントサイズ     | =Aa= ボタン → ＋/－    |
+
+*** Reader View が有効なコンテキスト
+
+- 長文記事・ブログポスト
+- 技術ドキュメント（MDN, Qiita 等）
+- 省庁の告示・ガイドライン（PDF でない HTML 版）
+
+*** 自動有効化設定（サイト別）
+
+#+BEGIN_EXAMPLE
+Settings > Websites > Reader
+→ 対象サイトを "On" に設定
+#+END_EXAMPLE
+
+** プライバシー保護機能
+:PROPERTIES:
+:CUSTOM_ID: privacy
+:END:
+
+*** Intelligent Tracking Prevention（ITP）
+
+Apple が独自開発した機械学習ベースのトラッキング防止技術。
+
+- クロスサイトトラッキング Cookie を自動ブロック
+- サードパーティ Cookie はデフォルトで制限
+- フィンガープリンティング対策（WebGL・AudioContext・フォント情報の抽象化）
+
+*** プライバシーレポート
+
+=Safari > Privacy Report= または Shield アイコンをクリックして確認可：
+- 過去 30 日間にブロックされたトラッカー数
+- どのサイトがトラッカーを使用しているか
+- 詳細なドメイン別トラッカーリスト
+
+*** プライベートブラウジング
+
+| 操作                         | ショートカット   |
+|------------------------------+-----------------|
+| プライベートウィンドウを開く | =Cmd+Shift+N=   |
+
+*保護されるもの：*
+- ブラウザ履歴に記録されない
+- Cookie・キャッシュはセッション終了時に削除
+- AutoFill の内容を保存しない
+- iCloud との同期対象外
+
+*保護されないもの：*
+- ISP レベルの通信履歴
+- ネットワーク管理者からのアクセスログ
+- ダウンロードファイル（Finder に残る）
+
+*** Hide IP Address（iCloud+ 必須）
+
+=Settings > Privacy > Hide IP Address=
+- トラッカーからのみ隠す
+- すべてのウェブサイトから隠す（iCloud Private Relay）
+
+** パスワード管理・AutoFill
+:PROPERTIES:
+:CUSTOM_ID: password
+:END:
+
+*** 内蔵パスワードマネージャー
+
+macOS Sequoia では独立した *Passwords アプリ*（iCloud Keychain 統合）が利用可。
+
+| 操作                       | 方法                                |
+|----------------------------+-------------------------------------|
+| 保存済みパスワード確認     | =Cmd+, > Passwords= または Passwords.app |
+| パスワード自動生成         | ログインフォームにフォーカス時に提案 |
+| パスキー（Passkey）登録    | 対応サイトで Touch ID / Face ID 認証 |
+| パスワード共有             | iCloud Family Sharing で家族と共有  |
+
+*** AutoFill 設定
+
+=Settings > AutoFill= で以下を個別に有効化：
+- Use info from my contacts（住所・電話番号）
+- User names and passwords
+- Credit cards
+- Other forms
+
+*** セキュリティ警告
+
+漏洩したパスワードが検出された場合、アドレスバーに警告アイコン表示。
+=Passwords アプリ > Security Recommendations= で一括確認可。
+
+** 開発者ツール（Web Inspector）
+:PROPERTIES:
+:CUSTOM_ID: devtools
+:END:
+
+*** 有効化
+
+#+BEGIN_EXAMPLE
+Settings > Advanced > "Show features for web developers" を ON
+#+END_EXAMPLE
+
+有効化後、=Develop= メニューが出現。
+
+*** Web Inspector の起動
+
+| 操作                 | ショートカット       |
+|----------------------+----------------------|
+| Web Inspector を開く | =Cmd+Option+I=       |
+| JavaScript コンソール| =Cmd+Option+C=       |
+| 要素を調査           | 右クリック → Inspect Element |
+| リソースタイムライン | Network タブ         |
+
+*** 便利な Develop メニュー項目
+
+- *Disable Caches*: キャッシュ無効化（デバッグ時）
+- *Disable JavaScript*: JS 無効化テスト
+- *Enter Responsive Design Mode*: =Cmd+Option+R=（モバイル表示確認）
+- *Show Page Source*: =Cmd+Option+U=
+
+*** Responsive Design Mode
+
+スマートフォン・タブレット等の画面サイズをシミュレート：
+- iPhone 15 Pro / iPad Pro 等のプリセット
+- カスタム解像度の指定
+- User Agent 切り替え
+
+*** ページ全体のスクリーンショット
+
+#+BEGIN_EXAMPLE
+1. Web Inspector を開く（Cmd+Option+I）
+2. Elements タブで <html> タグを右クリック
+3. "Capture Screenshot" → スクロール含む全体を保存
+#+END_EXAMPLE
+
+** 拡張機能（Safari Extensions）
+:PROPERTIES:
+:CUSTOM_ID: extensions
+:END:
+
+*** 管理
+
+=Settings > Extensions= から有効化・無効化・削除。
+App Store の Safari Extensions カテゴリから追加可。
+
+*** 注目の拡張機能
+
+| カテゴリ       | 拡張機能名                   | 概要                                |
+|----------------+------------------------------+-------------------------------------|
+| 広告ブロック   | AdGuard for Safari           | フィルターリスト更新対応            |
+|                | 1Blocker                     | 広告 + トラッカー + スクリプトブロック |
+| プライバシー   | DuckDuckGo Privacy Essentials | DDG 検索統合 + トラッカーブロック   |
+| 生産性         | Vimari                       | Vim ライクキーボードナビゲーション  |
+|                | Raindrop.io                  | ブックマーク管理                    |
+|                | Noir                         | ダークモード強制適用                |
+| 開発者向け     | JSONPeek                     | JSON レスポンスのビジュアル表示     |
+|                | Userscripts                  | Greasemonkey 互換スクリプト実行     |
+
+*** 拡張機能のパーミッション管理
+
+各拡張機能はサイトごとにアクセス許可を設定可能：
+- Ask（毎回確認）
+- Allow for One Day
+- Always Allow
+
+** ブックマーク管理
+:PROPERTIES:
+:CUSTOM_ID: bookmarks
+:END:
+
+*** ブックマークバーの活用
+
+| 操作                     | 方法                     |
+|--------------------------+--------------------------|
+| ブックマークバーの表示   | =Cmd+Shift+B=            |
+| 現在のページをブックマーク | =Cmd+D=                  |
+| 全タブをブックマークに追加 | =Cmd+Shift+D=            |
+| ブックマーク編集         | =Cmd+Option+B=           |
+
+*** フォルダ構成例（コンサル業務向け）
+
+#+BEGIN_EXAMPLE
+Bookmarks
+├── [デジタル庁・省庁]
+│   ├── デジタル庁トップ
+│   ├── DS-110 (PDF)
+│   ├── DS-910 (PDF)
+│   └── e-Gov 電子申請
+├── [調達・契約]
+│   ├── 政府電子調達システム (GEPS)
+│   └── 調達ポータル
+├── [技術参考]
+│   ├── GitHub
+│   ├── Python Docs
+│   └── Emacs Manual
+└── [プライベート]
+    ├── Last.fm
+    └── Whisky Advocate
+#+END_EXAMPLE
+
+*** Reading List（後で読む）
+
+| 操作                     | 方法          |
+|--------------------------+---------------|
+| Reading List に追加      | 共有ボタン → "Add to Reading List" |
+| Reading List を開く      | サイドバーのメガネアイコン |
+| オフライン保存           | iCloud 経由で自動同期・オフライン閲覧可 |
+
+** Safari と Apple エコシステム連携
+:PROPERTIES:
+:CUSTOM_ID: ecosystem
+:END:
+
+*** Handoff（ハンドオフ）
+
+Mac で開いているタブを iPhone / iPad で即座に引き継ぐ（または逆方向）。
+
+前提条件：
+- 同一 Apple ID でサインイン
+- Bluetooth・Wi-Fi が双方で有効
+- =System Settings > General > AirDrop & Handoff= を ON
+
+*** Universal Clipboard
+
+Mac でコピーしたテキスト・画像を iPhone でそのままペースト可（逆も可）。
+Safari のアドレスバーでも機能する。
+
+*** iCloud Tabs（iCloud タブ同期）
+
+=Settings > General > iCloud > Safari= を ON にすると、
+全 Apple デバイスで開いているタブが同期・参照可能。
+
+サイドバーの「iCloud Tabs」セクションで他デバイスのタブ一覧を確認できる。
+
+*** AirDrop でタブを共有
+
+=Share ボタン（□↑）> AirDrop= を選択して現在のタブを送信。
+
+** 省電力・パフォーマンス最適化
+:PROPERTIES:
+:CUSTOM_ID: performance
+:END:
+
+*** Safari のメモリ効率
+
+Chrome と比較した Safari の優位点：
+- WebKit レンダリングエンジンは macOS に最適化
+- バッテリー消費量は Chrome 比で最大 50% 削減（Apple 公表値）
+- バックグラウンドタブの自動サスペンド
+
+*** キャッシュのクリア
+
+#+BEGIN_EXAMPLE
+Develop > Empty Caches  （Web Inspector 有効時）
+または
+Settings > Privacy > Manage Website Data > Remove All
+#+END_EXAMPLE
+
+*** DNS プリフェッチの制御
+
+#+BEGIN_SRC sh
+# プライバシー優先時に無効化
+defaults write com.apple.safari WebKitDNSPrefetchingEnabled -bool false
+#+END_SRC
+
+** セキュリティ設定
+:PROPERTIES:
+:CUSTOM_ID: security
+:END:
+
+*** フィッシング・マルウェア対策
+
+| 機能                          | 概要                                          |
+|-------------------------------+-----------------------------------------------|
+| Safe Browsing                 | Google Safe Browsing API（プライバシー保護モードあり） |
+| Fraudulent Website Warning    | 詐欺サイトへのアクセス時に警告                |
+| XSS フィルター                | クロスサイトスクリプティング対策内蔵          |
+
+確認場所：=Settings > Security=
+
+*** コンテンツセキュリティ（サイト別）
+
+=Settings > Websites= から、サイトごとに以下を制御可：
+- Camera / Microphone / Location
+- Notifications
+- Auto-Play（動画の自動再生）
+- Pop-Up Windows
+- Downloads（ファイルの自動ダウンロード先）
+
+*** HTTPS 強制
+
+HSTS（HTTP Strict Transport Security）対応。
+対応サイトでは自動的に HTTPS にリダイレクト。
+非 HTTPS サイトへのアクセス時は警告を表示。
+
+** defaults コマンドによる詳細設定
+:PROPERTIES:
+:CUSTOM_ID: defaults
+:END:
+
+macOS の =defaults= コマンドで Safari の隠し設定を変更できる。
+
+*** 便利な defaults 設定例
+
+#+BEGIN_SRC sh
+# タブバーを常に表示（タブが1枚でも）
+defaults write com.apple.safari AlwaysShowTabBar -bool true
+
+# バックグラウンドタブで開く（Cmd+クリック）
+defaults write com.apple.safari OpenNewTabsInFront -bool false
+
+# DNS プリフェッチを無効化
+defaults write com.apple.safari WebKitDNSPrefetchingEnabled -bool false
+
+# Developer メニューを有効化
+defaults write com.apple.safari IncludeDevelopMenu -bool true
+defaults write com.apple.safari WebKitDeveloperExtrasEnabledPreferenceKey -bool true
+
+# Find on Page をワード先頭のみマッチに
+defaults write com.apple.safari FindOnPageMatchesWordStartsOnly -bool false
+#+END_SRC
+
+*** 設定変更後の反映
+
+#+BEGIN_SRC sh
+killall Safari && open -a Safari
+#+END_SRC
+
+** キーボードショートカット完全リファレンス
+:PROPERTIES:
+:CUSTOM_ID: shortcuts
+:END:
+
+*** ウィンドウ・タブ操作
+
+| 操作                         | ショートカット       |
+|------------------------------+----------------------|
+| 新規ウィンドウ               | =Cmd+N=              |
+| 新規プライベートウィンドウ   | =Cmd+Shift+N=        |
+| 新規タブ                     | =Cmd+T=              |
+| タブを閉じる                 | =Cmd+W=              |
+| ウィンドウを閉じる           | =Cmd+Shift+W=        |
+| 全ウィンドウを閉じる         | =Cmd+Option+W=       |
+| 最後に閉じたタブを復元       | =Cmd+Z=              |
+| 次のタブ                     | =Ctrl+Tab=           |
+| 前のタブ                     | =Ctrl+Shift+Tab=     |
+| タブ番号指定（1〜9）         | =Cmd+1= 〜 =Cmd+9=   |
+
+*** ナビゲーション
+
+| 操作                     | ショートカット   |
+|--------------------------+-----------------|
+| 戻る                     | =Cmd+[=         |
+| 進む                     | =Cmd+]=         |
+| ページ再読み込み         | =Cmd+R=         |
+| 読み込み停止             | =Esc=           |
+| ページ先頭へ             | =Cmd+Up=        |
+| ページ末尾へ             | =Cmd+Down=      |
+
+*** アドレスバー・検索
+
+| 操作                       | ショートカット   |
+|----------------------------+-----------------|
+| アドレスバーにフォーカス   | =Cmd+L=         |
+| 現在の URL をコピー        | =Cmd+L > Cmd+C= |
+| 新規タブで検索結果を開く   | =Cmd+Return=    |
+
+*** 表示
+
+| 操作                   | ショートカット     |
+|------------------------+-------------------|
+| ズームイン             | =Cmd++=           |
+| ズームアウト           | =Cmd+-=           |
+| 実際のサイズ           | =Cmd+0=           |
+| リーダービュー切替     | =Cmd+Shift+R=     |
+| フルスクリーン         | =Cmd+Ctrl+F=      |
+| サイドバー表示切替     | =Cmd+Ctrl+S=      |
+| ブックマークバー表示   | =Cmd+Shift+B=     |
+| ページのソースを表示   | =Cmd+Option+U=    |
+| Web Inspector         | =Cmd+Option+I=    |
+| コンソール             | =Cmd+Option+C=    |
+
+*** ブックマーク・共有
+
+| 操作                           | ショートカット     |
+|--------------------------------+-------------------|
+| ブックマークに追加             | =Cmd+D=           |
+| 全タブをブックマークに追加     | =Cmd+Shift+D=     |
+| ブックマーク編集               | =Cmd+Option+B=    |
+| ダウンロードリスト表示         | =Cmd+Option+L=    |
+| ページ内検索                   | =Cmd+F=           |
+| 印刷                           | =Cmd+P=           |
+| ページを共有                   | =Cmd+Shift+I=     |
+
+** トラブルシューティング
+:PROPERTIES:
+:CUSTOM_ID: troubleshooting
+:END:
+
+*** ページが正しく表示されない
+
+1. キャッシュをクリア：=Develop > Empty Caches=
+2. 拡張機能を一時無効化：=Settings > Extensions= で全て OFF
+3. JavaScript を確認：=Settings > Security > Enable JavaScript=
+
+*** ページ読み込みが遅い
+
+1. バックグラウンドタブを全て閉じる
+2. DNS キャッシュリセット：
+   #+BEGIN_SRC sh
+   sudo dscacheutil -flushcache && sudo killall -HUP mDNSResponder
+   #+END_SRC
+3. 不要な拡張機能を無効化して速度比較
+
+*** ログインが維持されない
+
+- iCloud キーチェーンが同期しているか確認
+- Cookie の設定を確認：=Settings > Privacy > Cookies=
+- 対象サイトの Cookie を削除して再ログイン
+
+*** Safari がクラッシュする
+
+1. セーフモード起動（拡張機能無効）で再現するか確認
+2. Safari の環境設定ファイルをリセット：
+   #+BEGIN_SRC sh
+   mv ~/Library/Safari ~/Library/Safari.bak
+   #+END_SRC
+
+** macOS Sequoia での主な新機能
+:PROPERTIES:
+:CUSTOM_ID: new-features
+:END:
+
+- *Passwords アプリ*の独立（Keychain から分離、専用 UI）
+- *タブグループのカスタムスタートページ*強化
+- *Highlights 機能*（ページ内の重要情報を自動ハイライト）
+- *Distraction Control*（ページ内の不要なコンテンツを手動で永続的に非表示）
+- *Web Eraser*（特定のページ要素を永続的に非表示、一部地域のみ）
+
+** 参考情報
+:PROPERTIES:
+:CUSTOM_ID: references
+:END:
+
+- [[https://support.apple.com/guide/safari/welcome/mac][Apple Safari User Guide（公式）]]
+- [[https://webkit.org/blog/][WebKit Blog（Safari エンジン開発ブログ）]]
+- [[https://developer.apple.com/safari/][Apple Developer - Safari]]
+- [[https://caniuse.com/][Can I Use（ブラウザ対応状況）]]
+
+** ローカルメモ
+:PROPERTIES:
+:CUSTOM_ID: local-notes
+:END:
+
+#+BEGIN_EXAMPLE
+[個人設定メモ]
+- デフォルト検索エンジン: DuckDuckGo（プライバシー優先）
+- タブグループ: 調達審査 / 開発 / プライベート
+- 拡張機能: AdGuard + Vimari + Userscripts
+- Handoff: iPhone と常時有効
+- ホームページ: about:blank
+#+END_EXAMPLE
+
+#+BEGIN_QUOTE
+最終更新: 2026-04-28
+対象 Safari バージョン: 18.x（macOS Sequoia 15.x）
+#+END_QUOTE

@@ -2,6 +2,8 @@
 # Since OpenSSL enc parsing can be brittle, call the cipher subcommand directly.
 # AES-256-CBC + PBKDF2 (210k iterations), output perms via umask 077,
 # then remove the source in order: gshred > shred > rm.
+# (注意: APFS/SSD ではコピーオンライトとウェアレベリングのため、shred での上書き消去は
+#  実質的に効かない。ここで保証されるのは通常の削除まで。機密性が必要なら FileVault を前提にする。)
 # Passphrase lives in the macOS Keychain (service: com.encrypt.aes256gcm,
 # account: $KEYCHAIN_ACCOUNT or "private-archive"), accessed via the plain
 # `security` CLI. (A custom Swift helper with a "trusted apps" ACL was tried
@@ -38,9 +40,21 @@ service="com.encrypt.aes256gcm"
 
 umask 077
 
+# パスフレーズを `security add-generic-password -w "$pass"` の引数で渡すと、実行中の
+# プロセス一覧(ps)に平文で見えてしまう。`security -i` はコマンドを標準入力から読むため、
+# 引数に出さずに登録できる。service/account/label に二重引用符は使えない前提。
+# `security -i` は失敗しても終了コードが 0 になりうるので、登録後に読み戻して検証する。
+kc_store() { # kc_store <service> <account> <label> <passphrase>
+  local esc=${4//\\/\\\\}
+  esc=${esc//\"/\\\"}
+  printf 'add-generic-password -s "%s" -a "%s" -l "%s" -w "%s" -U\n' "$1" "$2" "$3" "$esc" | security -i >/dev/null 2>&1 || true
+  [ "$(security find-generic-password -s "$1" -a "$2" -w 2>/dev/null)" = "$4" ]
+}
+
 if ! pass=$(security find-generic-password -s "$service" -a "$account" -w 2>/dev/null); then
   pass=$(openssl rand -base64 32)
-  security add-generic-password -s "$service" -a "$account" -l "dotfiles encrypt/decrypt ($account)" -w "$pass" -U
+  kc_store "$service" "$account" "dotfiles encrypt/decrypt ($account)" "$pass" \
+    || { echo "Keychain への登録に失敗しました。暗号化を中止します(平文は削除していません)。" >&2; exit 1; }
   # This Keychain entry is local to this Mac only (not iCloud-synced — see
   # README for why). If nobody records the generated value now, decrypting
   # this archive on any other machine becomes permanently impossible — print

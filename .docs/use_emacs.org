@@ -1,0 +1,1131 @@
+#+TITLE: Emacs 31 使いこなしガイド
+#+AUTHOR: たかお
+#+DATE: 2026-04-28
+#+STARTUP: overview
+#+OPTIONS: toc:4 num:t
+#+PROPERTY: header-args:emacs-lisp :results silent
+
+* Emacs 31 使いこなしガイド
+:PROPERTIES:
+:CREATED:  2026-04-28
+:DESCRIPTION: Emacs 31.0.5（macOS）を深掘りする実践的リファレンス。straight.el + leaf + org-babel リテラルプログラミング構成を前提とする。
+:END:
+
+** 概要と対象バージョン
+:PROPERTIES:
+:CUSTOM_ID: overview
+:END:
+
+本ドキュメントは Emacs 31.0.5（macOS, 2026年4月時点）を対象とする。
+straight.el + leaf + org-babel によるリテラルプログラミング構成を前提とし、
+コンサルタント業務・開発作業・Org-mode 運用に即した実践的な内容を収録する。
+
+#+BEGIN_EXAMPLE
+動作確認環境：
+  OS        : macOS Sequoia 15.x (aarch64)
+  Emacs     : 31.0.5 (NS/Cocoa build, native-comp 有効)
+  設定管理  : straight.el + leaf + README.org（リテラルプログラミング）
+  モジュール: lisp/core/ lisp/ui/ lisp/completion/
+              lisp/orgx/ lisp/vcs/ lisp/dev/ lisp/utils/
+#+END_EXAMPLE
+
+** Emacs 31 の主な新機能
+:PROPERTIES:
+:CUSTOM_ID: new-features
+:END:
+
+*** unexec ダンパーの完全廃止
+
+Emacs 27 から deprecated だった unexec ダンパーが 31 で完全削除された。
+pdumper（portable dumper）のみが使用される。
+native-comp を有効にしてビルドしていれば影響は実質ゼロ。
+
+#+BEGIN_SRC sh
+# native-comp 有効確認
+emacs --version
+# GNU Emacs 31.0.5 (build X, aarch64-apple-darwin...)
+#+END_SRC
+
+#+BEGIN_SRC emacs-lisp
+;; native-comp が有効かチェック
+(native-comp-available-p)  ; => t であれば有効
+#+END_SRC
+
+*** xterm-mouse-mode がデフォルト有効に
+
+Xterm 互換ターミナルでは、マウスがデフォルトで動作するようになった。
+既存設定に ~(xterm-mouse-mode 1)~ がある場合は冗長になる（害はないが整理推奨）。
+
+#+BEGIN_SRC emacs-lisp
+;; Emacs 31 以前の設定（不要になった）
+;; (xterm-mouse-mode 1)
+
+;; 31 以降、TTY で明示的に無効化したい場合のみ記述
+;; (xterm-mouse-mode -1)
+#+END_SRC
+
+*** TTY でのチャイルドフレームサポート
+
+corfu-terminal のような回避策が不要になり、ネイティブのチャイルドフレームを TTY でも利用できるようになった。
+Corfu / Vertico-posframe 等が TTY 上でも GUI 同等の UI を提供できる。
+
+#+BEGIN_SRC emacs-lisp
+;; TTY チャイルドフレーム対応確認
+(featurep 'tty-child-frames)  ; => t なら利用可能
+
+;; Corfu: Emacs 31 では corfu-terminal は不要
+(leaf corfu
+  :straight t
+  :init (global-corfu-mode 1)
+  :config
+  ;; 31 以前の回避策は不要
+  (unless (featurep 'tty-child-frames)
+    (when (not (display-graphic-p))
+      (leaf corfu-terminal
+        :straight t
+        :config (corfu-terminal-mode 1)))))
+#+END_SRC
+
+*** モードライン：マイナーモードの折りたたみ（mode-line-collapse-minor-modes）
+
+Emacs 31 では ~mode-line-collapse-minor-modes~ 変数により、
+サードパーティの diminish パッケージなしでマイナーモードの lighter を折りたたむことができる。
+
+#+BEGIN_SRC emacs-lisp
+;; 特定のマイナーモードを非表示にする
+(setq mode-line-collapse-minor-modes
+      '(abbrev-mode
+        flyspell-mode
+        eldoc-mode
+        auto-revert-mode
+        which-key-mode
+        undo-tree-mode))
+
+;; 全マイナーモードを折りたたむ（非推奨だが可能）
+;; (setq mode-line-collapse-minor-modes t)
+
+;; 折りたたみ先のラベルをカスタマイズ
+;; C-h v mode-line-collapse-minor-modes-to を参照
+#+END_SRC
+
+*** モードライン：新コマンドとオプション
+
+#+BEGIN_SRC emacs-lisp
+;; mode-line-invisible-mode：現在バッファのモードラインを非表示
+;; (mode-line-invisible-mode 1)
+
+;; mode-line-modes-delimiters：メジャーモード名を囲む括弧を変更
+(setq mode-line-modes-delimiters '("[" . "]"))
+;; 括弧なしにする場合：
+;; (setq mode-line-modes-delimiters '("" . ""))
+#+END_SRC
+
+*** center-line-mode と unfill-paragraph
+
+新マイナーモード ~center-line-mode~ が追加。変更した行を ~fill-column~ に基づいてセンタリングする。
+~unfill-paragraph~ は ~M-q~ の逆操作として段落の折り返しを解除する。
+
+#+BEGIN_SRC emacs-lisp
+;; unfill-paragraph を M-Q にバインド（慣習的）
+(keymap-global-set "M-Q" #'unfill-paragraph)
+#+END_SRC
+
+*** project.el の強化
+
+#+BEGIN_SRC emacs-lisp
+;; 31 で追加された project コマンド
+;; project-root-find-file    : プロジェクトルートから find-file
+;; project-customize-dirlocals : dir-locals をカスタマイズ
+
+(keymap-global-set "C-x p f" #'project-find-file)
+(keymap-global-set "C-x p r" #'project-root-find-file)  ; 31 新規
+#+END_SRC
+
+*** xterm-update-cursor（TTY カーソル同期）
+
+#+BEGIN_SRC emacs-lisp
+;; TTY でも GUI と同じカーソル形状・色を使用
+(setq xterm-update-cursor t)
+#+END_SRC
+
+*** ctags の廃止・Universal Ctags への移行
+
+Emacs 付属の古い ~ctags~ はビルド・インストールされなくなった。
+Universal Ctags の使用が推奨される。
+
+#+BEGIN_SRC sh
+# macOS での Universal Ctags インストール
+brew install universal-ctags
+#+END_SRC
+
+*** Tree-sitter の更新（Emacs 31）
+
+新機能 ~treesit-font-lock-rules-merge~ 関数でフォントロックルールをマージ可能に。
+また Markdown モードが本体に統合され、Lua モードが NonGNU ELPA から本体へ移行した。
+
+#+BEGIN_SRC emacs-lisp
+;; ts-mode を自動的に優先する設定
+(setq major-mode-remap-alist
+      '((python-mode     . python-ts-mode)
+        (js-mode         . js-ts-mode)
+        (typescript-mode . typescript-ts-mode)
+        (c-mode          . c-ts-mode)
+        (c++-mode        . c++-ts-mode)
+        (rust-mode       . rust-ts-mode)
+        (bash-mode       . bash-ts-mode)
+        (yaml-mode       . yaml-ts-mode)
+        (toml-mode       . toml-ts-mode)
+        (json-mode       . json-ts-mode)
+        (css-mode        . css-ts-mode)))
+
+;; Markdown（31 新規追加）
+;; M-x treesit-install-language-grammar → markdown の文法をインストール
+#+END_SRC
+
+*** lexical-binding のデフォルト化警告
+
+Emacs 31 では ~-*- lexical-binding: t; -*-~ がない ~.el~ ファイルに
+警告が表示されるようになった。新規ファイルにはヘッダーを付けること。
+
+#+BEGIN_SRC emacs-lisp
+;; 新規 Emacs Lisp ファイルへの自動ヘッダ挿入
+(add-hook 'emacs-lisp-mode-hook
+          (lambda ()
+            (when (and (buffer-file-name) (= (buffer-size) 0))
+              (insert ";;; " (buffer-name)
+                      " --- Description  -*- lexical-binding: t; -*-\n\n"))))
+#+END_SRC
+
+** 基本操作とキーバインド
+:PROPERTIES:
+:CUSTOM_ID: basic-keybinds
+:END:
+
+*** 必須キーバインド（C-x / C-c 系）
+
+| キー        | コマンド                   | 説明                     |
+|-------------+----------------------------+--------------------------|
+| =C-x C-f=   | find-file                  | ファイルを開く           |
+| =C-x C-s=   | save-buffer                | 保存                     |
+| =C-x C-w=   | write-file                 | 別名で保存               |
+| =C-x b=     | switch-to-buffer           | バッファ切り替え         |
+| =C-x k=     | kill-buffer                | バッファを閉じる         |
+| =C-x 1=     | delete-other-windows       | 現在ウィンドウのみ残す   |
+| =C-x 2=     | split-window-below         | 水平分割                 |
+| =C-x 3=     | split-window-right         | 垂直分割                 |
+| =C-x o=     | other-window               | ウィンドウ移動           |
+| =C-x C-b=   | ibuffer                    | バッファ一覧             |
+| =C-x C-c=   | save-buffers-kill-terminal | 終了                     |
+
+*** 移動・編集の核心コマンド
+
+| キー        | コマンド              | 説明                         |
+|-------------+-----------------------+------------------------------|
+| =C-f/b/n/p= | 文字・行移動          | 基本カーソル移動             |
+| =M-f/b=     | forward/backward-word | 単語単位移動                 |
+| =C-a/e=     | 行頭・行末            |                              |
+| =M-a/e=     | 文センテンス移動      |                              |
+| =C-M-f/b=   | forward/backward-sexp | S 式単位移動（Lisp 必須）    |
+| =C-v/M-v=   | page down/up          | ページ移動                   |
+| =M-<=       | beginning-of-buffer   | バッファ先頭                 |
+| =M->=       | end-of-buffer         | バッファ末尾                 |
+| =C-u C-SPC= | pop-mark              | マーク履歴を遡る             |
+| =C-x C-x=   | exchange-point-and-mark | ポイントとマークを入れ替え |
+
+*** 検索・置換
+
+| キー      | コマンド                       | 説明                       |
+|-----------+--------------------------------+----------------------------|
+| =C-s=     | isearch-forward                | インクリメンタル前向き検索 |
+| =C-r=     | isearch-backward               | インクリメンタル後向き検索 |
+| =C-M-s=   | isearch-forward-regexp         | 正規表現検索               |
+| =M-%=     | query-replace                  | 対話的置換                 |
+| =C-M-%=   | query-replace-regexp           | 正規表現置換               |
+| =M-s o=   | occur                          | 一致行一覧                 |
+| =M-s .=   | isearch-forward-thing-at-point | ポイント下の語を検索       |
+
+*** Emacs 29 以降の keymap-set API（31 推奨）
+
+#+BEGIN_SRC emacs-lisp
+;; 旧来の define-key / global-set-key は動作するが非推奨
+;; Emacs 29+ では keymap-set / keymap-global-set を使用
+
+;; グローバルバインド
+(keymap-global-set "C-c r" #'recentf-open-files)
+(keymap-global-set "M-Q"   #'unfill-paragraph)  ; 31 新コマンド
+(keymap-global-set "C-z"   nil)                 ; suspend-frame 無効化
+
+;; モード固有バインド
+(keymap-set org-mode-map "C-c l" #'org-store-link)
+
+;; keymap-unset で解除
+(keymap-global-unset "C-x C-z")
+#+END_SRC
+
+** バッファ・ウィンドウ・フレーム管理
+:PROPERTIES:
+:CUSTOM_ID: buffer-window
+:END:
+
+*** ibuffer の活用
+
+#+BEGIN_SRC emacs-lisp
+(keymap-global-set "C-x C-b" #'ibuffer)
+
+;; ibuffer のグループ設定例
+(setq ibuffer-saved-filter-groups
+      '(("default"
+         ("Org"    (mode . org-mode))
+         ("Dired"  (mode . dired-mode))
+         ("Python" (mode . python-ts-mode))
+         ("Git"    (name . "^magit"))
+         ("Emacs"  (or (name . "^\\*scratch\\*$")
+                       (name . "^\\*Messages\\*$"))))))
+
+;; ibuffer バッファ内の主要操作：
+;; / m  → major-mode でフィルタ
+;; / f  → filename でフィルタ
+;; S    → 全バッファ保存
+;; D    → 選択バッファを削除
+;; m    → バッファをマーク
+#+END_SRC
+
+*** ウィンドウ操作
+
+#+BEGIN_SRC emacs-lisp
+;; Shift+矢印でウィンドウ移動
+(windmove-default-keybindings 'shift)
+
+;; winner-mode でウィンドウ構成を Undo/Redo
+(winner-mode 1)
+;; C-c Left  → winner-undo（直前のウィンドウ構成に戻る）
+;; C-c Right → winner-redo
+
+;; ウィンドウリサイズ
+(keymap-global-set "C-x ^" #'enlarge-window)
+(keymap-global-set "C-x }" #'enlarge-window-horizontally)
+(keymap-global-set "C-x {" #'shrink-window-horizontally)
+#+END_SRC
+
+*** フレーム管理（Emacs 31 強化）
+
+#+BEGIN_SRC emacs-lisp
+;; フレームのデフォルトサイズ
+(setq default-frame-alist
+      '((width  . 200)
+        (height . 55)
+        (font   . "Iosevka Comfy-14")))
+
+;; frame-id（31 新機能）：各フレームに一意の整数 ID が付与される
+;; (frame-id (selected-frame))  ; 現在フレームの ID を返す
+
+;; undelete-frame-mode：削除フレームを ID で復元
+(undelete-frame-mode 1)
+;; M-x undelete-frame → 削除したフレームを復元
+#+END_SRC
+
+** 補完フレームワーク（Vertico / Corfu / Consult）
+:PROPERTIES:
+:CUSTOM_ID: completion
+:END:
+
+*** Vertico + Orderless（ミニバッファ補完）
+
+#+BEGIN_SRC emacs-lisp
+(leaf vertico
+  :straight t
+  :init (vertico-mode 1)
+  :custom
+  (vertico-cycle . t)
+  (vertico-count . 15))
+
+(leaf orderless
+  :straight t
+  :custom
+  (completion-styles . '(orderless basic))
+  (completion-category-overrides
+   . '((file (styles basic partial-completion)))))
+#+END_SRC
+
+*** Corfu（バッファ内補完）
+
+#+BEGIN_SRC emacs-lisp
+(leaf corfu
+  :straight t
+  :init (global-corfu-mode 1)
+  :custom
+  (corfu-auto        . t)
+  (corfu-auto-delay  . 0.3)
+  (corfu-auto-prefix . 2)
+  (corfu-cycle       . t)
+  (corfu-quit-no-match . 'separator))
+
+;; Cape: 追加の補完バックエンド
+(leaf cape
+  :straight t
+  :config
+  (add-hook 'completion-at-point-functions #'cape-file)
+  (add-hook 'completion-at-point-functions #'cape-dabbrev))
+#+END_SRC
+
+*** Consult（検索・ナビゲーション強化）
+
+#+BEGIN_SRC emacs-lisp
+(leaf consult
+  :straight t
+  :bind
+  (("C-x b"   . consult-buffer)
+   ("C-x 4 b" . consult-buffer-other-window)
+   ("M-y"     . consult-yank-pop)
+   ("M-g g"   . consult-goto-line)
+   ("M-g i"   . consult-imenu)
+   ("M-s l"   . consult-line)
+   ("M-s r"   . consult-ripgrep)
+   ("M-s f"   . consult-find)))
+
+;; consult-ripgrep は rg コマンドが必要: brew install ripgrep
+#+END_SRC
+
+*** Marginalia + Embark
+
+#+BEGIN_SRC emacs-lisp
+(leaf marginalia
+  :straight t
+  :init (marginalia-mode 1))
+
+(leaf embark
+  :straight t
+  :bind
+  (("C-." . embark-act)
+   ("C-;" . embark-dwim))
+  :config
+  (leaf embark-consult
+    :straight t
+    :hook (embark-collect-mode . consult-preview-at-point-mode)))
+#+END_SRC
+
+** Org-mode 深掘り（Org 9.8）
+:PROPERTIES:
+:CUSTOM_ID: org-mode
+:END:
+
+*** 基本設定
+
+#+BEGIN_SRC emacs-lisp
+(leaf org
+  :custom
+  (org-directory          . "~/org/")
+  (org-default-notes-file . "~/org/inbox.org")
+  (org-startup-folded     . 'content)
+  (org-startup-indented   . t)
+  (org-hide-emphasis-markers . t)
+  (org-pretty-entities    . t)
+  (org-log-done           . 'time)
+  (org-log-into-drawer    . t)
+  (org-return-follows-link . t))
+
+;; グローバルキーバインド
+(keymap-global-set "C-c l" #'org-store-link)
+(keymap-global-set "C-c a" #'org-agenda)
+(keymap-global-set "C-c c" #'org-capture)
+#+END_SRC
+
+*** org-agenda 設定
+
+#+BEGIN_SRC emacs-lisp
+(setq org-agenda-files
+      '("~/org/inbox.org"
+        "~/org/projects.org"
+        "~/org/someday.org"))
+
+;; TODO キーワード
+(setq org-todo-keywords
+      '((sequence "TODO(t)" "DOING(d!)" "WAIT(w@/!)"
+                  "|" "DONE(D!)" "CANCEL(C@)")))
+
+;; カスタムアジェンダビュー
+(setq org-agenda-custom-commands
+      '(("n" "Next Actions"
+         ((todo "DOING")
+          (todo "TODO" ((org-agenda-max-entries 10)))))
+        ("w" "Weekly Review"
+         ((agenda "" ((org-agenda-span 7)))
+          (todo "WAIT")))))
+#+END_SRC
+
+*** org-capture テンプレート
+
+#+BEGIN_SRC emacs-lisp
+(setq org-capture-templates
+      '(("t" "Task" entry
+         (file+headline "~/org/inbox.org" "Inbox")
+         "* TODO %?\n  %U\n  %a\n" :clock-in t :clock-resume t)
+        ("n" "Note" entry
+         (file+datetree "~/org/notes.org")
+         "* %? :note:\n  %U\n")
+        ("j" "Journal" entry
+         (file+datetree "~/org/journal.org")
+         "* %?\n  %U\n")
+        ("m" "Meeting" entry
+         (file+headline "~/org/projects.org" "Meetings")
+         "* MEET %? :meeting:\n  %U\n  %a\n")))
+#+END_SRC
+
+*** org-babel（コードブロック実行）
+
+#+BEGIN_SRC emacs-lisp
+(org-babel-do-load-languages
+ 'org-babel-load-languages
+ '((emacs-lisp . t)
+   (python     . t)
+   (shell      . t)
+   (sqlite     . t)
+   (js         . t)))
+
+(setq org-confirm-babel-evaluate nil)
+
+;; ヘッダアーギュメントの例：
+;; #+BEGIN_SRC python :results output :session main :exports both
+;; print("hello retranscribe")
+;; #+END_SRC
+#+END_SRC
+
+*** org-roam（PKM + SQLite）
+
+#+BEGIN_SRC emacs-lisp
+(leaf org-roam
+  :straight t
+  :custom
+  (org-roam-directory . "~/org/roam/")
+  ;; 内蔵 SQLite バックエンドを使用（EmacSQL 不要）
+  (org-roam-database-connector . 'sqlite-builtin)
+  :bind
+  (("C-c n f" . org-roam-node-find)
+   ("C-c n i" . org-roam-node-insert)
+   ("C-c n c" . org-roam-capture)
+   ("C-c n b" . org-roam-buffer-toggle))
+  :config
+  (org-roam-db-autosync-mode 1))
+
+;; org-roam-ui（グラフ可視化）
+(leaf org-roam-ui
+  :straight t
+  :after org-roam
+  :custom
+  (org-roam-ui-sync-theme . t)
+  (org-roam-ui-follow     . t)
+  (org-roam-ui-open-on-start . nil))
+#+END_SRC
+
+*** ox-hugo（Hugo ブログエクスポート）
+
+#+BEGIN_SRC emacs-lisp
+(leaf ox-hugo
+  :straight t
+  :after ox)
+
+;; ty07.net (No Good Father) への公開フロー：
+;; 1. org ファイルに #+HUGO_BASE_DIR: ~/hugo-site/ を設定
+;; 2. M-x org-hugo-export-to-md
+;; 3. hugo -D でビルド
+;; 4. rsync / GitHub Pages でデプロイ
+#+END_SRC
+
+*** org-clock と時間管理
+
+#+BEGIN_SRC emacs-lisp
+;; クロック機能（業務時間管理）
+;; C-c C-x C-i → org-clock-in（現在のタスクを開始）
+;; C-c C-x C-o → org-clock-out（停止）
+;; C-c C-x C-j → 現在クロック中のタスクへジャンプ
+
+(setq org-clock-persist 'history)
+(org-clock-persistence-insinuate)
+
+;; 週次レポート
+;; C-c a R → org-clock-report でレポート生成
+(setq org-clocktable-defaults
+      '(:maxlevel 3 :scope file :block week :compact t))
+#+END_SRC
+
+*** Org-mode の主要キーバインド一覧
+
+| キー             | コマンド                  | 説明                   |
+|------------------+---------------------------+------------------------|
+| =C-RET=          | org-insert-heading-respect-content | 見出し挿入    |
+| =M-RET=          | org-meta-return           | リスト項目追加         |
+| =M-Left/Right=   | org-do-promote/demote     | 見出しレベル変更       |
+| =M-Up/Down=      | org-move-subtree-up/down  | サブツリー移動         |
+| =C-c C-t=        | org-todo                  | TODO 状態変更          |
+| =C-c C-d=        | org-deadline              | 締め切り設定           |
+| =C-c C-s=        | org-schedule              | スケジュール設定       |
+| =C-c C-o=        | org-open-at-point         | リンクを開く           |
+| =C-c ^=          | org-sort                  | ソート                 |
+| =C-c C-e=        | org-export-dispatch       | エクスポート           |
+| =C-c C-x C-l=    | org-latex-preview         | LaTeX プレビュー       |
+| =C-c C-x p=      | org-set-property          | プロパティ設定         |
+| =TAB=            | org-cycle                 | 見出しの折りたたみ     |
+| =S-TAB=          | org-global-cycle          | 全体の折りたたみ       |
+
+** LSP・開発環境（Eglot + Tree-sitter）
+:PROPERTIES:
+:CUSTOM_ID: eglot-dev
+:END:
+
+*** Eglot（内蔵 LSP クライアント）
+
+#+BEGIN_SRC emacs-lisp
+;; Python, TypeScript, Rust で Eglot を有効化
+(add-hook 'python-ts-mode-hook    #'eglot-ensure)
+(add-hook 'typescript-ts-mode-hook #'eglot-ensure)
+(add-hook 'rust-ts-mode-hook      #'eglot-ensure)
+(add-hook 'c-ts-mode-hook         #'eglot-ensure)
+
+;; サーバー設定のカスタマイズ
+(with-eval-after-load 'eglot
+  (add-to-list 'eglot-server-programs
+               '(python-ts-mode . ("pylsp"))))
+  ;; pip install python-lsp-server[all] --break-system-packages
+
+;; Eglot キーバインド
+(keymap-global-set "C-c e r" #'eglot-rename)
+(keymap-global-set "C-c e a" #'eglot-code-actions)
+(keymap-global-set "C-c e f" #'eglot-format-buffer)
+(keymap-global-set "C-c e d" #'flymake-show-buffer-diagnostics)
+(keymap-global-set "C-c e s" #'eglot-shutdown)
+#+END_SRC
+
+*** Flymake
+
+#+BEGIN_SRC emacs-lisp
+(leaf flymake
+  :bind
+  (("M-n" . flymake-goto-next-error)
+   ("M-p" . flymake-goto-prev-error)
+   ("C-c ! l" . flymake-show-buffer-diagnostics)))
+#+END_SRC
+
+*** Tree-sitter の文法インストール
+
+#+BEGIN_SRC emacs-lisp
+;; 文法ライブラリのソース定義
+(setq treesit-language-source-alist
+      '((python     "https://github.com/tree-sitter/tree-sitter-python")
+        (javascript "https://github.com/tree-sitter/tree-sitter-javascript"
+                    "master" "src")
+        (typescript "https://github.com/tree-sitter/tree-sitter-typescript"
+                    "master" "typescript/src")
+        (tsx        "https://github.com/tree-sitter/tree-sitter-typescript"
+                    "master" "tsx/src")
+        (rust       "https://github.com/tree-sitter/tree-sitter-rust")
+        (bash       "https://github.com/tree-sitter/tree-sitter-bash")
+        (yaml       "https://github.com/ikatyang/tree-sitter-yaml")
+        (toml       "https://github.com/tree-sitter/tree-sitter-toml")
+        (json       "https://github.com/tree-sitter/tree-sitter-json")
+        (css        "https://github.com/tree-sitter/tree-sitter-css")
+        (markdown   "https://github.com/tree-sitter-grammars/tree-sitter-markdown"
+                    "split_parser" "tree-sitter-markdown/src")))
+
+;; インストール: M-x treesit-install-language-grammar
+;; 全言語を一括インストール
+(defun my/install-all-grammars ()
+  (interactive)
+  (dolist (lang (mapcar #'car treesit-language-source-alist))
+    (unless (treesit-language-available-p lang)
+      (treesit-install-language-grammar lang))))
+#+END_SRC
+
+*** Magit（Git フロントエンド）
+
+#+BEGIN_SRC emacs-lisp
+(leaf magit
+  :straight t
+  :bind
+  (("C-x g"   . magit-status)
+   ("C-x M-g" . magit-dispatch)
+   ("C-c g"   . magit-file-dispatch))
+  :custom
+  (magit-display-buffer-function
+   . #'magit-display-buffer-same-window-except-diff-v1))
+
+;; magit-status バッファ内の主要操作：
+;; s / u   → stage / unstage
+;; c c     → commit
+;; P u     → push upstream
+;; F u     → pull upstream
+;; b b     → checkout branch
+;; b c     → create branch
+;; l l     → log
+;; d d     → diff
+;; z z     → stash
+;; t t     → tag
+#+END_SRC
+
+** Dired・ファイル管理
+:PROPERTIES:
+:CUSTOM_ID: dired
+:END:
+
+*** Dired 基本操作
+
+| キー  | コマンド                      | 説明                     |
+|-------+-------------------------------+--------------------------|
+| =n/p= | next/previous-line            | ファイル移動             |
+| =RET= | dired-find-file               | ファイルを開く           |
+| =o=   | dired-find-file-other-window  | 別ウィンドウで開く       |
+| =v=   | dired-view-file               | View モードで開く        |
+| =C=   | dired-do-copy                 | コピー                   |
+| =R=   | dired-do-rename               | リネーム/移動            |
+| =D=   | dired-do-delete               | 削除                     |
+| =d=   | dired-flag-file-deletion      | 削除フラグ               |
+| =x=   | dired-do-flagged-delete       | フラグ付きを一括削除     |
+| =m=   | dired-mark                    | マーク                   |
+| =u=   | dired-unmark                  | マーク解除               |
+| =U=   | dired-unmark-all-marks        | 全マーク解除             |
+| =A=   | dired-do-find-regexp          | ファイル内正規表現検索   |
+| =Q=   | dired-do-query-replace-regexp | 正規表現置換             |
+| =g=   | revert-buffer                 | バッファ更新             |
+| =(=   | dired-hide-details-mode       | 詳細表示のトグル         |
+| =C-x C-q= | wdired-change-to-wdired-mode | 直接編集モード       |
+
+*** Dired 設定
+
+#+BEGIN_SRC emacs-lisp
+;; 2 つの Dired ウィンドウ間でコピー先を自動設定
+(setq dired-dwim-target t)
+
+;; macOS: gls（GNU ls）が必要
+;; brew install coreutils
+(when (executable-find "gls")
+  (setq insert-directory-program "gls"
+        dired-listing-switches "-alh --group-directories-first"))
+
+;; ファイルを macOS デフォルトアプリで開く
+(defun my/dired-open-external ()
+  "macOS の open コマンドでファイルを開く."
+  (interactive)
+  (let ((files (dired-get-marked-files)))
+    (apply #'call-process "open" nil 0 nil files)))
+
+(with-eval-after-load 'dired
+  (keymap-set dired-mode-map "E" #'my/dired-open-external))
+#+END_SRC
+
+*** Dirvish（Dired 強化版）
+
+#+BEGIN_SRC emacs-lisp
+;; dirvish: dired-subtree + dired-filter の代替
+(leaf dirvish
+  :straight t
+  :init (dirvish-override-dired-mode)
+  :custom
+  (dirvish-attributes '(all-the-icons
+                         file-size
+                         collapse
+                         vc-state))
+  :bind (("C-x d" . dirvish)))
+#+END_SRC
+
+** straight.el + leaf による設定管理
+:PROPERTIES:
+:CUSTOM_ID: straight-leaf
+:END:
+
+*** straight.el のセットアップ
+
+#+BEGIN_SRC emacs-lisp
+;; early-init.el に記述
+(setq package-enable-at-startup nil)
+
+;; bootstrap（straight.el v7 対応）
+(defvar bootstrap-version)
+(let ((bootstrap-file
+       (expand-file-name
+        "straight/repos/straight.el/bootstrap.el"
+        user-emacs-directory))
+      (bootstrap-version 7))
+  (unless (file-exists-p bootstrap-file)
+    (with-current-buffer
+        (url-retrieve-synchronously
+         "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
+         'silent 'inhibit-cookies)
+      (goto-char (point-max))
+      (eval-print-last-sexp)))
+  (load bootstrap-file nil 'nomessage))
+
+(straight-use-package 'use-package)
+(straight-use-package 'leaf)
+(straight-use-package 'leaf-keywords)
+(leaf-keywords-init)
+#+END_SRC
+
+*** leaf の主要キーワード早見表
+
+#+BEGIN_SRC emacs-lisp
+(leaf example-package
+  :straight t                        ; straight.el でインストール
+  :require t                         ; (require 'example-package)
+  :after another-package             ; 依存パッケージ読み込み後
+  :when (display-graphic-p)          ; 条件付き（GUI のみ）
+  :unless (eq system-type 'windows-nt) ; 条件付き（Windows 以外）
+  :hook
+  ((prog-mode-hook . example-mode))  ; フック登録
+  :bind
+  (("C-c e" . example-command))      ; キーバインド
+  :custom
+  ((example-option . "value"))       ; カスタム変数
+  :config
+  (example-setup))                   ; :require 後に実行
+
+;; 重要な注意：
+;; leaf :custom では expand-file-name + my:d:* 変数は使用不可
+;; （マクロ展開タイミング問題）→ :config 内で setq を使うこと
+#+END_SRC
+
+*** リテラルプログラミング（org_tangle.py）
+
+#+BEGIN_SRC emacs-lisp
+;; org_tangle.py フロー（retranscribe / Emacs 設定 共通）
+;; 制約：org_tangle.py は uv sync より前に実行すること
+
+;; Emacs から手動で tangle する場合
+(defun my/tangle-emacs-config ()
+  "README.org から設定ファイルを tangle する."
+  (interactive)
+  (let ((config-org (expand-file-name "README.org" user-emacs-directory)))
+    (when (file-exists-p config-org)
+      (message "Tangling %s..." config-org)
+      (org-babel-tangle-file config-org)
+      (message "Tangle complete."))))
+
+;; :tangle no ブロックは tangle 対象外（ドキュメント用）
+;; #+BEGIN_SRC emacs-lisp :tangle no
+#+END_SRC
+
+** カスタマイズ・UI 設定
+:PROPERTIES:
+:CUSTOM_ID: ui-customization
+:END:
+
+*** フォント設定（macOS）
+
+#+BEGIN_SRC emacs-lisp
+;; デフォルトフォント
+(set-face-attribute 'default nil
+                    :family "Iosevka Comfy"
+                    :height 140
+                    :weight 'regular)
+
+;; 日本語フォント
+(set-fontset-font t 'japanese-jisx0208
+                  (font-spec :family "Noto Sans CJK JP" :size 14))
+(set-fontset-font t 'katakana-jisx0201
+                  (font-spec :family "Noto Sans CJK JP" :size 14))
+
+;; Org-mode だけ可読性の高いフォントに
+(add-hook 'org-mode-hook
+          (lambda ()
+            (face-remap-add-relative 'default
+                                     :family "iA Writer Duospace")))
+#+END_SRC
+
+*** テーマ設定（modus-themes 内蔵）
+
+#+BEGIN_SRC emacs-lisp
+;; modus-themes（Emacs 内蔵、アクセシビリティ重視）
+(load-theme 'modus-operandi-tinted t)
+
+;; ライト/ダーク切り替え
+(defun my/toggle-theme ()
+  (interactive)
+  (if (eq (car custom-enabled-themes) 'modus-operandi-tinted)
+      (progn (disable-theme 'modus-operandi-tinted)
+             (load-theme 'modus-vivendi-tinted t))
+    (progn (disable-theme 'modus-vivendi-tinted)
+             (load-theme 'modus-operandi-tinted t))))
+
+(keymap-global-set "C-c t" #'my/toggle-theme)
+
+;; Emacs 31 新規: copy-theme-options
+;; M-x copy-theme-options → テーマ設定を init.el にコピー
+#+END_SRC
+
+*** モードライン（doom-modeline + Emacs 31 新機能）
+
+#+BEGIN_SRC emacs-lisp
+;; 不要なマイナーモードを折りたたむ（31 新機能）
+(setq mode-line-collapse-minor-modes
+      '(abbrev-mode auto-revert-mode eldoc-mode
+        flymake-mode which-key-mode))
+
+;; doom-modeline
+(leaf doom-modeline
+  :straight t
+  :init (doom-modeline-mode 1)
+  :custom
+  (doom-modeline-height . 25)
+  (doom-modeline-icon   . t)
+  (doom-modeline-buffer-file-name-style . 'truncate-upto-project))
+
+;; 列番号を表示
+(column-number-mode 1)
+#+END_SRC
+
+*** which-key（内蔵、Emacs 30+）
+
+#+BEGIN_SRC emacs-lisp
+(which-key-mode 1)
+(setq which-key-idle-delay    0.5)
+(setq which-key-max-description-length 50)
+#+END_SRC
+
+** デバッグ・パフォーマンスチューニング
+:PROPERTIES:
+:CUSTOM_ID: debug-performance
+:END:
+
+*** 起動時間最適化
+
+#+BEGIN_SRC emacs-lisp
+;; early-init.el に記述
+;; GC 閾値を一時的に引き上げ
+(setq gc-cons-threshold (* 100 1024 1024))
+(add-hook 'emacs-startup-hook
+          (lambda ()
+            (setq gc-cons-threshold (* 8 1024 1024))
+            (message "Emacs loaded in %s with %d GC."
+                     (emacs-init-time) gcs-done)))
+
+;; ファイル名ハンドラを起動中は無効化
+(defvar my/file-name-handler-alist file-name-handler-alist)
+(setq file-name-handler-alist nil)
+(add-hook 'emacs-startup-hook
+          (lambda ()
+            (setq file-name-handler-alist
+                  my/file-name-handler-alist)))
+#+END_SRC
+
+*** プロファイリング
+
+#+BEGIN_SRC emacs-lisp
+;; 組み込みプロファイラ
+;; M-x profiler-start  → 計測開始（CPU / Memory を選択）
+;; M-x profiler-report → 結果表示
+;; M-x profiler-stop
+
+;; esup（起動プロセスの詳細計測）
+(leaf esup :straight t :commands esup)
+;; M-x esup → 起動シーケンスをプロファイル
+#+END_SRC
+
+*** 初期化エラーのトラブルシューティング
+
+#+BEGIN_SRC emacs-lisp
+;; face-attribute エラー（Wrong type argument: stringp, nil）対策
+;; → after-init-hook から window-setup-hook に移行
+;; → facep / stringp ガードを追加
+
+(defun my/safe-set-face (face attribute value)
+  "FACE が存在し VALUE が文字列の場合のみ設定する."
+  (when (and (facep face) (stringp value))
+    (set-face-attribute face nil attribute value)))
+
+;; window-setup-hook を使う（after-init-hook より遅いが安全）
+(add-hook 'window-setup-hook
+          (lambda ()
+            (my/safe-set-face 'default :family "Iosevka Comfy")))
+
+;; straight.el ビルド未完了の対処：
+;; ~/.emacs.d/straight/build/ 以下のキャッシュを削除して再起動
+;; M-x straight-rebuild-all で全パッケージをリビルド
+#+END_SRC
+
+** Python 開発環境（retranscribe プロジェクト向け）
+:PROPERTIES:
+:CUSTOM_ID: python-dev
+:END:
+
+*** Python 設定（uv + python-ts-mode）
+
+#+BEGIN_SRC emacs-lisp
+;; python-ts-mode を優先
+(add-to-list 'major-mode-remap-alist '(python-mode . python-ts-mode))
+(add-hook 'python-ts-mode-hook #'eglot-ensure)
+
+;; uv プロジェクトの .venv を自動有効化
+(defun my/python-activate-venv ()
+  "プロジェクトの .venv を自動的に有効化する."
+  (when-let* ((root (project-root (project-current)))
+              (venv (expand-file-name ".venv" root)))
+    (when (file-directory-p venv)
+      (setq python-shell-virtualenv-root venv)
+      (message "Activated venv: %s" venv))))
+
+(add-hook 'python-ts-mode-hook #'my/python-activate-venv)
+#+END_SRC
+
+*** org-babel と uv / retranscribe の連携
+
+#+BEGIN_SRC emacs-lisp
+;; プロジェクト固有の Python インタープリタを org-babel に設定
+(setq org-babel-python-command
+      (expand-file-name "~/projects/retranscribe/.venv/bin/python"))
+
+;; セッション単位で Python REPL を保持する例：
+;; #+BEGIN_SRC python :session retranscribe :results output :exports both
+;; from retranscribe.suno.suno_accounts import ping
+;; ping()
+;; #+END_SRC
+#+END_SRC
+
+** キーボードショートカット完全リファレンス
+:PROPERTIES:
+:CUSTOM_ID: shortcuts
+:END:
+
+*** ファイル・バッファ
+
+| キー          | コマンド                    |
+|---------------+-----------------------------|
+| =C-x C-f=     | find-file                   |
+| =C-x C-r=     | find-file-read-only         |
+| =C-x C-s=     | save-buffer                 |
+| =C-x C-w=     | write-file                  |
+| =C-x b=       | consult-buffer              |
+| =C-x C-b=     | ibuffer                     |
+| =C-x k=       | kill-buffer                 |
+| =C-x s=       | save-some-buffers           |
+| =C-x C-q=     | read-only-mode              |
+
+*** ウィンドウ・フレーム
+
+| キー          | コマンド                    |
+|---------------+-----------------------------|
+| =C-x 1=       | delete-other-windows        |
+| =C-x 2=       | split-window-below          |
+| =C-x 3=       | split-window-right          |
+| =C-x 0=       | delete-window               |
+| =C-x o=       | other-window                |
+| =C-x ^=       | enlarge-window              |
+| =C-c Left=    | winner-undo                 |
+| =C-c Right=   | winner-redo                 |
+| =C-x 5 2=     | make-frame-command          |
+| =C-x 5 0=     | delete-frame                |
+
+*** 編集
+
+| キー          | コマンド                    |
+|---------------+-----------------------------|
+| =C-/=         | undo                        |
+| =C-y=         | yank                        |
+| =M-y=         | consult-yank-pop            |
+| =M-w=         | kill-ring-save              |
+| =C-w=         | kill-region                 |
+| =M-d=         | kill-word                   |
+| =C-k=         | kill-line                   |
+| =M-q=         | fill-paragraph              |
+| =M-Q=         | unfill-paragraph（31 新規） |
+| =C-x r t=     | string-rectangle            |
+| =C-x r k=     | kill-rectangle              |
+
+*** Help（自己文書化）
+
+| キー      | コマンド            | 説明                  |
+|-----------+---------------------+-----------------------|
+| =C-h k=   | describe-key        | キーバインドの説明    |
+| =C-h f=   | describe-function   | 関数の説明            |
+| =C-h v=   | describe-variable   | 変数の説明            |
+| =C-h m=   | describe-mode       | 現在のモード説明      |
+| =C-h b=   | describe-bindings   | 全バインド一覧        |
+| =C-h a=   | apropos-command     | コマンドを検索        |
+| =C-h i=   | info                | Info マニュアル       |
+| =C-h l=   | view-lossage        | 最近のキー入力履歴    |
+
+** 参考情報
+:PROPERTIES:
+:CUSTOM_ID: references
+:END:
+
+*** 公式・一次情報源
+
+- [[https://www.gnu.org/software/emacs/][GNU Emacs 公式]]
+- [[https://cgit.git.savannah.gnu.org/cgit/emacs.git/plain/etc/NEWS][Emacs 31 NEWS（変更履歴）]]
+- [[https://sachachua.com/blog/category/emacs-news/][Sacha Chua の週次 Emacs News]]
+- [[https://emacsredux.com/][Emacs Redux（Bozhidar Batsov）]]
+- [[https://irreal.org/blog/][Irreal（Emacs ブログ）]]
+- [[https://emacsconf.org/][EmacsConf（毎年12月開催）]]
+- [[https://protesilaos.com/emacs/][Protesilaos Stavrou（modus-themes 他）]]
+
+*** 推奨パッケージ構成（2026年時点）
+
+| カテゴリ       | パッケージ                            |
+|----------------+---------------------------------------|
+| 補完 UI        | vertico + orderless + marginalia      |
+| バッファ内補完 | corfu + cape                          |
+| 検索ナビ       | consult + embark + embark-consult     |
+| Git            | magit + forge                         |
+| ファイル       | dirvish                               |
+| LSP            | eglot（内蔵）+ flymake               |
+| PKM            | org-roam + org-roam-ui                |
+| ブログ         | ox-hugo                               |
+| テーマ         | modus-themes（内蔵）                  |
+| アイコン       | nerd-icons + nerd-icons-dired         |
+| モードライン   | doom-modeline                         |
+| 設定管理       | straight.el + leaf + leaf-keywords    |
+| 日本語検索     | migemo + cmigemo                      |
+
+*** macOS 依存ツール一式
+
+#+BEGIN_SRC sh
+# Homebrew パッケージ
+brew tap d12frosted/emacs-plus
+brew install emacs-plus@31 --with-native-comp --with-xwidgets
+brew install ripgrep fd cmigemo coreutils universal-ctags
+
+# Python LSP
+pip install python-lsp-server[all] --break-system-packages
+
+# Node.js 系 LSP
+npm install -g typescript-language-server vscode-langservers-extracted
+
+# Rust LSP
+rustup component add rust-analyzer
+#+END_SRC
+
+** ローカルメモ
+:PROPERTIES:
+:CUSTOM_ID: local-notes
+:END:
+
+#+BEGIN_EXAMPLE
+[個人設定メモ (2026-04-28)]
+- Emacs バージョン  : 31.0.5 (aarch64-apple-darwin, NS build)
+- 設定ファイル      : ~/.emacs.d/README.org（7,600行超）
+- tangle ツール     : org_tangle.py（94ファイル・93 tangle ターゲット）
+- パッケージ管理    : straight.el + leaf + leaf-keywords
+- 主要モジュール    :
+    lisp/core/        基本設定・キーバインド
+    lisp/ui/          UI・テーマ・モードライン（hydra dispatcher）
+    lisp/completion/  vertico / corfu / consult
+    lisp/orgx/        org / org-roam / ox-hugo
+    lisp/vcs/         magit / forge
+    lisp/dev/         eglot / tree-sitter / python / dirvish
+    lisp/utils/       ユーティリティ関数
+
+- 解決済み問題      :
+    face-attribute エラー  → window-setup-hook + facep/stringp ガード
+    org-roam SQLite        → sqlite-builtin バックエンド
+    straight.el 未完       → ビルド未完了が根本原因（キャッシュ削除で解決）
+    hydra dispatcher 再帰バグ → 名前付き関数に変換
+
+- 進行中プロジェクト:
+    retranscribe (Suno AI → MIDI/MusicXML/Org 変換)
+      suno_accounts.py     ping + ページネーション + リトライ
+      suno_library_fetch.py 137曲対応・/api/clip フォールバック
+      README.org への統合作業中
+#+END_EXAMPLE
+
+#+BEGIN_QUOTE
+最終更新: 2026-04-28
+対象 Emacs バージョン: 31.0.5（macOS Sequoia 15.x, native-comp 有効）
+#+END_QUOTE

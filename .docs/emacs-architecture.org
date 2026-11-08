@@ -1,4 +1,5 @@
 #+TITLE: GNU Emacs 内部アーキテクチャ設計書
+#+AUTHOR: たかお
 #+DATE: 2026-09-07
 #+OPTIONS: toc:3 num:t
 #+STARTUP: overview
@@ -19,10 +20,15 @@
 - Emacs の「なぜこう動くか」を、主要コンポーネント単位で把握できるようにする
 - 拡張（elisp パッケージ）を書く／内部を改造する際に、影響範囲を見積もれるようにする
 
-対象は =emacs-mirror/emacs= の master ブランチ（2026-09 時点、バージョン
-=32.0.50=、直近リリースは emacs-31.1）を実ソースで確認した内容を基準とし、
-Emacs 29〜32 で入った主要変更（tree-sitter の本格導入、Android/Haiku 移植、
-native-comp のデフォルト化など）を反映する。
+対象は =emacs-mirror/emacs= の master ブランチ（バージョン =32.0.50=、
+直近リリースは emacs-31.1）を実ソースで確認した内容を基準とし、
+Emacs 29〜32 で入った主要変更（tree-sitter の本格導入、Haiku/Android 移植、
+native-comp のデフォルト化、unexec の完全廃止など）を反映する。
+
+2026-11-08 に master（2026-11-02 時点, コミット =4880fe27490=）の =src/= と
+=etc/NEWS*= に対して記述を再検証し、ファイル行数・DEFUN 数・導入バージョンを
+修正した。付録の静的解析結果は 2026-09 時点の測定値であり、再測定した項目は
+本文中に明記している。
 
 ** 設計思想（3行まとめ）
 
@@ -49,19 +55,20 @@ native-comp のデフォルト化など）を反映する。
 |--------------------------------------------------------------------------------------------------------------------------------------------|
 | *端末・GUI バックエンド* (C)\newline- xterm.c(X11) / w32term.c(Windows) / nsterm.m(macOS Cocoa)\newline- pgtkterm.c(Pure GTK) / androidterm.c(Android) / haikuterm.c(Haiku) / term.c(text terminal)\newline- keyboard.c (入力), process.c (サブプロセス/ネットワーク) |
 |--------------------------------------------------------------------------------------------------------------------------------------------|
-| *OS / ライブラリ* (libc, X11, GTK, Cocoa, Cairo, Android NDK, libgccjit, SQLite, jansson, tree-sitter)                                       |
+| *OS / ライブラリ* (libc, X11, GTK, Cocoa, Cairo, Android NDK, libgccjit, SQLite, tree-sitter)                                       |
 
 - 起動時、C の =main()=（=emacs.c=）が最小限の初期化を行った後、
   =lisp/loadup.el= を読み込み、Lisp レベルの初期化（多数の =.el= ファイルの
   ロード）を行ってから =temacs= を dump（*pdumper* 形式）して実行可能な
-  =emacs= バイナリを生成する。旧来の =unexec= 方式は多くのプラットフォームで
-  廃止済みで、pdumper が標準の起動高速化機構になっている。
+  =emacs= バイナリを生成する。旧来の =unexec= 方式は Emacs 31 で完全に削除され
+  （Emacs 27 から非推奨）、pdumper が唯一の起動高速化機構になっている。
 - 通常起動時はこの dump イメージを読み込むため、Lisp 標準ライブラリの
   再パースを省略でき、起動が高速になる。
-- GUI バックエンドは X11/Cocoa/Windows(GDI)/Pure GTK に加え、Emacs 30 以降は
-  *Android*（=androidterm.c= / =androidfns.c=）、*Haiku OS*
-  （=haikuterm.c= / =haikufns.c=）にも正式移植されており、1 つのソースツリーが
-  多数のプラットフォームバックエンドを =#ifdef= で切り替える構成になっている。
+- GUI バックエンドは X11/Cocoa/Windows(GDI)/Pure GTK に加え、*Haiku OS*
+  （=haikuterm.c= / =haikufns.c=、Emacs 29 で追加）と *Android*
+  （=androidterm.c= / =androidfns.c=、Emacs 30 で追加）にも移植されており、
+  1 つのソースツリーが多数のプラットフォームバックエンドを =#ifdef= で
+  切り替える構成になっている。
 
 ** 主要ソースファイルと責務（抜粋、行数はおおよその目安）
 
@@ -71,12 +78,12 @@ native-comp のデフォルト化など）を反映する。
 | =xdisp.c=           |  約40000 | redisplay（画面再描画）の中核。Emacs 最大のファイル |
 | =xterm.c=           |  約33000 | X11 バックエンド（GUI/入力/描画のうち X 固有部分）  |
 | =sfnt.c=            |  約21000 | Emacs 内蔵の TrueType/OpenType フォントラスタライザ |
-| =keyboard.c=        |  約14700 | 入力イベント処理・コマンドループ                    |
+| =keyboard.c=        |  約15100 | 入力イベント処理・コマンドループ                    |
 | =coding.c=          |  約12300 | 文字コード変換（コーディングシステム）              |
 | =window.c=          |   約9700 | ウィンドウ木構造の管理                              |
 | =process.c=         |   約9100 | サブプロセス・ネットワークプロセス                  |
-| =frame.c=           |   約7900 | フレーム（OS ウィンドウに相当）の管理               |
-| =alloc.c=           |   約7600 | メモリ確保・GC（マーク&スイープ）                   |
+| =frame.c=           |   約8000 | フレーム（OS ウィンドウに相当）の管理               |
+| =alloc.c=           |   約7500 | メモリ確保・GC（マーク&スイープ）                   |
 | =dispnew.c=         |   約7600 | 画面差分更新（スクリーン glyph の管理）             |
 | =fileio.c=          |   約7100 | ファイル読み書き                                    |
 | =fns.c=             |   約7000 | シーケンス操作・ハッシュテーブル等の汎用関数群      |
@@ -93,12 +100,14 @@ native-comp のデフォルト化など）を反映する。
 | =insdel.c=          |   約2600 | テキストの挿入・削除（gap buffer 操作）             |
 | =textprop.c=        |   約2500 | テキストプロパティ                                  |
 | =composite.c=       |   約2300 | 合字・複合文字・BiDi 描画                           |
-| =bytecode.c=        |   約1900 | バイトコード VM                                     |
-| =json.c=            |   約1900 | JSON パーサ・シリアライザ（組み込み）               |
+| =bytecode.c=        |   約1850 | バイトコード VM                                     |
+| =json.c=            |   約1850 | JSON パーサ・シリアライザ（組み込み）               |
 | =emacs-module.c=    |   約1800 | 動的モジュール（=.so=/=.dll=）ロード API             |
-| =sqlite.c=          |    約900 | SQLite データベースの組み込みバインディング         |
+| =sqlite.c=          |    約930 | SQLite データベースの組み込みバインディング         |
 | =marker.c=          |    約900 | マーカーの位置追従                                  |
 | =undo.c=            |    約500 | アンドゥ履歴                                        |
+
+行数は 2026-11-02 時点の master を =wc -l= で計測した値の概数。
 
 これらに加え、プラットフォーム固有のバックエンド（=w32*.c=, =nsterm.m=,
 =pgtk*.c=, =android*.c=, =haiku*.c=, =dosfns.c= など）が同数程度存在するが、
@@ -149,7 +158,8 @@ native-comp のデフォルト化など）を反映する。
   *レキシカルスコープ* を選択できる。この場合、束縛はクロージャオブジェクト
   内の環境リストとして保持され、コンパイラ最適化の余地が広がる。
 - Emacs 30 以降、バイトコンパイラは =lexical-binding= cookie が無いファイルに
-  対して警告を出すようになり、新規に書く Lisp コードは事実上レキシカル束縛が
+  対して警告を出すようになり、Emacs 31 ではそのようなファイルを *ロードした
+  ときにも* 警告が出る。新規に書く Lisp コードは事実上レキシカル束縛が
   標準（推奨）という位置づけになった。ただし後方互換のため動的束縛モードは
   引き続きサポートされ、ファイル単位で混在しうる。
 
@@ -164,9 +174,9 @@ native-comp のデフォルト化など）を反映する。
 - GC 中は基本的に Lisp 実行が停止する（stop-the-world）。GC 閾値
   （=gc-cons-threshold= / =gc-cons-percentage=）の調整で発生頻度を制御できる。
 - Ravenbrook 社の MPS（Memory Pool System）を使った *igc*（incremental
-  garbage collector）は別フィーチャーブランチで開発が続けられているが、
-  本書執筆時点（2026-09、master =32.0.50=）ではまだ master にはマージされて
-  おらず、標準ビルドには含まれていない。将来のメジャーバージョンで取り込まれる
+  garbage collector）は別フィーチャーブランチ（=feature/igc3= など）で
+  開発が続けられているが、2026-11-02 時点の master =32.0.50= には
+  マージされておらず（=src/igc.c= は存在しない）、標準ビルドには含まれていない。将来のメジャーバージョンで取り込まれる
   可能性がある点は留意しておく。
 
 ** バイトコンパイラ / バイトコード VM
@@ -393,8 +403,9 @@ Frame (OS 上の 1 ウィンドウに相当。X11/Cocoa/GTK/Windows/Android/Haik
 
 ** 組み込みデータ処理ライブラリ（JSON / SQLite）
 
-- =json.c= が jansson ライブラリを利用した高速な JSON パース／シリアライズ
-  （=json-parse-string= 等）を C レベルで提供する（Emacs 27 以降）。LSP
+- =json.c= が JSON パース／シリアライズ（=json-parse-string= 等）を C レベルで
+  提供する。当初（Emacs 27〜29）は libjansson に依存していたが、Emacs 30 で
+  独自の実装に置き換わり、libjansson は不要になった。LSP
   （Language Server Protocol）通信など、大量の JSON を捌く用途で使われる。
 - =sqlite.c= が SQLite データベースへの組み込みバインディングを提供し
   （Emacs 29 以降）、パッケージが外部プロセスを起動せずに構造化データを
@@ -410,8 +421,8 @@ Frame (OS 上の 1 ウィンドウに相当。X11/Cocoa/GTK/Windows/Android/Haik
   このレイヤーに含まれる。
 - 起動時の永続化として、初期状態の高速ロードのために *pdumper*
   （portable dumper）がヒープ全体をイメージとしてシリアライズ／
-  デシリアライズする仕組みを提供している。旧来の =unexec= 方式は多くの
-  プラットフォームで廃止され、pdumper が事実上の標準になっている。
+  デシリアライズする仕組みを提供している。旧来の =unexec= 方式は Emacs 31 で
+  完全に削除され、pdumper が唯一の方式になっている。
 
 * 用語・略語対照表
 
@@ -426,7 +437,7 @@ Frame (OS 上の 1 ウィンドウに相当。X11/Cocoa/GTK/Windows/Android/Haik
 | native-comp  | libgccjit による Emacs Lisp のネイティブコード事前コンパイル。Emacs 30 でデフォルト有効化 |
 | redisplay    | 画面再描画処理全体を指す語                                      |
 | tree-sitter  | インクリメンタル構文解析ライブラリ。=treesit.c= 経由で Lisp から利用可能 |
-| igc / MPS    | Ravenbrook MPS を用いたインクリメンタル GC。別ブランチで開発中、master 未マージ（2026-09 時点） |
+| igc / MPS    | Ravenbrook MPS を用いたインクリメンタル GC。別ブランチで開発中、master 未マージ（2026-11-02 時点） |
 | sfnt         | Emacs 内蔵の TrueType/OpenType フォントラスタライザ（=sfnt.c=） |
 | xwidget      | WebKit 等をバッファ内に埋め込むネイティブウィジェット機能        |
 
@@ -439,14 +450,16 @@ Frame (OS 上の 1 ウィンドウに相当。X11/Cocoa/GTK/Windows/Android/Haik
 - =(info "(elisp) Garbage Collection")= および周辺セクション
 - Emacs 開発 ML（emacs-devel）でのアーキテクチャ議論（native-comp, igc/MPS 等）
 - 本書付録（[[* 付録: 静的解析による裏付け][11 節]]）の静的解析パイプライン一式
-  （=analysis/= ディレクトリ、再実行スクリプト =analysis/run_pipeline.sh=）
+  （作業ディレクトリ =analysis/= と =analysis/run_pipeline.sh=。このリポジトリには含まれない）
 
 * 付録: 静的解析による裏付け
 
 本章は上記の記述を裏付ける／補強するために、対象ソースツリー
 （=src/=, =lib-src/=, =lwlib/=）に対して実際に静的解析ツールを走らせた結果の
-要約である。詳細な生ログ・再実行手順は同リポジトリの =analysis/= 配下
-（=analysis/README.md=）を参照。解析対象は macOS（Cocoa/NS バックエンド）
+要約である。詳細な生ログ・再実行手順は解析用の作業ディレクトリ =analysis/= 配下
+（=analysis/README.md=）にあるが、このディレクトリは dotfiles リポジトリにも
+emacs-mirror のツリーにも含まれていない（本付録の数値は 2026-09 の測定値で、
+現時点では再現手順を保管していない）。解析対象は macOS（Cocoa/NS バックエンド）
 向けにコンパイルされた 88 ファイル（=compile_commands.json= ベース、
 =xterm.c= や =w32*.c= など他プラットフォーム専用ファイルは対象外）。
 
@@ -500,7 +513,8 @@ Frame (OS 上の 1 ウィンドウに相当。X11/Cocoa/GTK/Windows/Android/Haik
 
 ** lisp/ 標準ライブラリの解析: 「薄い C 層」説の検証
 
-C コアだけでなく =lisp/=（1,677 ファイル、約 203 万行。C コアの約4倍の規模）
+C コアだけでなく =lisp/=（1,677 ファイル、約 203 万行。C コアの約4倍の規模。
+2026-11-02 の再計測では 1,680 ファイル・2,030,212 行）
 も同じ観点で解析し、[[* 設計思想（3行まとめ）][1.1 節]]で述べた
 「"Lisp machine" 思想」を定量的に裏付けた。
 
@@ -579,7 +593,9 @@ fan-out（多くのローカルヘッダに依存＝統合役のファイル）�
 
 =src/*.c= 中の =DEFUN(...)= 宣言を機械的に数えたところ、Lisp から直接
 呼び出し可能な組み込み関数（=subr=）は *1,848 個*、105 ファイルに分布して
-いた（=analysis/reports/defun-registry.txt=）。上位は
+いた（=analysis/reports/defun-registry.txt=）。2026-11-02 の master で
+=src/*.c= の行頭 =DEFUN (= を再集計すると 1,844 個・104 ファイルで、
+ほぼ同数である（正規表現の違いによる誤差を含む）。上位は
 =window.c=（121）, =data.c=（120）, =fns.c=（104）, =editfns.c=（80）,
 =frame.c=（69）— いずれも [[* バッファ・テキスト管理][4 節]]・[[* 表示エンジン・ウィンドウ管理][5 節]]で説明した「Lisp から
 直接操作されるオブジェクト」を扱うファイル群と一致する。
@@ -599,14 +615,19 @@ fan-out（多くのローカルヘッダに依存＝統合役のファイル）�
 アーキテクチャ上重要な関数について実際の呼び出し元を cscope で確認した
 （=analysis/reports/call-graph-spotcheck.txt=）:
 
-- =garbage_collect= の直接呼び出し元は =maybe_garbage_collect=（しきい値
-  チェック付きラッパー、=alloc.c=）と =android_on_low_memory=（OS からの
-  低メモリ通知）の *2 箇所のみ*。[[* ガベージコレクション][3.4 節]]で述べた「GC はしきい値に基づき
-  トリガーされる」という記述が、実装上も単一の関門関数
-  （=maybe_garbage_collect=）に集約されていることを確認した。
+- =garbage_collect= の直接呼び出し元は、2026-11-02 の master を =grep= で
+  確認すると =alloc.c= 内の =maybe_garbage_collect=（しきい値チェック付き
+  ラッパー）・=Fgarbage_collect=（Lisp の =garbage-collect=）・
+  =garbage-collect-maybe= に加え、=pdumper.c=（ダンプ前の GC）と
+  =android.c= の =android_on_low_memory=（OS からの低メモリ通知）である。
+  通常の実行時にしきい値で GC を起こす経路は =maybe_garbage_collect= に
+  集約されており、[[* ガベージコレクション][3.4 節]]で述べた「GC はしきい値に基づきトリガーされる」
+  という記述と整合する。なお本節の当初の記述は「2 箇所のみ」としていたが、
+  再確認の結果、直接呼び出し元はこれより多い。
 - =maybe_gc=（GC 発生チェック）の呼び出し元は =exec_byte_code=
-  （バイトコード VM）、=eval_sub=（eval ループ）、=read_char=
-  （キー入力読み取り）の 3 箇所。[[* eval ループ][3.2 節]]で述べた評価ループと、
+  （バイトコード VM、=bytecode.c= 内 2 箇所）、=eval_sub= と関数呼び出し処理
+  （=eval.c= 内 2 箇所）、=read_char=（キー入力読み取り）、および native-comp が
+  生成するコード（=comp.c=）である。[[* eval ループ][3.2 節]]で述べた評価ループと、
   [[* コマンドループ（command loop）][6.2 節]]で述べた入力読み取りの両方が GC チェックポイントになっており、
   「Lisp コードが一歩でも進めば GC 機会がある」設計であることが分かる。
 - =command_loop_1=（[[* コマンドループ（command loop）][6.2 節]]で述べたメインループ本体）は cscope の直接呼び出し
@@ -632,7 +653,7 @@ fan-out（多くのローカルヘッダに依存＝統合役のファイル）�
 （=require= 数トップの =org.el=）と一致する。
 
 #+begin_comment
-本ドキュメントは emacs-mirror/emacs（master, 2026-09 時点のソースツリー、
+本ドキュメントは emacs-mirror/emacs（master, 2026-11-02 時点のソースツリー、
 バージョン 32.0.50）の実ファイル構成・行数・NEWS を確認した上でまとめた
 一般的な内部設計の説明であり、Emacs のソースコードやマニュアルからの
 逐語的な引用は含まない。

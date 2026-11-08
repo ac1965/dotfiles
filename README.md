@@ -229,7 +229,16 @@ latexmk foo.tex
 build-emacs-macos.sh
 ```
 
-Emacs 設定の詳細: [Emacs-01.org](https://github.com/ac1965/dotfiles/blob/master/.docs/Emacs-01.org)
+長文の解説は [.docs/](.docs/) に Org 形式で置いている。
+
+| ファイル | 内容 |
+|---|---|
+| [emacs-org-magit-guide.org](.docs/emacs-org-magit-guide.org) | Org mode と Magit の活用ガイド |
+| [emacs-usage-guide.org](.docs/emacs-usage-guide.org) | Emacs 31 の使いこなしガイド(新機能・設定例・キーバインド) |
+| [emacs-architecture.org](.docs/emacs-architecture.org) | GNU Emacs の内部アーキテクチャ設計書 |
+| [safari-macos-guide.org](.docs/safari-macos-guide.org) | macOS Safari の使いこなしガイド |
+
+ファイル名は `<対象>-<種類>.org`(小文字・ハイフン区切り)に揃えている。
 
 ### gen-commit-msg.sh(コミットメッセージ生成)
 

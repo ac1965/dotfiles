@@ -20,6 +20,10 @@
 straight.el + leaf + org-babel によるリテラルプログラミング構成を前提とし、
 コンサルタント業務・開発作業・Org-mode 運用に即した実践的な内容を収録する。
 
+2026-11-08 に、手元の Emacs 32.0.50 と emacs-mirror/emacs の =etc/NEWS.31= / ソースを
+突き合わせて記述を検証・修正した（Emacs 31.1 はリリース済み）。
+機能の導入バージョンは NEWS で確認できたものだけを記載している。
+
 #+BEGIN_EXAMPLE
 動作確認環境：
   OS        : macOS Sequoia 15.x (aarch64)
@@ -101,8 +105,11 @@ Emacs 31 では ~mode-line-collapse-minor-modes~ 変数により、
         which-key-mode
         undo-tree-mode))
 
-;; 全マイナーモードを折りたたむ（非推奨だが可能）
+;; t にすると全マイナーモードの lighter を 1 つのボタンに折りたたむ
 ;; (setq mode-line-collapse-minor-modes t)
+
+;; (not MODES ...) の形にすると、指定したモード「以外」を折りたたむ
+;; (setq mode-line-collapse-minor-modes '(not flymake-mode eglot--managed-mode))
 
 ;; 折りたたみ先のラベルをカスタマイズ
 ;; C-h v mode-line-collapse-minor-modes-to を参照
@@ -138,7 +145,10 @@ Emacs 31 では ~mode-line-collapse-minor-modes~ 変数により、
 ;; project-customize-dirlocals : dir-locals をカスタマイズ
 
 (keymap-global-set "C-x p f" #'project-find-file)
-(keymap-global-set "C-x p r" #'project-root-find-file)  ; 31 新規
+;; 注意: C-x p r は標準では project-query-replace-regexp。
+;; project-root-find-file には標準キーが割り当てられていないため、
+;; 使う場合は既存の割り当てと衝突しないキーを選ぶ。
+(keymap-global-set "C-x p R" #'project-root-find-file)  ; 31 新規
 #+END_SRC
 
 *** xterm-update-cursor（TTY カーソル同期）
@@ -160,32 +170,42 @@ brew install universal-ctags
 
 *** Tree-sitter の更新（Emacs 31）
 
-新機能 ~treesit-font-lock-rules-merge~ 関数でフォントロックルールをマージ可能に。
-また Markdown モードが本体に統合され、Lua モードが NonGNU ELPA から本体へ移行した。
+Emacs 31 では次の変更が入った（いずれも NEWS.31 で確認）。
+
+- ~treesit-enabled-modes~ ：t（利用可能な ts-mode をすべて有効化）またはモードのリストを指定すると、
+  ~major-mode-remap-alist~ が自動で更新される。手書きのリマップより推奨。
+- ~treesit-auto-install-grammar~ ：ts-mode を開いたときに未導入の文法を自動インストールするか制御する。
+- ~treesit-language-source-alist~ が ~:commit~ などのキーワードをサポート。
+
+なお ~markdown-ts-mode~ （Markdown 用 ts-mode）は Emacs 31 ではなく *Emacs 32 系*（master の etc/NEWS）で追加され、
+~lua-ts-mode~ は Emacs 30 から本体に入っている。
 
 #+BEGIN_SRC emacs-lisp
-;; ts-mode を自動的に優先する設定
-(setq major-mode-remap-alist
-      '((python-mode     . python-ts-mode)
-        (js-mode         . js-ts-mode)
-        (typescript-mode . typescript-ts-mode)
-        (c-mode          . c-ts-mode)
-        (c++-mode        . c++-ts-mode)
-        (rust-mode       . rust-ts-mode)
-        (bash-mode       . bash-ts-mode)
-        (yaml-mode       . yaml-ts-mode)
-        (toml-mode       . toml-ts-mode)
-        (json-mode       . json-ts-mode)
-        (css-mode        . css-ts-mode)))
+;; Emacs 31 推奨: ts-mode を一括で有効化（major-mode-remap-alist は自動更新される）
+(setopt treesit-enabled-modes t)
+;; 文法が無いときに自動インストールを尋ねる
+(setopt treesit-auto-install-grammar 'ask)
 
-;; Markdown（31 新規追加）
-;; M-x treesit-install-language-grammar → markdown の文法をインストール
+;; 手動でリマップする従来の方法（treesit-enabled-modes を使わない場合）。
+;; setq で丸ごと置き換えず add-to-list で追加すること。
+;; bash は bash-mode ではなく sh-mode が対象。
+(dolist (pair '((python-mode     . python-ts-mode)
+                (js-mode         . js-ts-mode)
+                (c-mode          . c-ts-mode)
+                (c++-mode        . c++-ts-mode)
+                (sh-mode         . bash-ts-mode)
+                (css-mode        . css-ts-mode)))
+  (add-to-list 'major-mode-remap-alist pair))
+
+;; Markdown の ts-mode は Emacs 32 系で追加。導入後は
+;; M-x markdown-ts-mode-install-parsers で文法をインストールする。
 #+END_SRC
 
 *** lexical-binding のデフォルト化警告
 
-Emacs 31 では ~-*- lexical-binding: t; -*-~ がない ~.el~ ファイルに
-警告が表示されるようになった。新規ファイルにはヘッダーを付けること。
+バイトコンパイラは Emacs 30 から、~-*- lexical-binding: t; -*-~ がない ~.el~ に警告を出す。
+Emacs 31 ではさらに、そのようなファイルを *ロードしたときにも* 警告が表示される。
+新規ファイルにはヘッダーを付けること。
 
 #+BEGIN_SRC emacs-lisp
 ;; 新規 Emacs Lisp ファイルへの自動ヘッダ挿入
@@ -211,8 +231,8 @@ Emacs 31 では ~-*- lexical-binding: t; -*-~ がない ~.el~ ファイルに
 | =C-x b=     | switch-to-buffer           | バッファ切り替え         |
 | =C-x k=     | kill-buffer                | バッファを閉じる         |
 | =C-x 1=     | delete-other-windows       | 現在ウィンドウのみ残す   |
-| =C-x 2=     | split-window-below         | 水平分割                 |
-| =C-x 3=     | split-window-right         | 垂直分割                 |
+| =C-x 2=     | split-window-below         | 上下に分割               |
+| =C-x 3=     | split-window-right         | 左右に分割               |
 | =C-x o=     | other-window               | ウィンドウ移動           |
 | =C-x C-b=   | ibuffer                    | バッファ一覧             |
 | =C-x C-c=   | save-buffers-kill-terminal | 終了                     |
@@ -229,7 +249,7 @@ Emacs 31 では ~-*- lexical-binding: t; -*-~ がない ~.el~ ファイルに
 | =C-v/M-v=   | page down/up          | ページ移動                   |
 | =M-<=       | beginning-of-buffer   | バッファ先頭                 |
 | =M->=       | end-of-buffer         | バッファ末尾                 |
-| =C-u C-SPC= | pop-mark              | マーク履歴を遡る             |
+| =C-u C-SPC= | pop-to-mark-command              | マーク履歴を遡る             |
 | =C-x C-x=   | exchange-point-and-mark | ポイントとマークを入れ替え |
 
 *** 検索・置換
@@ -294,6 +314,9 @@ Emacs 31 では ~-*- lexical-binding: t; -*-~ がない ~.el~ ファイルに
 
 #+BEGIN_SRC emacs-lisp
 ;; Shift+矢印でウィンドウ移動
+;; 注意: Org mode は Shift+矢印をタイムスタンプ変更や TODO 切替に使うため、
+;; Org バッファでは Org 側の割り当てが優先される。Org の中でも移動したい場合は
+;; org-shiftup-final-hook 等に windmove-up などを追加する（Org マニュアル参照）。
 (windmove-default-keybindings 'shift)
 
 ;; winner-mode でウィンドウ構成を Undo/Redo
@@ -468,7 +491,7 @@ Emacs 31 では ~-*- lexical-binding: t; -*-~ がない ~.el~ ファイルに
          "* %?\n  %U\n")
         ("m" "Meeting" entry
          (file+headline "~/org/projects.org" "Meetings")
-         "* MEET %? :meeting:\n  %U\n  %a\n")))
+         "* %? :meeting:\n  %U\n  %a\n")))
 #+END_SRC
 
 *** org-babel（コードブロック実行）
@@ -482,6 +505,8 @@ Emacs 31 では ~-*- lexical-binding: t; -*-~ がない ~.el~ ファイルに
    (sqlite     . t)
    (js         . t)))
 
+;; 注意: nil にすると、他人から受け取った Org ファイル内のコードも
+;; 確認なしで実行される。信頼できるファイルだけを扱う環境に限ること。
 (setq org-confirm-babel-evaluate nil)
 
 ;; ヘッダアーギュメントの例：
@@ -543,7 +568,7 @@ Emacs 31 では ~-*- lexical-binding: t; -*-~ がない ~.el~ ファイルに
 (org-clock-persistence-insinuate)
 
 ;; 週次レポート
-;; C-c a R → org-clock-report でレポート生成
+;; M-x org-clock-report → カーソル位置に clocktable（レポート）を挿入
 (setq org-clocktable-defaults
       '(:maxlevel 3 :scope file :block week :compact t))
 #+END_SRC
@@ -585,7 +610,8 @@ Emacs 31 では ~-*- lexical-binding: t; -*-~ がない ~.el~ ファイルに
 (with-eval-after-load 'eglot
   (add-to-list 'eglot-server-programs
                '(python-ts-mode . ("pylsp"))))
-  ;; pip install python-lsp-server[all] --break-system-packages
+  ;; インストール例: uv tool install 'python-lsp-server[all]'
+  ;; （システム Python への pip install --break-system-packages は避ける）
 
 ;; Eglot キーバインド
 (keymap-global-set "C-c e r" #'eglot-rename)
@@ -719,10 +745,10 @@ Emacs 31 では ~-*- lexical-binding: t; -*-~ がない ~.el~ ファイルに
   :straight t
   :init (dirvish-override-dired-mode)
   :custom
-  (dirvish-attributes '(all-the-icons
-                         file-size
-                         collapse
-                         vc-state))
+  (dirvish-attributes . '(nerd-icons
+                          file-size
+                          collapse
+                          vc-state))
   :bind (("C-x d" . dirvish)))
 #+END_SRC
 
@@ -753,7 +779,6 @@ Emacs 31 では ~-*- lexical-binding: t; -*-~ がない ~.el~ ファイルに
       (eval-print-last-sexp)))
   (load bootstrap-file nil 'nomessage))
 
-(straight-use-package 'use-package)
 (straight-use-package 'leaf)
 (straight-use-package 'leaf-keywords)
 (leaf-keywords-init)
@@ -968,8 +993,9 @@ Emacs 31 では ~-*- lexical-binding: t; -*-~ がない ~.el~ ファイルに
 
 #+BEGIN_SRC emacs-lisp
 ;; プロジェクト固有の Python インタープリタを org-babel に設定
+;; （パスは各自の配置に合わせる。大文字小文字を含め環境依存）
 (setq org-babel-python-command
-      (expand-file-name "~/projects/retranscribe/.venv/bin/python"))
+      (expand-file-name "~/Projects/Retranscribe/.venv/bin/python"))
 
 ;; セッション単位で Python REPL を保持する例：
 ;; #+BEGIN_SRC python :session retranscribe :results output :exports both
@@ -1077,13 +1103,14 @@ Emacs 31 では ~-*- lexical-binding: t; -*-~ がない ~.el~ ファイルに
 *** macOS 依存ツール一式
 
 #+BEGIN_SRC sh
-# Homebrew パッケージ
-brew tap d12frosted/emacs-plus
-brew install emacs-plus@31 --with-native-comp --with-xwidgets
+# Emacs 本体は emacs-plus ではなく、ソースから build-emacs-macos.sh でビルドする
+# （.local/bin/build-emacs-macos.sh。native-comp は Homebrew の libgccjit を使用）
+
+# Homebrew パッケージ（周辺ツール）
 brew install ripgrep fd cmigemo coreutils universal-ctags
 
 # Python LSP
-pip install python-lsp-server[all] --break-system-packages
+uv tool install 'python-lsp-server[all]'
 
 # Node.js 系 LSP
 npm install -g typescript-language-server vscode-langservers-extracted
@@ -1098,7 +1125,7 @@ rustup component add rust-analyzer
 :END:
 
 #+BEGIN_EXAMPLE
-[個人設定メモ (2026-04-28)]
+[個人設定メモ (2026-04-28 時点のスナップショット。以降の変更は反映していない)]
 - Emacs バージョン  : 31.0.5 (aarch64-apple-darwin, NS build)
 - 設定ファイル      : ~/.emacs.d/README.org（7,600行超）
 - tangle ツール     : org_tangle.py（94ファイル・93 tangle ターゲット）
@@ -1126,6 +1153,6 @@ rustup component add rust-analyzer
 #+END_EXAMPLE
 
 #+BEGIN_QUOTE
-最終更新: 2026-04-28
-対象 Emacs バージョン: 31.0.5（macOS Sequoia 15.x, native-comp 有効）
+最終更新: 2026-11-08（Emacs 31 NEWS・ソースとの突き合わせで記述を修正）
+記述の基準: Emacs 31.0.5（macOS Sequoia 15.x, native-comp 有効）
 #+END_QUOTE

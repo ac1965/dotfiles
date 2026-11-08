@@ -17,9 +17,18 @@ Safari は macOS に標準搭載された Apple 製ブラウザ。単なる「�
 プライバシー保護・省電力・Apple エコシステム連携において Chrome / Firefox にはない固有の優位性を持つ。
 
 本ドキュメントは以下を対象とする：
-- macOS Sequoia 15.x 対応（2026年4月時点）
-- Safari 18.x 系の機能を網羅
+- 検証済みの環境: macOS 27.2 / Safari 27.2（2026-11-08 に手元の日本語 UI で確認）
 - キーボードショートカットは US / JIS 両配列を考慮
+
+*検証の範囲（2026-11-08）*: Apple は 2025 年から macOS と Safari のバージョン番号を年号ベース
+（26, 27, …）に改めている。Safari 27.0 は 2026-09-14、27.2 は 2026-10-26 にリリースされ、
+27.3 は beta である（Apple の Safari リリースノートによる）。
+
+- *実機で確認したこと*: Safari のメニューバー構成（項目名）。本文中のメニュー名は 27.2 の日本語 UI に基づく。
+- *公式リリースノートで確認したこと*: 27 / 27.2 / 27.3 beta の利用者向け変更。
+- *確認できていないこと*: 設定（Settings）画面の各項目の場所、個々のキーボードショートカット
+  （メニューの一覧からは読み取れない）、Apple Intelligence を使う機能の動作。
+  これらは Sequoia（Safari 18）時点の記述のままで、合わない場合は公式ドキュメントを優先する。
 
 ** ナビゲーション＆タブ管理
 :PROPERTIES:
@@ -32,12 +41,12 @@ Safari は macOS に標準搭載された Apple 製ブラウザ。単なる「�
 |------------------------+------------------------+---------------------------------|
 | 新規タブ               | =Cmd+T=                |                                 |
 | タブを閉じる           | =Cmd+W=                |                                 |
-| 最後に閉じたタブを復元 | =Cmd+Z=                | Undo で復元可                   |
+| 最後に閉じたタブを復元 | =Cmd+Z= / =Cmd+Shift+T= | Undo または履歴メニューの再オープン |
 | タブ切り替え（次）     | =Ctrl+Tab=             | =Cmd+Shift+}= でも可            |
 | タブ切り替え（前）     | =Ctrl+Shift+Tab=       |                                 |
-| タブをピン留め         | 右クリック → Pin Tab   | 固定タブはセッション跨ぎで保持  |
+| タブをピン留め         | 右クリック → 「タブを固定」、または =Window > Pin Tab=（ウインドウ > タブを固定） | 固定タブはセッション跨ぎで保持  |
 | タブをミュート         | タブのスピーカーアイコン | ページ内音声個別制御            |
-| タブグループ作成       | =File > New Tab Group= | タブをグループ化して切り替え可  |
+| タブグループ作成       | =File > New Empty Tab Group= / =New Tab Group from This Window=（ファイル > 空の新規タブグループ / このウインドウから新規タブグループを作成） | タブをグループ化して切り替え可  |
 
 *** タブグループ活用
 :PROPERTIES:
@@ -64,7 +73,8 @@ Safari は macOS に標準搭載された Apple 製ブラウザ。単なる「�
 *** Smart Tab Bar
 
 - タブ数が多い場合、タブバーは自動でスクロール可能に
-- =Cmd+数字= でタブ番号指定ジャンプ（1〜9）
+- =Cmd+数字= でタブ番号指定ジャンプ（1〜9）。ただし標準ではお気に入りバーの項目を選ぶ動作で、
+  タブ切り替えにするには =Settings > Tabs= の「Use ⌘-1 through ⌘-9 to switch tabs」を ON にする
 - タブのドラッグ＆ドロップによる並び替え
 - タブを別ウィンドウへドラッグして分割
 
@@ -132,7 +142,7 @@ Settings > Websites > Reader
 Apple が独自開発した機械学習ベースのトラッキング防止技術。
 
 - クロスサイトトラッキング Cookie を自動ブロック
-- サードパーティ Cookie はデフォルトで制限
+- サードパーティ Cookie はデフォルトでブロック
 - フィンガープリンティング対策（WebGL・AudioContext・フォント情報の抽象化）
 
 *** プライバシーレポート
@@ -162,8 +172,10 @@ Apple が独自開発した機械学習ベースのトラッキング防止技�
 *** Hide IP Address（iCloud+ 必須）
 
 =Settings > Privacy > Hide IP Address=
-- トラッカーからのみ隠す
-- すべてのウェブサイトから隠す（iCloud Private Relay）
+- トラッカーからのみ隠す（iCloud+ は不要）
+- すべてのウェブサイトから隠す（iCloud Private Relay。iCloud+ が必要）
+- 27.2 の 表示 メニューに「IPアドレスを公開で再読み込み」（Reload and reveal IP address）があり、
+  保護を一時的に外してページを読み込み直せる。Safari メニューには「接続セキュリティの詳細…」もある
 
 ** パスワード管理・AutoFill
 :PROPERTIES:
@@ -218,10 +230,17 @@ Settings > Advanced > "Show features for web developers" を ON
 
 *** 便利な Develop メニュー項目
 
-- *Disable Caches*: キャッシュ無効化（デバッグ時）
-- *Disable JavaScript*: JS 無効化テスト
-- *Enter Responsive Design Mode*: =Cmd+Option+R=（モバイル表示確認）
-- *Show Page Source*: =Cmd+Option+U=
+27.2 の Develop メニュー（開発メニュー）で確認できた項目：
+
+- *Empty Caches*（キャッシュを空にする）: キャッシュ削除
+- *Enter Responsive Design Mode*（レスポンシブデザインモードにする）: =Cmd+Option+R=（モバイル表示確認）
+- *Show Page Source*（ページのソースを表示）: =Cmd+Option+U=
+- *User Agent*（ユーザエージェント）: Safari 27.2、iOS / iPadOS 26.4、Edge、Chrome、Firefox などを選べる
+- *Developer Settings…*（デベロッパ設定…）と *Feature Flags…*（機能フラグ…）
+- *Open Page With*（ページをこのアプリで開く）
+
+以前のバージョンにあった *Disable Caches* / *Disable JavaScript* は、27.2 の Develop メニューの
+直下には見当たらなかった。デベロッパ設定… の中に移っている可能性があるが、画面を開いて確認していない。
 
 *** Responsive Design Mode
 
@@ -273,11 +292,11 @@ App Store の Safari Extensions カテゴリから追加可。
 :CUSTOM_ID: bookmarks
 :END:
 
-*** ブックマークバーの活用
+*** お気に入りバーの活用
 
 | 操作                     | 方法                     |
 |--------------------------+--------------------------|
-| ブックマークバーの表示   | =Cmd+Shift+B=            |
+| お気に入りバーの表示（表示 > お気に入りバーを表示） | =Cmd+Shift+B=            |
 | 現在のページをブックマーク | =Cmd+D=                  |
 | 全タブをブックマークに追加 | =Cmd+Shift+D=            |
 | ブックマーク編集         | =Cmd+Option+B=           |
@@ -332,7 +351,7 @@ Safari のアドレスバーでも機能する。
 
 *** iCloud Tabs（iCloud タブ同期）
 
-=Settings > General > iCloud > Safari= を ON にすると、
+=System Settings > Apple Account > iCloud= で Safari を ON にすると、
 全 Apple デバイスで開いているタブが同期・参照可能。
 
 サイドバーの「iCloud Tabs」セクションで他デバイスのタブ一覧を確認できる。
@@ -350,7 +369,8 @@ Safari のアドレスバーでも機能する。
 
 Chrome と比較した Safari の優位点：
 - WebKit レンダリングエンジンは macOS に最適化
-- バッテリー消費量は Chrome 比で最大 50% 削減（Apple 公表値）
+- バッテリー持続時間の面で Apple は他ブラウザより優位と説明しているが、効果は利用条件に大きく依存する。
+  本書では具体的な削減率は示さない（一次資料で確認できた数値がないため）
 - バックグラウンドタブの自動サスペンド
 
 *** キャッシュのクリア
@@ -364,8 +384,8 @@ Settings > Privacy > Manage Website Data > Remove All
 *** DNS プリフェッチの制御
 
 #+BEGIN_SRC sh
-# プライバシー優先時に無効化
-defaults write com.apple.safari WebKitDNSPrefetchingEnabled -bool false
+# プライバシー優先時に無効化（キーの有効性は未検証。上記「defaults コマンド」節の注意を参照）
+defaults write com.apple.Safari WebKitDNSPrefetchingEnabled -bool false
 #+END_SRC
 
 ** セキュリティ設定
@@ -379,7 +399,7 @@ defaults write com.apple.safari WebKitDNSPrefetchingEnabled -bool false
 |-------------------------------+-----------------------------------------------|
 | Safe Browsing                 | Google Safe Browsing API（プライバシー保護モードあり） |
 | Fraudulent Website Warning    | 詐欺サイトへのアクセス時に警告                |
-| XSS フィルター                | クロスサイトスクリプティング対策内蔵          |
+| （参考）XSS フィルター        | 旧来の XSS Auditor は廃止済み。XSS 対策は CSP などサイト側の実装に依存 |
 
 確認場所：=Settings > Security=
 
@@ -405,24 +425,30 @@ HSTS（HTTP Strict Transport Security）対応。
 
 macOS の =defaults= コマンドで Safari の隠し設定を変更できる。
 
+*注意*: Safari はサンドボックス化されており、設定は =~/Library/Containers/com.apple.Safari/= 配下に
+保存される。Terminal から読み書きするには Full Disk Access の許可が必要な場合がある。
+ドメイン名は =com.apple.Safari=（S は大文字）。以下のキーは Apple が公式に文書化したものではなく、
+macOS 27.2 / Safari 27.2 では動作を検証していない（この環境では =defaults read com.apple.Safari= が
+ドメインの値を返さなかった）。dotfiles リポジトリでは =.config/macos-defaults/domains.txt= で
+=com.apple.Safari= をバックアップ対象にしている。
+
 *** 便利な defaults 設定例
 
 #+BEGIN_SRC sh
-# タブバーを常に表示（タブが1枚でも）
-defaults write com.apple.safari AlwaysShowTabBar -bool true
+# タブバーを常に表示: 27.2 では 表示 > タブバーを常に表示 のメニュー項目があるため、defaults は不要
 
 # バックグラウンドタブで開く（Cmd+クリック）
-defaults write com.apple.safari OpenNewTabsInFront -bool false
+defaults write com.apple.Safari OpenNewTabsInFront -bool false
 
 # DNS プリフェッチを無効化
-defaults write com.apple.safari WebKitDNSPrefetchingEnabled -bool false
+defaults write com.apple.Safari WebKitDNSPrefetchingEnabled -bool false
 
 # Developer メニューを有効化
-defaults write com.apple.safari IncludeDevelopMenu -bool true
-defaults write com.apple.safari WebKitDeveloperExtrasEnabledPreferenceKey -bool true
+defaults write com.apple.Safari IncludeDevelopMenu -bool true
+defaults write com.apple.Safari WebKitDeveloperExtrasEnabledPreferenceKey -bool true
 
-# Find on Page をワード先頭のみマッチに
-defaults write com.apple.safari FindOnPageMatchesWordStartsOnly -bool false
+# Find on Page を語頭に限らず部分一致にする（true にすると語頭一致のみ）
+defaults write com.apple.Safari FindOnPageMatchesWordStartsOnly -bool false
 #+END_SRC
 
 *** 設定変更後の反映
@@ -446,10 +472,10 @@ killall Safari && open -a Safari
 | タブを閉じる                 | =Cmd+W=              |
 | ウィンドウを閉じる           | =Cmd+Shift+W=        |
 | 全ウィンドウを閉じる         | =Cmd+Option+W=       |
-| 最後に閉じたタブを復元       | =Cmd+Z=              |
+| 最後に閉じたタブを復元       | =Cmd+Z= / =Cmd+Shift+T= |
 | 次のタブ                     | =Ctrl+Tab=           |
 | 前のタブ                     | =Ctrl+Shift+Tab=     |
-| タブ番号指定（1〜9）         | =Cmd+1= 〜 =Cmd+9=   |
+| タブ番号指定（1〜9）※設定要  | =Cmd+1= 〜 =Cmd+9=   |
 
 *** ナビゲーション
 
@@ -480,7 +506,7 @@ killall Safari && open -a Safari
 | リーダービュー切替     | =Cmd+Shift+R=     |
 | フルスクリーン         | =Cmd+Ctrl+F=      |
 | サイドバー表示切替     | =Cmd+Ctrl+S=      |
-| ブックマークバー表示   | =Cmd+Shift+B=     |
+| お気に入りバー表示     | =Cmd+Shift+B=     |
 | ページのソースを表示   | =Cmd+Option+U=    |
 | Web Inspector         | =Cmd+Option+I=    |
 | コンソール             | =Cmd+Option+C=    |
@@ -525,22 +551,56 @@ killall Safari && open -a Safari
 
 *** Safari がクラッシュする
 
-1. セーフモード起動（拡張機能無効）で再現するか確認
-2. Safari の環境設定ファイルをリセット：
+1. 拡張機能をすべて OFF（=Settings > Extensions=）にして再現するか確認する。
+   新しいプロファイル（=File > New Profile=）で再現するかも切り分けになる
+2. それでも直らない場合のみ、Safari の保存データを退避する。*Safari を終了してから*実行し、
+   履歴・ブックマーク・タブグループが空になる点に注意する（iCloud 同期で戻る場合がある）：
    #+BEGIN_SRC sh
    mv ~/Library/Safari ~/Library/Safari.bak
    #+END_SRC
+   Terminal に Full Disk Access が無いと失敗する。元に戻すときは =Safari.bak= を戻す
 
-** macOS Sequoia での主な新機能
+** macOS Sequoia / Safari 18 での主な新機能
 :PROPERTIES:
 :CUSTOM_ID: new-features
 :END:
 
 - *Passwords アプリ*の独立（Keychain から分離、専用 UI）
-- *タブグループのカスタムスタートページ*強化
-- *Highlights 機能*（ページ内の重要情報を自動ハイライト）
-- *Distraction Control*（ページ内の不要なコンテンツを手動で永続的に非表示）
-- *Web Eraser*（特定のページ要素を永続的に非表示、一部地域のみ）
+- *タブグループのカスタムスタートページ*強化（Safari 18 の一次資料では未確認）
+- *Highlights 機能*（ページ内の重要情報を自動ハイライト。Safari 18 の一次資料では未確認）
+- *Distraction Control*（気をそらすものコントロール）: ページ内の不要な要素を非表示にする。
+  27.2 の 編集 メニューに「気をそらすものコントロール」があることを確認した。
+  「Web Eraser」という名称は 27.2 のメニューには見当たらず、確認できなかった
+
+** Safari 27 系の変更点
+:PROPERTIES:
+:CUSTOM_ID: safari-27
+:END:
+
+*公式リリースノートの原文で確認できたもの*
+
+- Safari MCP: エージェントが Safari に接続して操作できる仕組み。27.2 で「タブ作成やスクリーンショット時に
+  他アプリからキーボードフォーカスを奪う問題」が修正された（27.2）
+- Vertical Tabs: タブを縦に並べるレイアウト（*27.3 beta*。27.2 には含まれない）
+- Adaptive Dark Mode: ダークモード非対応の明るいページを自動で暗くする（*27.3 beta*。設定の場所は記載なし）
+- プライバシー関連の修正: CNAME で別ドメインに向くホスト名のトップレベルナビゲーション Cookie が 7 日に
+  制限される問題（27.2）、サードパーティの IP アドレス隠蔽防御が google.com サブドメインの Cookie 寿命を
+  制限してしまう問題（27.3 beta）
+- 拡張機能: 起動直後に拡張機能のコンテンツ注入が大きく遅れる問題の修正（27.2）
+
+*WWDC 2026 時点の報道（公式リリースノートには記載なし）*
+
+9to5Mac の報道では、macOS 27 の Safari に次が追加されるとされる。Apple のリリースノートは WebKit の
+変更を中心に書かれており、これらの記載は見つからなかった。27.2 のメニューバーにも対応する項目は
+見当たらず、実機では確認できていない。
+
+- 自動タブグループ（Apple Intelligence によるトピック別のタブ整理。オプション）
+- Notify Me（ページの変化を通知。条件を自然言語で指定）
+- Describe an extension（自然言語の説明から Safari 拡張機能を作る）
+- ページ上端から引き下げて再読み込み
+- 侵害されたパスワードの自動変更（Passwords アプリ連携）
+
+Apple Intelligence の対応機種・地域・言語の条件は、参照した資料に記載がなかった。
 
 ** 参考情報
 :PROPERTIES:
@@ -550,6 +610,9 @@ killall Safari && open -a Safari
 - [[https://support.apple.com/guide/safari/welcome/mac][Apple Safari User Guide（公式）]]
 - [[https://webkit.org/blog/][WebKit Blog（Safari エンジン開発ブログ）]]
 - [[https://developer.apple.com/safari/][Apple Developer - Safari]]
+- [[https://developer.apple.com/documentation/safari-release-notes][Safari Release Notes（バージョン別の新機能・変更点）]]
+- [[https://developer.apple.com/documentation/safari-release-notes/safari-27_2-release-notes][Safari 27.2 Release Notes]]
+- [[https://9to5mac.com/2026/06/09/heres-everything-new-coming-to-safari-on-macos-27-golden-gate/][9to5Mac: macOS 27 の Safari の新機能（WWDC 2026 時点の報道）]]
 - [[https://caniuse.com/][Can I Use（ブラウザ対応状況）]]
 
 ** ローカルメモ
@@ -567,6 +630,6 @@ killall Safari && open -a Safari
 #+END_EXAMPLE
 
 #+BEGIN_QUOTE
-最終更新: 2026-04-28
-対象 Safari バージョン: 18.x（macOS Sequoia 15.x）
+最終更新: 2026-11-08（Safari 27.2 / macOS 27.2 のメニュー構成と公式リリースノートで検証）
+検証の範囲は冒頭の「検証の範囲」を参照
 #+END_QUOTE

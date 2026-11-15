@@ -242,19 +242,19 @@ build-emacs-macos.sh
 
 ### gen-commit-msg.sh(コミットメッセージ生成)
 
-[.local/bin/gen-commit-msg.sh](.local/bin/gen-commit-msg.sh) は、ステージ済みの diff から Conventional Commits 形式(`type(scope): 要約`)のコミットメッセージを Claude Code(`claude -p --bare`)で生成する。
+[.local/bin/gen-commit-msg.sh](.local/bin/gen-commit-msg.sh) は、ステージ済みの diff から Conventional Commits 形式(`type(scope): 要約`)のコミットメッセージを Claude Code(`claude -p --bare`)で生成する。推論エンジンは既定でローカルの Magnitude(`MAGNITUDE_BASE_URL` / `MAGNITUDE_API_KEY` / `MAGNITUDE_MODEL_ID` で上書き可)、`--api` で Anthropic API、`--oauth` で OAuth ログインに切り替えられる。
 
 ```bash
 git add -A
 gen-commit-msg.sh                  # メッセージを表示するだけ
 gen-commit-msg.sh --commit         # 生成したメッセージでそのままコミット
 gen-commit-msg.sh --commit --edit  # エディタで確認・編集してからコミット
-gen-commit-msg.sh --model sonnet   # 精度優先(既定は haiku)
+gen-commit-msg.sh --api            # Anthropic API で実行(要 ANTHROPIC_API_KEY)
 ```
 
 > **Note — 事前準備** `claude` コマンドと、環境変数 `ANTHROPIC_API_KEY`(または `apiKeyHelper`)が必要。`--bare` は通常の OAuth/キーチェーンログインを使えず API キー認証に限られる。API キーはこのリポジトリには含めず、`private/` アーカイブ側の秘匿情報として用意し、シェルに環境変数として読み込まれる状態にしておく。未設定の場合はスクリプトが実行前にエラーで案内する。
 
-> **Note — diff は Anthropic API へ送信される** 以前はローカルの Ollama を使い完全にオフラインで完結していたが、メモリ不足による空応答などの不安定さから Claude Code に置き換えた。そのため、コミット対象の diff(最大8000文字に切り詰め)が外部へ送信される。機密を含む変更をステージしている場合は使用しないこと。生成結果の1行目が規約形式でない場合は、`--commit` を付けてもコミットせずエラー終了する。
+> **Note — `--api` / `--oauth` では diff は Anthropic API へ送信される**(既定の Magnitude は完全にローカル)。以前はローカルの Ollama を使い完全にオフラインで完結していたが、メモリ不足による空応答などの不安定さから Claude Code に置き換えた。そのため、コミット対象の diff(最大8000文字に切り詰め)が外部へ送信される。機密を含む変更をステージしている場合は使用しないこと。生成結果の1行目が規約形式でない場合は、`--commit` を付けてもコミットせずエラー終了する。
 
 ---
 

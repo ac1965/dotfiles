@@ -73,6 +73,12 @@
 #   ./gen-commit-msg.sh --oauth             # OAuthログインで実行(API key不要)
 #   ./gen-commit-msg.sh --model haiku       # モデル指定(既定: magnitude=MAGNITUDE_MODEL_ID / API=Sonnet 5.5 / OAuth=haiku)
 #
+# Claude の Haiku 5.5 (claude-haiku-5-5) で実行する場合:
+#   ./gen-commit-msg.sh --api   --model claude-haiku-5-5   # API key(--bare)。diff は Anthropic API へ送信
+#   ./gen-commit-msg.sh --oauth --model claude-haiku-5-5   # OAuthログイン。diff は Anthropic API へ送信
+#   ※ --model だけ指定すると既定の Magnitude(ローカル)へ claude-haiku-5-5 を
+#     要求してしまうため、必ず --api か --oauth と組み合わせること。
+#
 set -o errexit -o nounset -o pipefail
 zmodload zsh/system
 

@@ -8,11 +8,19 @@
 # 事前準備:
 #   claude コマンドが使えること(このリポジトリを普段操作している端末なら
 #   通常インストール済み)。
-#   認証は次のどちらか(既定は API key)。
-#     - ANTHROPIC_API_KEY 環境変数: --bare で軽量実行、既定モデルは Sonnet 5.5。
+#   推論バックエンドは次の3つから選ぶ(既定は magnitude)。
+#     - 既定(magnitude): ローカルの Magnitude 推論エンジンを Anthropic 互換
+#       エンドポイント経由で使う。diff は外部へ送信されない。
+#       Magnitude サービスが起動し、モデルが取得済みであること。
+#       接続先・モデルは環境変数で上書き可能:
+#         MAGNITUDE_BASE_URL (既定 http://127.0.0.1:10100/inference/anthropic)
+#         MAGNITUDE_API_KEY  (既定 magnitude-local)
+#         MAGNITUDE_MODEL_ID (既定 gemma-4-12b-it-qat:gguf:q4)
+#     - --api 指定: Anthropic API。ANTHROPIC_API_KEY 必須、--bare で軽量実行、
+#       既定モデルは Sonnet 5.5。
 #     - --oauth 指定: 通常の OAuth/キーチェーンログインで実行、既定モデルは haiku。
-#   このdotfilesリポジトリには含めない方針のため、private/ アーカイブ側の
-#   秘匿情報として別途用意すること(README.md「プライベートファイルの管理」
+#   API key はこのdotfilesリポジトリには含めない方針のため、private/ アーカイブ
+#   側の秘匿情報として別途用意すること(README.md「プライベートファイルの管理」
 #   参照)。
 #
 # バックエンドの変遷:
@@ -30,6 +38,10 @@
 #   (2026-09-21)。ローカルのGPUメモリ制約・OOMのクラスを丸ごと回避できる。
 #   ただしこれにより、コミット対象のdiffが初めてAnthropic APIへ送信される
 #   ようになる(従来は完全にローカル/オフラインで完結していた)。
+#
+#   2026-11-15: 既定の推論エンジンを Magnitude(ローカル)に変更。Claude Code
+#   のまま接続先だけをローカルの Anthropic 互換エンドポイントへ向けるため、
+#   プロンプト・多重防御・出力検証は共通。diff が外部に出ない構成に戻る。
 #
 #   claude -p には2つの実行方法があり、コスト・速度が大きく異なることを
 #   実機で確認した(2026-09-21、同一diffでの比較)。
@@ -57,16 +69,17 @@
 #   ./gen-commit-msg.sh                     # メッセージを表示するだけ
 #   ./gen-commit-msg.sh --commit            # 生成したメッセージでそのままコミット
 #   ./gen-commit-msg.sh --commit --edit     # 生成後、エディタで確認・編集してからコミット
+#   ./gen-commit-msg.sh --api               # Anthropic API(ANTHROPIC_API_KEY)で実行
 #   ./gen-commit-msg.sh --oauth             # OAuthログインで実行(API key不要)
-#   ./gen-commit-msg.sh --model haiku       # モデル指定(既定: API key認証=Sonnet 5.5 / OAuth=haiku)
+#   ./gen-commit-msg.sh --model haiku       # モデル指定(既定: magnitude=MAGNITUDE_MODEL_ID / API=Sonnet 5.5 / OAuth=haiku)
 #
 set -o errexit -o nounset -o pipefail
 zmodload zsh/system
 
-MODEL=""   # 空なら認証方式に応じて後段で決定(API key: Sonnet 5.5 / OAuth: haiku)
+MODEL=""   # 空ならバックエンドに応じて後段で決定(magnitude: MAGNITUDE_MODEL_ID / API: Sonnet 5.5 / OAuth: haiku)
 DO_COMMIT=0
 DO_EDIT=0
-USE_OAUTH=0
+BACKEND="magnitude"   # magnitude | api | oauth
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -78,7 +91,8 @@ while [[ $# -gt 0 ]]; do
       MODEL="$2"; shift 2 ;;
     --commit) DO_COMMIT=1; shift ;;
     --edit)   DO_EDIT=1; shift ;;
-    --oauth)  USE_OAUTH=1; shift ;;
+    --api)    BACKEND="api"; shift ;;
+    --oauth)  BACKEND="oauth"; shift ;;
     -h|--help)
       sed -n '/^# 使い方:/,/^#$/p' "$0"
       exit 0
@@ -114,8 +128,8 @@ if ! zsystem flock -t 30 "${AUTOSYNC_LOCK_FILE}" 2>/dev/null; then
 fi
 
 # --- 機密情報の除外・検出 -------------------------------------------------
-# diff は Anthropic API へ送信されるため、秘密情報を含みやすいファイルは
-# 内容を送らない(ファイル名だけ「内容は送信せず」として伝える)。
+# api/oauth では diff が Anthropic API へ送信されるため(magnitude でも
+# 一貫して適用する)、秘密情報を含みやすいファイルは内容を送らない(ファイル名だけ「内容は送信せず」として伝える)。
 EXCLUDE_PATHSPECS=(
   ':(exclude,glob)**/.env' ':(exclude,glob)**/.env.*'
   ':(exclude,glob)**/*.pem' ':(exclude,glob)**/*.key'
@@ -157,25 +171,54 @@ if ! command -v claude >/dev/null 2>&1; then
   exit 1
 fi
 
-# 認証方式で実行モードを切り替える。既定は API key 認証。
-#   既定(API key): --bare(軽量・低コスト)+ 既定モデル Sonnet 5.5。
-#                  ANTHROPIC_API_KEY が必須。未設定ならエラーで止める。
-#   --oauth      : 通常呼び出し(OAuth/キーチェーンログイン)+ 既定モデル haiku
+# バックエンドで実行モードを切り替える。既定は magnitude(ローカル)。
+#   既定(magnitude): --bare + ローカルの Anthropic 互換エンドポイント。
+#                    モデルは MAGNITUDE_MODEL_ID。外部通信なし。
+#   --api          : --bare(軽量・低コスト)+ 既定モデル Sonnet 5.5。
+#                    ANTHROPIC_API_KEY が必須。未設定ならエラーで止める。
+#   --oauth        : 通常呼び出し(OAuth/キーチェーンログイン)+ 既定モデル haiku
 # --model 指定時はどちらの場合もそれを優先する。
 BARE_ARGS=()
-if [[ $USE_OAUTH -eq 1 ]]; then
-  AUTH_MODE="OAuth login"
-  [[ -z "$MODEL" ]] && MODEL="haiku"
-else
-  if [[ -z "${ANTHROPIC_API_KEY:-}" ]]; then
-    echo "[ERROR] ANTHROPIC_API_KEY が設定されていません(既定のAPI認証には必須です)。" >&2
-    echo "[ERROR] private/ 側の秘匿情報を配置してシェルを再読み込みするか、--oauth を付けて再実行してください。" >&2
-    exit 1
-  fi
-  BARE_ARGS=(--bare)
-  AUTH_MODE="API key (--bare)"
-  [[ -z "$MODEL" ]] && MODEL="claude-sonnet-5-5"
-fi
+CLAUDE_ENV=()   # claude 実行時にだけ付与する環境変数(親シェルは汚さない)
+case "$BACKEND" in
+  magnitude)
+    MAGNITUDE_BASE_URL="${MAGNITUDE_BASE_URL:-http://127.0.0.1:10100/inference/anthropic}"
+    MAGNITUDE_API_KEY="${MAGNITUDE_API_KEY:-magnitude-local}"
+    MAGNITUDE_MODEL_ID="${MAGNITUDE_MODEL_ID:-gemma-4-12b-it-qat:gguf:q4}"
+    # diff を外部へ送らないため、接続先がループバック以外なら起動しない
+    if [[ ! "$MAGNITUDE_BASE_URL" =~ '^https?://(127\.0\.0\.1|localhost|\[::1\])([:/]|$)' ]]; then
+      echo "[ERROR] MAGNITUDE_BASE_URL がローカルではありません: $MAGNITUDE_BASE_URL" >&2
+      exit 1
+    fi
+    # Anthropic の実鍵(sk-ant-)をローカルサーバーへ渡さない
+    [[ "$MAGNITUDE_API_KEY" == sk-ant-* ]] && MAGNITUDE_API_KEY="magnitude-local"
+    # MAX_THINKING_TOKENS=0: thinking を無効化する。ローカルの小型モデルは
+    # thinking に時間とトークンを使い果たし、応答が数分かかる/textが返らない
+    # ことがある(proofread/llm_fix.py と同じ対策)。
+    CLAUDE_ENV=(
+      ANTHROPIC_BASE_URL="$MAGNITUDE_BASE_URL"
+      ANTHROPIC_API_KEY="$MAGNITUDE_API_KEY"
+      MAX_THINKING_TOKENS=0
+    )
+    BARE_ARGS=(--bare)
+    AUTH_MODE="Magnitude (local, ${MAGNITUDE_BASE_URL})"
+    [[ -z "$MODEL" ]] && MODEL="$MAGNITUDE_MODEL_ID"
+    ;;
+  api)
+    if [[ -z "${ANTHROPIC_API_KEY:-}" ]]; then
+      echo "[ERROR] ANTHROPIC_API_KEY が設定されていません(--api には必須です)。" >&2
+      echo "[ERROR] private/ 側の秘匿情報を配置してシェルを再読み込みするか、--oauth を付けて再実行してください。" >&2
+      exit 1
+    fi
+    BARE_ARGS=(--bare)
+    AUTH_MODE="API key (--bare)"
+    [[ -z "$MODEL" ]] && MODEL="claude-sonnet-5-5"
+    ;;
+  oauth)
+    AUTH_MODE="OAuth login"
+    [[ -z "$MODEL" ]] && MODEL="haiku"
+    ;;
+esac
 
 FILES_CHANGED="$(git diff --cached --name-status)"
 if [[ ${#EXCLUDED_FILES[@]} -gt 0 ]]; then
@@ -277,10 +320,12 @@ ${DIFF}
 # 生成テキストとして扱う。
 
 echo "[INFO] model=$MODEL 認証=$AUTH_MODE でメッセージを生成中..." >&2
+[[ $BACKEND == magnitude ]] && echo "[INFO] ローカル推論は2分前後かかることがあります(タイムアウト${GEN_COMMIT_MSG_TIMEOUT:-300}秒)" >&2
 
 # API が詰まるとロックを持ったまま待ち続けるため、timeout があれば使う
 # (macOS 標準には無く、coreutils の gtimeout)。
-CLAUDE_TIMEOUT="${GEN_COMMIT_MSG_TIMEOUT:-90}"
+# ローカルモデルは遅いので magnitude は長め(300秒)にする。
+CLAUDE_TIMEOUT="${GEN_COMMIT_MSG_TIMEOUT:-$([[ $BACKEND == magnitude ]] && echo 300 || echo 90)}"
 TIMEOUT_CMD=()
 if command -v timeout >/dev/null 2>&1; then
   TIMEOUT_CMD=(timeout "$CLAUDE_TIMEOUT")
@@ -295,7 +340,7 @@ CLAUDE_ERR_FILE="$(mktemp)"
 trap 'rm -f -- "$CLAUDE_ERR_FILE"' EXIT
 CLAUDE_RC=0
 RESPONSE="$(
-  printf '%s' "$USER_PROMPT" | "${TIMEOUT_CMD[@]}" claude -p \
+  printf '%s' "$USER_PROMPT" | env "${CLAUDE_ENV[@]}" "${TIMEOUT_CMD[@]}" claude -p \
     "${BARE_ARGS[@]}" \
     --restricted \
     --model "$MODEL" \

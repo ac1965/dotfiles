@@ -61,6 +61,8 @@ brew "little-cms2"
 brew "dos2unix"
 # Generate documentation for several programming languages
 brew "doxygen"
+# Select default apps for documents and URL schemes on macOS
+brew "duti"
 # XML 1.0 parser
 brew "expat"
 # Simple, fast and user-friendly alternative to find

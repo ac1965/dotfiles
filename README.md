@@ -252,6 +252,18 @@ gen-commit-msg.sh --commit --edit  # エディタで確認・編集してから�
 gen-commit-msg.sh --api            # Anthropic API で実行(要 ANTHROPIC_API_KEY)
 ```
 
+Claude の Haiku 5.5(`claude-haiku-5-5`)で実行するコマンド:
+
+```bash
+gen-commit-msg.sh --api --model claude-haiku-5-5     # API キー認証(--bare、要 ANTHROPIC_API_KEY)
+```
+
+```bash
+gen-commit-msg.sh --oauth --model claude-haiku-5-5   # OAuth ログイン(API キー不要)
+```
+
+`--model` だけを指定すると既定の Magnitude(ローカル)へ `claude-haiku-5-5` を要求して失敗するため、必ず `--api` か `--oauth` と組み合わせる。どちらも diff は Anthropic API へ送信される。
+
 > **Note — 事前準備** `claude` コマンドと、環境変数 `ANTHROPIC_API_KEY`(または `apiKeyHelper`)が必要。`--bare` は通常の OAuth/キーチェーンログインを使えず API キー認証に限られる。API キーはこのリポジトリには含めず、`private/` アーカイブ側の秘匿情報として用意し、シェルに環境変数として読み込まれる状態にしておく。未設定の場合はスクリプトが実行前にエラーで案内する。
 
 > **Note — `--api` / `--oauth` では diff は Anthropic API へ送信される**(既定の Magnitude は完全にローカル)。以前はローカルの Ollama を使い完全にオフラインで完結していたが、メモリ不足による空応答などの不安定さから Claude Code に置き換えた。そのため、コミット対象の diff(最大8000文字に切り詰め)が外部へ送信される。機密を含む変更をステージしている場合は使用しないこと。生成結果の1行目が規約形式でない場合は、`--commit` を付けてもコミットせずエラー終了する。

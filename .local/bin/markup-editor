@@ -1,0 +1,6 @@
+#!/bin/sh
+# Markup Editor の起動用。リポジトリの .venv（Homebrew python@3.14 = Tk 9）で動かす。
+# macOS 標準の Tk 8.5 は新しい macOS で描画が壊れるため。
+# ターミナルを塞がないよう、バックグラウンドで起動する。
+d=/Users/ac1965/Projects/MarkupEditor
+nohup "$d/.venv/bin/python" "$d/markup_editor.py" "$@" >/dev/null 2>&1 &

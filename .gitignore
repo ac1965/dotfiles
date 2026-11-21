@@ -72,6 +72,7 @@
 !.local/bin/encrypt
 !.local/bin/decrypt
 !.local/bin/localllm
+!.local/bin/markup-editor
 !.local/bin/*.sh
 !.local/bin/*.zsh
 !.local/bin/*.py
